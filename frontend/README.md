@@ -1,59 +1,58 @@
-# FrontendApp
+# Frontend Project README
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.1.
+## Overview
+BioKyowa Inc. is a biotechnology company based in Cape Girardeau, Missouri. It operates fermentation facilities to produce bulk amino acids. Established in 1982, production began in 1984 with amino-acid feed supplements. It was the first major plant investment by a Japanese company in Missouri and the first commercial lysine-producing plant in the U.S. The company is a wholly owned subsidiary of Kyowa Hakko Bio Co., Ltd., part of Kirin Holdings.
 
-## Development server
+## History and Parent Company
+- Construction began in 1982; production launched in 1984 with swine and poultry feed supplements.
+- Expanded over 30+ years into multiple facilities producing high-quality amino acids.
+- Parent: Kyowa Hakko Bio Co., Ltd. (KHB), formed in 2008 as part of Kirin Group.
+- President Yoshimura thanks the community and employees, reaffirming commitment to premium amino acids.
 
-To start a local development server, run:
+## Operations and Manufacturing
+- Uses advanced fermentation technology.
+- Produces amino acids for nutrition, food production, pharmaceuticals, cosmetics, and fertilizers.
 
-```bash
-ng serve
-```
+## Fermentation and Amino-acid Production
+- Fermentation is a controlled metabolic process converting carbohydrates into acids or alcohol.
+- Human body uses 20 amino acids (essential and non-essential).
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Manufacturing Process
+- Begins in sterile labs and proceeds through fermenters and bioreactors.
+- Unit operations include filtration, evaporation, crystallization, isolation, drying, milling, and packaging.
+- Certifications include ISO 9001:2015, FSSC 22000, HACCP, Kosher, and Halal.
+- Adheres to current Good Manufacturing Practices (cGMP).
 
-## Code scaffolding
+## Products
+BioKyowa produces high-quality amino acids used in supplements, cosmetics, and pharmaceutical precursors.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Community Involvement and Awards
+- Supports local organizations: Noon Optimists, Lions Club, Cape Girardeau Chamber of Commerce.
+- Sponsored Safe House for Women.
+- Awards: Community Achievement Award, Governor's New Product Award, Industry of the Year Award.
+- Sponsors scholarships and cultural exchange programs.
 
-```bash
-ng generate component component-name
-```
+## Global Network
+- United States: Kyowa Hakko USA serves as a sales office.
+- Japan: Kyowa Hakko Bio manages manufacturing and global operations.
+- Additional international locations extend distribution and collaboration.
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Contact Information
+BioKyowa Inc.
+5469 Nash Road, PO Box 1550, Cape Girardeau, MO 63702-1550
+Phone: (573) 335-4849
+Emails: info@biokyowa.com, jobs@biokyowa.com
 
-```bash
-ng generate --help
-```
+Kyowa Hakko USA, Inc.
+600 Third Avenue, 19th Floor, New York, NY 10016
+Phone: (800) 596-9252
+Email: info@kyowa-usa.com
 
-## Building
+## Careers and Company Culture
+- Careers site tagline: "We're all about life. Especially yours."
+- Values emphasize collaboration, respect, and rewards with benefits.
+- Culture promotes inclusion, equality, recognition, and work-life balance.
+- Employee support includes perks aligned with long-term growth.
 
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## Conclusion
+BioKyowa pioneered U.S. fermentation-based amino acid production. With decades of experience and certifications, it remains a major producer of high-quality amino acids. The company continues to invest in technology, community, and employees while benefiting from the global resources of Kyowa Hakko Bio and Kirin Holdings.
