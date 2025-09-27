@@ -18,6 +18,9 @@ app.use(helmet());
 const apiRoutes = require('./routes/api');
 app.use('/api', apiRoutes);
 
+const fermentationRoutes = require('./routes/fermentation');
+app.use('/api', fermentationRoutes);
+
 // Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

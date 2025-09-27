@@ -1,5 +1,13 @@
 const Employee = require('../models/employeeModel');
+const Joi = require('joi');
 
+const employeeSchema = Joi.object({
+    name: Joi.string().min(2).required(),
+    email: Joi.string().email().required(),
+    role: Joi.string().valid('supervisor', 'operator').required()
+  });
+
+  // Controller: get all employees
 const getEmployee = async (req, res) => {
   try {
     const employees = await Employee.find();
@@ -9,6 +17,7 @@ const getEmployee = async (req, res) => {
   }
 };
 
+// Controller: create new employee
 const createEmployee = async (req, res) => {
   try {
     const employee = new Employee(req.body);
