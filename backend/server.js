@@ -3,6 +3,8 @@ const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
 require('dotenv').config();
+const connectDB = require('./config/db.js');
+connectDB();
 
 const app = express();
 
@@ -13,7 +15,8 @@ app.use(morgan('dev'));
 app.use(helmet());
 
 // Routes
-
+const apiRoutes = require('./routes/api');
+app.use('/api', apiRoutes);
 
 // Start Server
 const PORT = process.env.PORT || 5000;

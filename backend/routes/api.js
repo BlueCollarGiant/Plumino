@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
 
-router.get('/hello', (req, res) => {
-  res.json({ message: 'Hello from Node backend!' });
-});
+const { getEmployee, createEmployee } = require('../controllers/employeeController');
+
+
+router.get('/employee', getEmployee)
+router.post('/employee', createEmployee);
 
 module.exports = router;
