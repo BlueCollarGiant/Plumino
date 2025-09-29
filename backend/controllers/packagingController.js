@@ -22,6 +22,126 @@ const getPackagings = async (req, res) => {
   }
 };
 
+const buildPackagingFilters = (query = {}) => {
+  const { date, plant, product, campaign } = query;
+  const filters = {};
+
+  if (date) {
+    const parsedDate = new Date(date);
+    if (!Number.isNaN(parsedDate.getTime())) {
+      const startOfDay = new Date(parsedDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(startOfDay);
+      endOfDay.setDate(endOfDay.getDate() + 1);
+      filters.date = { $gte: startOfDay, $lt: endOfDay }; // single-day window
+    }
+  }
+  if (plant) filters.plant = plant;
+  if (product) filters.product = product;
+  if (campaign) filters.campaign = campaign;
+
+  return filters;
+};
+
+// Controller: dynamically filter packaging records by optional query params
+const getFilteredPackaging = async (req, res) => {
+  const filters = buildPackagingFilters(req.query);
+
+  try {
+    const packagings = await Packaging.find(filters);
+    res.json(packagings);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Aggregation: group packaging outgoing totals by plant
+const getPackagingByPlant = async (req, res) => {
+  const filters = buildPackagingFilters(req.query);
+  try {
+    const pipeline = [];
+    if (Object.keys(filters).length > 0) {
+      pipeline.push({ $match: filters });
+    }
+    pipeline.push(
+      { $group: { _id: '$plant', total: { $sum: '$outgoingAmountKg' } } },
+      { $sort: { total: -1 } }
+    );
+
+    const results = await Packaging.aggregate(pipeline);
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Aggregation: group packaging outgoing totals by product
+const getPackagingByProduct = async (req, res) => {
+  const filters = buildPackagingFilters(req.query);
+  try {
+    const pipeline = [];
+    if (Object.keys(filters).length > 0) {
+      pipeline.push({ $match: filters });
+    }
+    pipeline.push(
+      { $group: { _id: '$product', total: { $sum: '$outgoingAmountKg' } } },
+      { $sort: { total: -1 } }
+    );
+
+    const results = await Packaging.aggregate(pipeline);
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Aggregation: group packaging outgoing totals by campaign
+const getPackagingByCampaign = async (req, res) => {
+  const filters = buildPackagingFilters(req.query);
+  try {
+    const pipeline = [];
+    if (Object.keys(filters).length > 0) {
+      pipeline.push({ $match: filters });
+    }
+    pipeline.push(
+      { $group: { _id: '$campaign', total: { $sum: '$outgoingAmountKg' } } },
+      { $sort: { total: -1 } }
+    );
+
+    const results = await Packaging.aggregate(pipeline);
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Aggregation: group packaging outgoing totals by date (day granularity)
+const getPackagingByDate = async (req, res) => {
+  const filters = buildPackagingFilters(req.query);
+  try {
+    const pipeline = [];
+    if (Object.keys(filters).length > 0) {
+      pipeline.push({ $match: filters });
+    }
+    pipeline.push(
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$date' }
+          },
+          total: { $sum: '$outgoingAmountKg' }
+        }
+      },
+      { $sort: { _id: 1 } }
+    );
+
+    const results = await Packaging.aggregate(pipeline);
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // GET by ID
 const getPackagingById = async (req, res) => {
   try {
@@ -74,6 +194,11 @@ const deletePackaging = async (req, res) => {
 
 module.exports = {
   getPackagings,
+  getFilteredPackaging,
+  getPackagingByPlant,
+  getPackagingByProduct,
+  getPackagingByCampaign,
+  getPackagingByDate,
   getPackagingById,
   createPackaging,
   updatePackaging,
