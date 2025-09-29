@@ -7,7 +7,7 @@ const fermentationSchema = new mongoose.Schema({
   product: { type: String, required: true },
   plant: { type: String, required: true },
   campaign: { type: String, required: true },
-  received: { type: Number, required: true },       
+  receivedAmount: { type: Number, required: true },       
   weight: { type: Number, required: true },          
   date: { type: Date, required: true },              
   createdAt: { type: Date, default: Date.now }
