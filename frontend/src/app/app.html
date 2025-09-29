@@ -1,7 +1,16 @@
 <div class="app-shell">
   <header class="app-header">
-    <h1>Plumino Operations</h1>
-    <p class="subtitle">Packaging performance overview</p>
+    <div class="branding">
+      <h1>Plumino Operations</h1>
+      <p class="subtitle">Select a view to explore packaging, fermentation, or extraction data.</p>
+    </div>
+    <nav class="nav">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+      <a routerLink="/pov-analytics" routerLinkActive="active">POV Analytics</a>
+      <a routerLink="/packaging" routerLinkActive="active">Packaging POV</a>
+      <a routerLink="/fermentation" routerLinkActive="active">Fermentation POV</a>
+      <a routerLink="/extraction" routerLinkActive="active">Extraction POV</a>
+    </nav>
   </header>
   <main class="app-content">
     <router-outlet></router-outlet>

@@ -22,6 +22,21 @@ type ChartState = {
   options?: ChartConfiguration['options'];
 };
 
+type TimeRangeValue = '7d' | '1m' | '6m' | '1y' | 'all';
+
+interface RangeOption {
+  label: string;
+  value: TimeRangeValue;
+}
+
+const RANGE_OPTIONS: RangeOption[] = [
+  { label: '7 Days', value: '7d' },
+  { label: '1 Month', value: '1m' },
+  { label: '6 Months', value: '6m' },
+  { label: '1 Year', value: '1y' },
+  { label: 'All', value: 'all' }
+];
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -53,6 +68,20 @@ type ChartState = {
           <button type="button" (click)="resetFilters()">Clear</button>
         </div>
       </form>
+
+      <div class="range-controls">
+        <span class="range-label">Time Range</span>
+        <div class="range-buttons">
+          <button
+            type="button"
+            *ngFor="let option of rangeOptions; trackBy: trackByRange"
+            (click)="setRange(option.value)"
+            [class.active]="selectedRange() === option.value"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+      </div>
 
       <section class="chart-panel">
         <div class="chart-controls">
@@ -192,6 +221,41 @@ type ChartState = {
         background: #64748b;
       }
 
+      .range-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+
+      .range-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #1e293b;
+      }
+
+      .range-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .range-buttons button {
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        color: #0f172a;
+        cursor: pointer;
+        font-size: 0.8rem;
+      }
+
+      .range-buttons button.active {
+        border-color: #1d4ed8;
+        background: rgba(29, 78, 216, 0.12);
+        color: #1d4ed8;
+      }
+
       .chart-panel {
         display: flex;
         flex-direction: column;
@@ -284,6 +348,12 @@ export class DashboardComponent implements OnInit {
     return Array.isArray(labels) && labels.length > 0;
   });
 
+  private readonly defaultRange: TimeRangeValue = '6m';
+  protected readonly rangeOptions = RANGE_OPTIONS;
+  protected readonly selectedRange = signal<TimeRangeValue>(this.defaultRange);
+  protected readonly currentFilters = signal<PackagingFilters>({ range: this.defaultRange });
+  protected readonly trackByRange = (_: number, option: RangeOption) => option.value;
+
   private readonly colorPalette = ['#3b82f6', '#22c55e', '#a855f7', '#f97316', '#ef4444', '#14b8a6', '#facc15'];
 
   ngOnInit(): void {
@@ -300,6 +370,7 @@ export class DashboardComponent implements OnInit {
 
   protected resetFilters(): void {
     this.filterForm.setValue({ date: '', plant: '', product: '', campaign: '' });
+    this.selectedRange.set(this.defaultRange);
     this.loadFromForm(); // immediately refresh results after reset
   }
 
@@ -308,11 +379,12 @@ export class DashboardComponent implements OnInit {
       return;
     }
     this.activeView.set(view);
-    this.loadStats(view, this.buildFiltersFromForm()); // re-run aggregates with current filters
+    this.loadStats(view, this.currentFilters()); // re-run aggregates with current filters
   }
 
   private loadFromForm(): void {
     const filters = this.buildFiltersFromForm();
+    this.currentFilters.set(filters);
     this.loadPackaging(filters);
     this.loadStats(this.activeView(), filters);
   }
@@ -327,7 +399,20 @@ export class DashboardComponent implements OnInit {
       }
     });
 
+    const range = this.selectedRange();
+    if (range && range !== 'all') {
+      filters.range = range;
+    }
+
     return filters;
+  }
+
+  protected setRange(range: TimeRangeValue): void {
+    if (this.selectedRange() === range) {
+      return;
+    }
+    this.selectedRange.set(range);
+    this.loadFromForm();
   }
 
   private loadPackaging(filters: PackagingFilters): void {
@@ -388,86 +473,178 @@ export class DashboardComponent implements OnInit {
   }
 
   private updateChartState(view: ViewKey, records: PackagingAggregate[]): void {
-    const labels = records.map((item) => this.normalizeLabel(item._id));
-    const totals = records.map((item) => item.total ?? 0);
-
-    switch (view) {
-      case 'product':
-        this.chartConfig.set({
-          type: 'pie',
-          data: {
-            labels,
-            datasets: [
-              {
-                label: 'Outgoing (kg)',
-                data: totals,
-                backgroundColor: this.generateColors(labels.length)
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            plugins: { legend: { position: 'bottom' } }
-          }
-        });
-        break;
-      case 'campaign':
-        this.chartConfig.set({
-          type: 'bar',
-          data: {
-            labels,
-            datasets: [
-              {
-                label: 'Outgoing (kg)',
-                data: totals,
-                backgroundColor: this.generateColors(labels.length)
-              }
-            ]
-          },
-          options: this.buildBarOptions()
-        });
-        break;
-      case 'date':
-        this.chartConfig.set({
-          type: 'line',
-          data: {
-            labels,
-            datasets: [
-              {
-                label: 'Outgoing (kg)',
-                data: totals,
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.25)',
-                fill: true,
-                tension: 0.3
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            scales: {
-              y: { beginAtZero: true }
-            }
-          }
-        });
-        break;
-      default:
-        this.chartConfig.set({
-          type: 'bar',
-          data: {
-            labels,
-            datasets: [
-              {
-                label: 'Outgoing (kg)',
-                data: totals,
-                backgroundColor: this.generateColors(labels.length)
-              }
-            ]
-          },
-          options: this.buildBarOptions()
-        });
-        break;
+    if (!records.length) {
+      this.chartConfig.set({
+        type: 'bar',
+        data: { labels: [] as string[], datasets: [] },
+        options: this.buildBarOptions(true)
+      });
+      return;
     }
+
+    if (view === 'product') {
+      const labels = records.map((item) => this.normalizeLabel(item._id as string));
+      const outgoing = records.map((item) => item.outgoingTotal ?? 0);
+      const colors = this.generateColors(labels.length).map((hex) => this.hexToRgba(hex, 0.85));
+
+      this.chartConfig.set({
+        type: 'pie',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Outgoing (kg)',
+              data: outgoing,
+              backgroundColor: colors
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+      return;
+    }
+
+    if (view === 'campaign') {
+      const firstId = records[0]._id;
+      if (typeof firstId === 'string') {
+        const labels = records.map((item) => this.normalizeLabel(item._id as string));
+        const outgoing = records.map((item) => item.outgoingTotal ?? 0);
+        const incoming = records.map((item) => item.incomingTotal ?? 0);
+
+        this.chartConfig.set({
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              this.buildBarDataset('Outgoing (kg)', outgoing, '#3b82f6'),
+              this.buildBarDataset('Incoming (kg)', incoming, '#22c55e')
+            ]
+          },
+          options: this.buildBarOptions(true)
+        });
+        return;
+      }
+
+      const timeline = this.buildCampaignTimeline(records);
+      this.chartConfig.set({
+        type: 'line',
+        data: timeline,
+        options: this.buildLineOptions()
+      });
+      return;
+    }
+
+    if (view === 'date') {
+      const labels = records.map((item) => this.normalizeLabel(item._id as string));
+      const outgoing = records.map((item) => item.outgoingTotal ?? 0);
+      const incoming = records.map((item) => item.incomingTotal ?? 0);
+
+      this.chartConfig.set({
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            this.buildLineDataset('Outgoing (kg)', outgoing, '#3b82f6', {
+              fill: true,
+              backgroundAlpha: 0.25
+            }),
+            this.buildLineDataset('Incoming (kg)', incoming, '#22c55e', {
+              fill: true,
+              backgroundAlpha: 0.2,
+              dash: true
+            })
+          ]
+        },
+        options: this.buildLineOptions()
+      });
+      return;
+    }
+
+    const labels = records.map((item) => this.normalizeLabel(item._id as string));
+    const outgoing = records.map((item) => item.outgoingTotal ?? 0);
+    const incoming = records.map((item) => item.incomingTotal ?? 0);
+
+    this.chartConfig.set({
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          this.buildBarDataset('Outgoing (kg)', outgoing, '#3b82f6'),
+          this.buildBarDataset('Incoming (kg)', incoming, '#22c55e')
+        ]
+      },
+      options: this.buildBarOptions(true)
+    });
+  }
+
+  private buildCampaignTimeline(records: PackagingAggregate[]): ChartConfiguration['data'] {
+    const dateSet = new Set<string>();
+    const seriesMap = new Map<
+      string,
+      {
+        outgoing: Map<string, number>;
+        incoming: Map<string, number>;
+        outgoingTotal: number;
+      }
+    >();
+
+    records.forEach((record) => {
+      if (!record._id || typeof record._id === 'string') {
+        return;
+      }
+
+      const campaign = this.normalizeLabel(record._id.campaign ?? 'Unspecified');
+      const date = record._id.date ?? 'Unknown';
+
+      dateSet.add(date);
+
+      const existing = seriesMap.get(campaign) ?? {
+        outgoing: new Map<string, number>(),
+        incoming: new Map<string, number>(),
+        outgoingTotal: 0
+      };
+
+      existing.outgoing.set(date, record.outgoingTotal ?? 0);
+      existing.incoming.set(date, record.incomingTotal ?? 0);
+      existing.outgoingTotal += record.outgoingTotal ?? 0;
+
+      seriesMap.set(campaign, existing);
+    });
+
+    const labels = Array.from(dateSet).sort();
+    if (!labels.length) {
+      return { labels: [], datasets: [] };
+    }
+
+    const sortedCampaigns = Array.from(seriesMap.entries())
+      .sort((a, b) => b[1].outgoingTotal - a[1].outgoingTotal)
+      .slice(0, 5); // limit to top 5 campaigns to keep the chart readable
+
+    const datasets: ChartConfiguration['data']['datasets'] = [];
+
+    sortedCampaigns.forEach(([campaign, series], index) => {
+      const color = this.pickColor(index);
+      datasets.push(
+        this.buildLineDataset(
+          `${campaign} Outgoing`,
+          labels.map((date) => series.outgoing.get(date) ?? 0),
+          color
+        )
+      );
+      datasets.push(
+        this.buildLineDataset(
+          `${campaign} Incoming`,
+          labels.map((date) => series.incoming.get(date) ?? 0),
+          color,
+          { dash: true, backgroundAlpha: 0.1 }
+        )
+      );
+    });
+
+    return { labels, datasets };
   }
 
   private normalizeLabel(value: string | null | undefined): string {
@@ -475,18 +652,83 @@ export class DashboardComponent implements OnInit {
   }
 
   private generateColors(size: number): string[] {
-    return Array.from({ length: size }, (_, index) => this.colorPalette[index % this.colorPalette.length]);
+    return Array.from({ length: size }, (_, index) => this.pickColor(index));
   }
 
-  private buildBarOptions(): ChartConfiguration['options'] {
+  private buildBarDataset(label: string, data: number[], color: string) {
+    return {
+      label,
+      data,
+      backgroundColor: this.hexToRgba(color, 0.6),
+      borderColor: color,
+      borderWidth: 1
+    };
+  }
+
+  private buildBarOptions(showLegend = true): ChartConfiguration['options'] {
     return {
       responsive: true,
       scales: {
         y: { beginAtZero: true }
       },
       plugins: {
-        legend: { display: false }
+        legend: { display: showLegend, position: 'bottom' }
       }
     };
+  }
+
+  private buildLineDataset(
+    label: string,
+    data: number[],
+    color: string,
+    options: { fill?: boolean; dash?: boolean; backgroundAlpha?: number } = {}
+  ) {
+    const { fill = false, dash = false, backgroundAlpha = fill ? 0.3 : 0.15 } = options;
+    const dataset: any = {
+      label,
+      data,
+      borderColor: color,
+      backgroundColor: this.hexToRgba(color, backgroundAlpha),
+      fill,
+      tension: 0.3
+    };
+
+    if (dash) {
+      dataset.borderDash = [6, 3];
+    }
+
+    return dataset;
+  }
+
+  private buildLineOptions(): ChartConfiguration['options'] {
+    return {
+      responsive: true,
+      scales: {
+        y: { beginAtZero: true }
+      },
+      plugins: {
+        legend: { position: 'bottom' }
+      }
+    };
+  }
+
+  private pickColor(index: number): string {
+    return this.colorPalette[index % this.colorPalette.length];
+  }
+
+  private hexToRgba(hex: string, alpha = 1): string {
+    let sanitized = hex.replace('#', '');
+    if (sanitized.length === 3) {
+      sanitized = sanitized
+        .split('')
+        .map((char) => char + char)
+        .join('');
+    }
+
+    const r = parseInt(sanitized.substring(0, 2), 16);
+    const g = parseInt(sanitized.substring(2, 4), 16);
+    const b = parseInt(sanitized.substring(4, 6), 16);
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 }

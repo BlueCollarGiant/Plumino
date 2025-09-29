@@ -9,24 +9,66 @@
 
 .app-header {
   padding: 1.5rem 2rem;
-  background: #1d4ed8;
+  background: #0f172a;
   color: #f8fafc;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
 }
 
-.app-header h1 {
+.branding h1 {
   margin: 0;
-  font-size: 1.75rem;
+  font-size: 1.8rem;
   font-weight: 600;
 }
 
-.app-header .subtitle {
+.branding .subtitle {
   margin: 0.25rem 0 0;
   font-size: 0.95rem;
-  color: rgba(248, 250, 252, 0.8);
+  color: rgba(248, 250, 252, 0.75);
+}
+
+.nav {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.nav a {
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  color: #f8fafc;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.nav a:hover {
+  border-color: #38bdf8;
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.nav a.active {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.2);
+  color: #bae6fd;
 }
 
 .app-content {
   flex: 1;
-  padding: 1.5rem 2rem;
+  padding: 1.5rem 2rem 2.5rem;
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    align-items: flex-start;
+  }
+
+  .nav {
+    width: 100%;
+  }
 }
