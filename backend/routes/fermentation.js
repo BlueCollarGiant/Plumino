@@ -1,11 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const { getFermentations, createFermentation } = require('../controllers/fermentationController');
+const {
+  getFermentations,
+  getFermentationById,
+  createFermentation,
+  updateFermentation,
+  deleteFermentation
+} = require('../controllers/fermentationController');
 
-// GET all fermentations
 router.get('/fermentation', getFermentations);
-
-// POST new fermentation record
+router.get('/fermentation/:id', getFermentationById);
 router.post('/fermentation', createFermentation);
+router.put('/fermentation/:id', updateFermentation);
+router.delete('/fermentation/:id', deleteFermentation);
 
 module.exports = router;

@@ -21,6 +21,14 @@ app.use('/api', apiRoutes);
 const fermentationRoutes = require('./routes/fermentation');
 app.use('/api', fermentationRoutes);
 
+const packagingRoutes = require('./routes/packaging');
+app.use('/api', packagingRoutes);
+
+const extractionRoutes = require('./routes/extraction');
+app.use('/api', extractionRoutes);
+
+
+
 // Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
