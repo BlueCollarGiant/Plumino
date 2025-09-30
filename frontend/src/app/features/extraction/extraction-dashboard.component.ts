@@ -29,6 +29,10 @@ import { ApiService, DataFilters, ExtractionResponse } from '../../core/services
           <span>Campaign</span>
           <input type="text" formControlName="campaign" placeholder="Campaign" />
         </label>
+        <label>
+          <span>Stage</span>
+          <input type="text" formControlName="stage" placeholder="Stage" />
+        </label>
         <div class="actions">
           <button type="submit">Apply</button>
           <button type="button" (click)="resetFilters()">Reset</button>
@@ -92,7 +96,7 @@ import { ApiService, DataFilters, ExtractionResponse } from '../../core/services
         </table>
       </div>
       <ng-template #loading>
-        <div class="loading">Loading extraction data…</div>
+        <div class="loading">Loading extraction dataï¿½</div>
       </ng-template>
     </section>
   `,
@@ -205,7 +209,8 @@ export class ExtractionDashboardComponent implements OnInit {
     date: '',
     plant: '',
     product: '',
-    campaign: ''
+    campaign: '',
+    stage: ''
   });
 
   protected readonly rows = signal<ExtractionResponse[]>([]);
@@ -260,7 +265,7 @@ export class ExtractionDashboardComponent implements OnInit {
   }
 
   protected resetFilters(): void {
-    this.filterForm.reset({ date: '', plant: '', product: '', campaign: '' });
+    this.filterForm.reset({ date: '', plant: '', product: '', campaign: '', stage: '' });
     this.loadData();
   }
 

@@ -1,8 +1,10 @@
 const Joi = require('joi');
 const Extraction = require('../models/extractionModel');
 
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const buildExtractionFilters = (query = {}) => {
-  const { date, plant, product, campaign } = query;
+  const { date, plant, product, campaign, stage } = query;
   const filters = {};
 
   if (date) {
@@ -19,6 +21,12 @@ const buildExtractionFilters = (query = {}) => {
   if (plant) filters.plant = plant;
   if (product) filters.product = product;
   if (campaign) filters.campaign = campaign;
+  if (stage) {
+    const normalizedStage = String(stage).trim();
+    if (normalizedStage) {
+      filters.stage = new RegExp(`^${escapeRegex(normalizedStage)}$`, 'i');
+    }
+  }
 
   return filters;
 };
