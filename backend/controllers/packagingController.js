@@ -2,7 +2,7 @@ const Joi = require('joi');
 const Packaging = require('../models/packagingModel');
 
 const buildPackagingFilters = (query = {}) => {
-  const { date, plant, product, campaign, range, startDate, endDate } = query;
+  const { date, plant, product, campaign, packageType, range, startDate, endDate } = query;
   const filters = {};
 
   if (date) {
@@ -73,6 +73,7 @@ const buildPackagingFilters = (query = {}) => {
   if (plant) filters.plant = plant;
   if (product) filters.product = product;
   if (campaign) filters.campaign = campaign;
+  if (packageType) filters.packageType = packageType;
 
   return filters;
 };
@@ -296,3 +297,4 @@ module.exports = {
   updatePackaging,
   deletePackaging
 };
+

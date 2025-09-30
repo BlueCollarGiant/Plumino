@@ -20,6 +20,7 @@ export interface PackagingFilters {
   date?: string;
   plant?: string;
   product?: string;
+  packageType?: string;
   campaign?: string;
   range?: string;
 }
@@ -137,3 +138,4 @@ export class ApiService {
     });
   }
 }
+

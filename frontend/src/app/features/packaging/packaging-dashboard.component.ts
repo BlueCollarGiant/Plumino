@@ -26,6 +26,10 @@ import { ApiService, PackagingFilters, PackagingResponse } from '../../core/serv
           <input type="text" formControlName="product" placeholder="Product" />
         </label>
         <label>
+          <span>Package</span>
+          <input type="text" formControlName="packageType" placeholder="Package" />
+        </label>
+        <label>
           <span>Campaign</span>
           <input type="text" formControlName="campaign" placeholder="Campaign" />
         </label>
@@ -80,7 +84,7 @@ import { ApiService, PackagingFilters, PackagingResponse } from '../../core/serv
         </table>
       </div>
       <ng-template #loading>
-        <div class="loading">Loading packaging data…</div>
+        <div class="loading">Loading packaging dataï¿½</div>
       </ng-template>
     </section>
   `,
@@ -196,6 +200,7 @@ export class PackagingDashboardComponent implements OnInit {
     date: '',
     plant: '',
     product: '',
+    packageType: '',
     campaign: ''
   });
 
@@ -241,7 +246,7 @@ export class PackagingDashboardComponent implements OnInit {
   }
 
   protected resetFilters(): void {
-    this.filterForm.reset({ date: '', plant: '', product: '', campaign: '' });
+    this.filterForm.reset({ date: '', plant: '', product: '', packageType: '', campaign: '' });
     this.loadData();
   }
 
@@ -278,3 +283,4 @@ export class PackagingDashboardComponent implements OnInit {
       });
   }
 }
+
