@@ -11,10 +11,6 @@ import { RouterLink } from '@angular/router';
       <h2>Welcome to Plumino Operations</h2>
       <p>Select the area you want to explore or jump straight into analytics.</p>
       <div class="tiles">
-        <a routerLink="/pov-analytics" class="tile highlight">
-          <h3>POV Analytics</h3>
-          <p>Compare Packaging, Fermentation, and Extraction KPIs with interactive charts.</p>
-        </a>
         <a routerLink="/packaging" class="tile">
           <h3>Packaging POV</h3>
           <p>Track incoming vs. outgoing quantities by package and campaign.</p>
@@ -80,3 +76,6 @@ import { RouterLink } from '@angular/router';
   ]
 })
 export class HomeComponent {}
+
+
+

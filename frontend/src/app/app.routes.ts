@@ -6,10 +6,6 @@ export const routes: Routes = [
     loadComponent: () => import('./features/home/home.component').then(m => m.HomeComponent)
   },
   {
-    path: 'pov-analytics',
-    loadComponent: () => import('./features/pov-stats/pov-stats.component').then(m => m.PovStatsComponent)
-  },
-  {
     path: 'packaging',
     loadComponent: () => import('./features/packaging/packaging-dashboard.component').then(m => m.PackagingDashboardComponent)
   },
@@ -26,3 +22,4 @@ export const routes: Routes = [
     redirectTo: ''
   }
 ];
+
