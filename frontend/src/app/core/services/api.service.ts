@@ -31,6 +31,7 @@ export interface DataFilters {
   plant?: string;
   product?: string;
   campaign?: string;
+  stage?: string;
 }
 
 export interface FermentationResponse {

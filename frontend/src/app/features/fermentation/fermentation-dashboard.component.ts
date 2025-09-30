@@ -26,6 +26,10 @@ import { ApiService, DataFilters, FermentationResponse } from '../../core/servic
           <input type="text" formControlName="product" placeholder="Product" />
         </label>
         <label>
+          <span>Stage</span>
+          <input type="text" formControlName="stage" placeholder="Stage" />
+        </label>
+        <label>
           <span>Campaign</span>
           <input type="text" formControlName="campaign" placeholder="Campaign" />
         </label>
@@ -84,7 +88,7 @@ import { ApiService, DataFilters, FermentationResponse } from '../../core/servic
         </table>
       </div>
       <ng-template #loading>
-        <div class="loading">Loading fermentation data…</div>
+        <div class="loading">Loading fermentation dataï¿½</div>
       </ng-template>
     </section>
   `,
@@ -197,6 +201,7 @@ export class FermentationDashboardComponent implements OnInit {
     date: '',
     plant: '',
     product: '',
+    stage: '',
     campaign: ''
   });
 
@@ -248,7 +253,7 @@ export class FermentationDashboardComponent implements OnInit {
   }
 
   protected resetFilters(): void {
-    this.filterForm.reset({ date: '', plant: '', product: '', campaign: '' });
+    this.filterForm.reset({ date: '', plant: '', product: '', stage: '', campaign: '' });
     this.loadData();
   }
 
@@ -298,3 +303,6 @@ export class FermentationDashboardComponent implements OnInit {
       });
   }
 }
+
+
+
