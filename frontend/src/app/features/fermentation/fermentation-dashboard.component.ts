@@ -70,7 +70,7 @@ import { ApiService, DataFilters, FermentationResponse } from '../../core/servic
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let row of rows()">
+            <tr class="data-row" *ngFor="let row of rows()">
               <td>{{ row.date | date:'yyyy-MM-dd' }}</td>
               <td>{{ row.plant }}</td>
               <td>{{ row.product }}</td>
@@ -79,7 +79,10 @@ import { ApiService, DataFilters, FermentationResponse } from '../../core/servic
               <td>{{ row.tank }}</td>
               <td>{{ row.levelIndicator }}</td>
               <td>{{ resolveNumber(row.weightLbs, row.weight) | number:'1.0-2' }}</td>
-              <td>{{ resolveNumber(row.receivedAmountLbs, row.receivedAmount) | number:'1.0-2' }}</td>
+              <td class="row-actions">
+                <span>{{ resolveNumber(row.receivedAmountLbs, row.receivedAmount) | number:'1.0-2' }}</span>
+                <button type="button" class="row-edit-button">Edit</button>
+              </td>
             </tr>
             <tr *ngIf="!rows().length">
               <td colspan="9" class="empty">No fermentation records match the selected filters.</td>
@@ -155,14 +158,90 @@ import { ApiService, DataFilters, FermentationResponse } from '../../core/servic
         color: #0f172a;
       }
       .table-wrapper {
-        overflow-x: auto;
+        position: relative;
+        padding-right: 3rem;
         background: #fff;
         border-radius: 0.75rem;
         border: 1px solid #e2e8f0;
       }
       table {
+        position: relative;
         width: 100%;
         border-collapse: collapse;
+      }
+      thead {
+        position: relative;
+      }
+      thead::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: -3rem;
+        width: 3rem;
+        height: 100%;
+        background: #f1f5f9;
+        border-top-right-radius: 0.75rem;
+      }
+      tbody tr.data-row {
+        position: relative;
+      }
+      tbody tr.data-row::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: -3rem;
+        bottom: -1px;
+        background: #fff;
+        border-bottom: 1px solid #e2e8f0;
+        pointer-events: auto;
+        transition: background 0.18s ease, border-color 0.18s ease;
+        z-index: 0;
+      }
+      tbody tr.data-row:hover::after {
+        background: linear-gradient(90deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.06) 55%, rgba(59, 130, 246, 0.12));
+        border-bottom-color: #bfdbfe;
+      }
+      tbody tr.data-row td {
+        position: relative;
+        z-index: 1;
+        border-bottom: none;
+        background: transparent;
+      }
+      tbody tr.data-row td.row-actions {
+        position: relative;
+        padding-right: 3rem;
+        white-space: nowrap;
+      }
+      tbody tr.data-row td.row-actions span {
+        display: inline-block;
+        padding-right: 1rem;
+      }
+      .row-edit-button {
+        position: absolute;
+        top: 50%;
+        right: 0;
+        transform: translate(2.4rem, -50%);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.18s ease, transform 0.18s ease;
+        padding: 0.3rem 0.85rem;
+        font-size: 0.75rem;
+        border-radius: 9999px;
+        border: 1px solid #bfdbfe;
+        background: linear-gradient(120deg, #eef2ff, #dbeafe);
+        color: #1d4ed8;
+        box-shadow: 0 4px 10px rgba(59, 130, 246, 0.16);
+        z-index: 2;
+      }
+      .row-edit-button:hover {
+        background: linear-gradient(120deg, #dbeafe, #bfdbfe);
+      }
+      tbody tr.data-row:hover .row-edit-button,
+      tbody tr.data-row td.row-actions:hover .row-edit-button {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translate(2.05rem, -50%);
       }
       th,
       td {
