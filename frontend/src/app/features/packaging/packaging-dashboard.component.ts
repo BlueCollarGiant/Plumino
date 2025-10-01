@@ -6,12 +6,32 @@ import { debounceTime } from 'rxjs';
 
 import { ApiService, PackagingFilters, PackagingResponse } from '../../core/services/api.service';
 
+type PackagingFieldKey = keyof PackagingResponse;
+
+type ModalFieldKey =
+  | PackagingFieldKey
+  | 'stage'
+  | 'tank'
+  | 'levelIndicator'
+  | 'volume'
+  | 'weight'
+  | 'concentration'
+  | 'pH';
+
+type ModalRow = Partial<Record<ModalFieldKey, unknown>>;
+
+interface ModalField {
+  key: ModalFieldKey;
+  label: string;
+  type: 'text' | 'number' | 'date';
+}
+
 @Component({
   selector: 'app-packaging-dashboard',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <section class="pov">
+    <section class="pov" [class.modal-open]="editingRow()">
       <form [formGroup]="filterForm" class="filters" (ngSubmit)="onSubmit()">
         <label>
           <span>Date</span>
@@ -54,7 +74,7 @@ import { ApiService, PackagingFilters, PackagingResponse } from '../../core/serv
         </div>
       </div>
 
-      <div class="table-wrapper" *ngIf="!isLoading(); else loading">
+      <div class="table-wrapper" [class.dimmed]="editingRow()" *ngIf="!isLoading(); else loading">
         <table>
           <thead>
             <tr>
@@ -77,7 +97,7 @@ import { ApiService, PackagingFilters, PackagingResponse } from '../../core/serv
               <td>{{ row.incomingAmountKg | number:'1.0-2' }}</td>
               <td class="row-actions">
                 <span>{{ row.outgoingAmountKg | number:'1.0-2' }}</span>
-                <button type="button" class="row-edit-button">Edit</button>
+                <button type="button" class="row-edit-button" (click)="openEditModal(row)">Edit</button>
               </td>
             </tr>
             <tr *ngIf="!rows().length">
@@ -87,8 +107,35 @@ import { ApiService, PackagingFilters, PackagingResponse } from '../../core/serv
         </table>
       </div>
       <ng-template #loading>
-        <div class="loading">Loading packaging dataï¿½</div>
+        <div class="loading">Loading packaging data…</div>
       </ng-template>
+
+      <div class="modal-backdrop" *ngIf="editingRow()">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+          <header class="modal-header">
+            <h2 id="edit-modal-title">Edit Packaging Record</h2>
+            <button type="button" class="modal-close" (click)="closeEditModal()" aria-label="Close">&times;</button>
+          </header>
+          <form class="modal-form">
+            <div class="modal-grid">
+              <label *ngFor="let field of modalFields" [attr.for]="'field-' + field.key">
+                <span>{{ field.label }}</span>
+                <input
+                  [id]="'field-' + field.key"
+                  [type]="field.type"
+                  [value]="getFieldValue(editingRow(), field.key)"
+                  [attr.placeholder]="field.label"
+                />
+              </label>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="btn-primary">Save</button>
+              <button type="button" class="btn-danger">Delete Row</button>
+              <button type="button" class="btn-secondary" (click)="closeEditModal()">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
     </section>
   `,
   styles: [
@@ -100,6 +147,7 @@ import { ApiService, PackagingFilters, PackagingResponse } from '../../core/serv
         padding: 1.5rem;
         background: #f8fafc;
         border-radius: 0.75rem;
+        position: relative;
       }
       .filters {
         display: grid;
@@ -127,29 +175,42 @@ import { ApiService, PackagingFilters, PackagingResponse } from '../../core/serv
         padding: 0.5rem 0.9rem;
         border-radius: 999px;
         border: none;
+        font-size: 0.85rem;
         cursor: pointer;
-        background: #1d4ed8;
-        color: #fff;
+        background: #0f172a;
+        color: #f8fafc;
+        transition: background 0.2s ease;
       }
       .actions button[type='button'] {
-        background: #475569;
+        background: #e2e8f0;
+        color: #0f172a;
+      }
+      .actions button:hover {
+        background: #1d4ed8;
+        color: #f8fafc;
+      }
+      .actions button[type='button']:hover {
+        background: #cbd5f5;
+        color: #0f172a;
       }
       .summary {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.75rem;
         background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 0.75rem;
         padding: 1rem;
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
       }
       .summary .label {
         display: block;
         font-size: 0.75rem;
-        color: #475569;
+        color: #64748b;
       }
       .summary .value {
-        font-size: 1.05rem;
+        display: block;
+        margin-top: 0.35rem;
+        font-size: 1.25rem;
         font-weight: 600;
         color: #0f172a;
       }
@@ -162,6 +223,11 @@ import { ApiService, PackagingFilters, PackagingResponse } from '../../core/serv
         background: #fff;
         border-radius: 0.75rem;
         border: 1px solid #e2e8f0;
+        transition: opacity 0.2s ease;
+      }
+      .table-wrapper.dimmed {
+        opacity: 0.4;
+        pointer-events: none;
       }
       table {
         position: relative;
@@ -170,6 +236,7 @@ import { ApiService, PackagingFilters, PackagingResponse } from '../../core/serv
       }
       thead {
         position: relative;
+        background: #f1f5f9;
       }
       thead::after {
         content: '';
@@ -231,13 +298,15 @@ import { ApiService, PackagingFilters, PackagingResponse } from '../../core/serv
         background: linear-gradient(120deg, #eef2ff, #dbeafe);
         color: #1d4ed8;
         box-shadow: 0 4px 10px rgba(59, 130, 246, 0.16);
+        cursor: pointer;
         z-index: 2;
       }
       .row-edit-button:hover {
         background: linear-gradient(120deg, #dbeafe, #bfdbfe);
       }
       tbody tr.data-row:hover .row-edit-button,
-      tbody tr.data-row td.row-actions:hover .row-edit-button {
+      tbody tr.data-row td.row-actions:hover .row-edit-button,
+      .table-wrapper.dimmed .row-edit-button {
         opacity: 1;
         pointer-events: auto;
         transform: translate(2.05rem, -50%);
@@ -267,6 +336,114 @@ import { ApiService, PackagingFilters, PackagingResponse } from '../../core/serv
         border-radius: 0.75rem;
         border: 1px solid #e2e8f0;
       }
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        z-index: 1000;
+      }
+      .modal {
+        width: min(560px, 100%);
+        max-height: calc(100vh - 3rem);
+        background: #ffffff;
+        border-radius: 1rem;
+        box-shadow: 0 25px 65px rgba(15, 23, 42, 0.25);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .modal-header h2 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: #0f172a;
+      }
+      .modal-close {
+        border: none;
+        background: transparent;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #475569;
+        line-height: 1;
+      }
+      .modal-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        padding: 1.25rem;
+        overflow-y: auto;
+      }
+      .modal-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+      .modal-grid label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        font-size: 0.85rem;
+        color: #1e293b;
+      }
+      .modal-grid input {
+        padding: 0.55rem 0.7rem;
+        border-radius: 0.6rem;
+        border: 1px solid #cbd5e1;
+        font-size: 0.85rem;
+      }
+      .modal-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: flex-end;
+      }
+      .modal-actions button {
+        border: none;
+        border-radius: 999px;
+        padding: 0.55rem 1.2rem;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background 0.2s ease, color 0.2s ease;
+      }
+      .modal-actions .btn-primary {
+        background: #2563eb;
+        color: #ffffff;
+      }
+      .modal-actions .btn-primary:hover {
+        background: #1d4ed8;
+      }
+      .modal-actions .btn-danger {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+      .modal-actions .btn-danger:hover {
+        background: #fecaca;
+      }
+      .modal-actions .btn-secondary {
+        background: #e2e8f0;
+        color: #0f172a;
+      }
+      .modal-actions .btn-secondary:hover {
+        background: #cbd5f5;
+      }
+      @media (max-width: 640px) {
+        .modal {
+          max-height: calc(100vh - 2rem);
+        }
+        .modal-actions {
+          justify-content: center;
+        }
+      }
     `
   ]
 })
@@ -285,6 +462,24 @@ export class PackagingDashboardComponent implements OnInit {
 
   protected readonly rows = signal<PackagingResponse[]>([]);
   protected readonly isLoading = signal(false);
+  protected readonly editingRow = signal<ModalRow | null>(null);
+
+  protected readonly modalFields: ModalField[] = [
+    { key: 'date', label: 'Date', type: 'date' },
+    { key: 'plant', label: 'Plant', type: 'text' },
+    { key: 'product', label: 'Product', type: 'text' },
+    { key: 'campaign', label: 'Campaign', type: 'text' },
+    { key: 'stage', label: 'Stage', type: 'text' },
+    { key: 'tank', label: 'Tank', type: 'text' },
+    { key: 'levelIndicator', label: 'Level Indicator', type: 'text' },
+    { key: 'packageType', label: 'Package', type: 'text' },
+    { key: 'volume', label: 'Volume', type: 'number' },
+    { key: 'weight', label: 'Weight', type: 'number' },
+    { key: 'concentration', label: 'Concentration', type: 'number' },
+    { key: 'pH', label: 'pH', type: 'number' },
+    { key: 'incomingAmountKg', label: 'Incoming (kg)', type: 'number' },
+    { key: 'outgoingAmountKg', label: 'Outgoing (kg)', type: 'number' }
+  ];
 
   protected readonly stats = computed(() => {
     const data = this.rows();
@@ -329,6 +524,47 @@ export class PackagingDashboardComponent implements OnInit {
     this.loadData();
   }
 
+  protected openEditModal(row: PackagingResponse): void {
+    this.editingRow.set({ ...row });
+  }
+
+  protected closeEditModal(): void {
+    this.editingRow.set(null);
+  }
+  protected getFieldValue(row: ModalRow | null, key: ModalFieldKey): string {
+    if (!row) {
+      return '';
+    }
+
+    const value = row[key];
+    if (value === undefined || value === null) {
+      return '';
+    }
+
+    if (key === 'date') {
+      if (value instanceof Date) {
+        return value.toISOString().split('T')[0];
+      }
+      if (typeof value === 'string') {
+        return value.includes('T') ? value.split('T')[0] : value;
+      }
+    }
+
+    if (value instanceof Date) {
+      return value.toISOString().split('T')[0];
+    }
+
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? String(value) : '';
+    }
+
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    return '';
+  }
+
   private buildFilters(): PackagingFilters {
     const raw = this.filterForm.getRawValue();
     const filters: PackagingFilters = {};
@@ -362,4 +598,15 @@ export class PackagingDashboardComponent implements OnInit {
       });
   }
 }
+
+
+
+
+
+
+
+
+
+
+
 
