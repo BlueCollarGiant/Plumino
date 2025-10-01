@@ -6,17 +6,14 @@ import { debounceTime } from 'rxjs';
 
 import { ApiService, PackagingFilters, PackagingResponse } from '../../core/services/api.service';
 
-type PackagingFieldKey = keyof PackagingResponse;
-
 type ModalFieldKey =
-  | PackagingFieldKey
-  | 'stage'
-  | 'tank'
-  | 'levelIndicator'
-  | 'volume'
-  | 'weight'
-  | 'concentration'
-  | 'pH';
+  | 'date'
+  | 'plant'
+  | 'product'
+  | 'campaign'
+  | 'packageType'
+  | 'incomingAmountKg'
+  | 'outgoingAmountKg';
 
 type ModalRow = Partial<Record<ModalFieldKey, unknown>>;
 
@@ -469,14 +466,7 @@ export class PackagingDashboardComponent implements OnInit {
     { key: 'plant', label: 'Plant', type: 'text' },
     { key: 'product', label: 'Product', type: 'text' },
     { key: 'campaign', label: 'Campaign', type: 'text' },
-    { key: 'stage', label: 'Stage', type: 'text' },
-    { key: 'tank', label: 'Tank', type: 'text' },
-    { key: 'levelIndicator', label: 'Level Indicator', type: 'text' },
     { key: 'packageType', label: 'Package', type: 'text' },
-    { key: 'volume', label: 'Volume', type: 'number' },
-    { key: 'weight', label: 'Weight', type: 'number' },
-    { key: 'concentration', label: 'Concentration', type: 'number' },
-    { key: 'pH', label: 'pH', type: 'number' },
     { key: 'incomingAmountKg', label: 'Incoming (kg)', type: 'number' },
     { key: 'outgoingAmountKg', label: 'Outgoing (kg)', type: 'number' }
   ];
