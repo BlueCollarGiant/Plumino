@@ -63,6 +63,20 @@ export interface ExtractionResponse {
   levelIndicator?: string;
   pH?: number;
 }
+export interface ExtractionRequest {
+  date: string | Date;
+  plant: string;
+  product: string;
+  campaign: string;
+  stage: string;
+  tank: string;
+  concentration: number;
+  volume: number;
+  weight: number;
+  levelIndicator: string;
+  pH: number;
+}
+
 
 export interface PackagingResponse {
   _id: string;
@@ -137,6 +151,14 @@ export class ApiService {
     return this.http.get<ExtractionResponse[]>(`${this.baseUrl}/extraction/filter`, {
       params: this.buildParams(filters)
     });
+  }
+
+  updateExtraction(id: string, payload: ExtractionRequest): Observable<ExtractionResponse> {
+    return this.http.put<ExtractionResponse>(`${this.baseUrl}/extraction/${id}`, payload);
+  }
+
+  deleteExtraction(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/extraction/${id}`);
   }
 }
 

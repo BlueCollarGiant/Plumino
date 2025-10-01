@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime } from 'rxjs';
 
-import { ApiService, DataFilters, ExtractionResponse } from '../../core/services/api.service';
+import { ApiService, DataFilters, ExtractionRequest, ExtractionResponse } from '../../core/services/api.service';
 
 type ModalFieldKey =
   | 'date'
@@ -19,7 +19,7 @@ type ModalFieldKey =
   | 'levelIndicator'
   | 'pH';
 
-type ModalRow = Partial<Record<ModalFieldKey, unknown>>;
+type ModalRow = Partial<Record<ModalFieldKey, unknown>> & { _id?: string };
 
 interface ModalField {
   key: ModalFieldKey;
@@ -130,22 +130,23 @@ interface ModalField {
             <h2 id="edit-modal-title">Edit Extraction Record</h2>
             <button type="button" class="modal-close" (click)="closeEditModal()" aria-label="Close">&times;</button>
           </header>
-          <form class="modal-form">
+          <form class="modal-form" [formGroup]="editForm" (ngSubmit)="submitEdit()">
             <div class="modal-grid">
               <label *ngFor="let field of modalFields" [attr.for]="'field-' + field.key">
                 <span>{{ field.label }}</span>
                 <input
                   [id]="'field-' + field.key"
                   [type]="field.type"
-                  [value]="getFieldValue(editingRow(), field.key)"
+                  [formControlName]="field.key"
                   [attr.placeholder]="field.label"
                 />
               </label>
             </div>
+            <p class="modal-error" *ngIf="mutationError()">{{ mutationError() }}</p>
             <div class="modal-actions">
-              <button type="button" class="btn-primary">Save</button>
-              <button type="button" class="btn-danger">Delete Row</button>
-              <button type="button" class="btn-secondary" (click)="closeEditModal()">Cancel</button>
+              <button type="submit" class="btn-primary" [disabled]="isMutating() || editForm.invalid">Save</button>
+              <button type="button" class="btn-danger" (click)="deleteCurrentRow()" [disabled]="isMutating()">Delete Row</button>
+              <button type="button" class="btn-secondary" (click)="closeEditModal()" [disabled]="isMutating()">Cancel</button>
             </div>
           </form>
         </div>
@@ -399,6 +400,11 @@ interface ModalField {
         border: 1px solid #cbd5e1;
         font-size: 0.85rem;
       }
+      .modal-error {
+        margin: 0.25rem 0 0;
+        color: #b91c1c;
+        font-size: 0.85rem;
+      }
       .modal-actions {
         display: flex;
         flex-wrap: wrap;
@@ -462,6 +468,23 @@ export class ExtractionDashboardComponent implements OnInit {
   protected readonly rows = signal<ExtractionResponse[]>([]);
   protected readonly isLoading = signal(false);
   protected readonly editingRow = signal<ModalRow | null>(null);
+
+  protected readonly editForm = this.fb.group({
+    date: ['', Validators.required],
+    plant: ['', Validators.required],
+    product: ['', Validators.required],
+    campaign: ['', Validators.required],
+    stage: ['', Validators.required],
+    tank: ['', Validators.required],
+    concentration: [null as number | null, [Validators.required, Validators.min(0.0000001)]],
+    volume: [null as number | null, [Validators.required, Validators.min(0.0000001)]],
+    weight: [null as number | null, [Validators.required, Validators.min(0.0000001)]],
+    levelIndicator: ['', Validators.required],
+    pH: [null as number | null, [Validators.required, Validators.min(0), Validators.max(14)]]
+  });
+
+  protected readonly isMutating = signal(false);
+  protected readonly mutationError = signal<string | null>(null);
 
   protected readonly modalFields: ModalField[] = [
     { key: 'date', label: 'Date', type: 'date' },
@@ -532,45 +555,156 @@ export class ExtractionDashboardComponent implements OnInit {
   }
 
   protected openEditModal(row: ExtractionResponse): void {
+    this.mutationError.set(null);
+    this.isMutating.set(false);
+
+    this.editForm.reset({
+      date: this.normalizeDateValue(row.date),
+      plant: row.plant ?? '',
+      product: row.product ?? '',
+      campaign: row.campaign ?? '',
+      stage: row.stage ?? '',
+      tank: row.tank ?? '',
+      concentration: this.coerceNumber(row.concentration),
+      volume: this.coerceNumber(row.volume),
+      weight: this.coerceNumber(row.weight),
+      levelIndicator: row.levelIndicator ?? '',
+      pH: this.coerceNumber(row.pH)
+    });
+
     this.editingRow.set({ ...row });
   }
 
   protected closeEditModal(): void {
+    this.editForm.reset();
     this.editingRow.set(null);
+    this.mutationError.set(null);
+    this.isMutating.set(false);
   }
 
-  protected getFieldValue(row: ModalRow | null, key: ModalFieldKey): string {
-    if (!row) {
-      return '';
+  protected submitEdit(): void {
+    const current = this.editingRow();
+
+    if (!current?._id) {
+      console.warn('Attempted to save extraction without an identifier.');
+      return;
     }
 
-    const value = row[key];
-    if (value === undefined || value === null) {
-      return '';
+    if (this.editForm.invalid) {
+      this.editForm.markAllAsTouched();
+      return;
     }
 
-    if (key === 'date') {
-      if (value instanceof Date) {
-        return value.toISOString().split('T')[0];
-      }
-      if (typeof value === 'string') {
-        return value.includes('T') ? value.split('T')[0] : value;
-      }
+    let payload: ExtractionRequest;
+    try {
+      payload = this.buildExtractionPayload();
+    } catch (err) {
+      this.mutationError.set('Unable to prepare extraction payload.');
+      return;
+    }
+
+    this.isMutating.set(true);
+    this.mutationError.set(null);
+
+    this.apiService
+      .updateExtraction(current._id, payload)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.rows.update((rows) =>
+            rows.map((item) => (item._id === updated._id ? { ...item, ...updated } : item))
+          );
+          this.isMutating.set(false);
+          this.closeEditModal();
+        },
+        error: (err) => {
+          console.error('Failed to update extraction record', err);
+          this.isMutating.set(false);
+          this.mutationError.set('Failed to update extraction record.');
+        }
+      });
+  }
+
+  protected deleteCurrentRow(): void {
+    const current = this.editingRow();
+
+    if (!current?._id) {
+      console.warn('Attempted to delete extraction without an identifier.');
+      return;
+    }
+
+    this.isMutating.set(true);
+    this.mutationError.set(null);
+
+    this.apiService
+      .deleteExtraction(current._id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.rows.update((rows) => rows.filter((item) => item._id !== current._id));
+          this.isMutating.set(false);
+          this.closeEditModal();
+        },
+        error: (err) => {
+          console.error('Failed to delete extraction record', err);
+          this.isMutating.set(false);
+          this.mutationError.set('Failed to delete extraction record.');
+        }
+      });
+  }
+
+  private buildExtractionPayload(): ExtractionRequest {
+    const raw = this.editForm.getRawValue();
+    const dateValue = raw.date ?? '';
+    const parsedDate = new Date(dateValue);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      throw new Error('Invalid date provided');
+    }
+
+    return {
+      date: parsedDate.toISOString(),
+      plant: raw.plant ?? '',
+      product: raw.product ?? '',
+      campaign: raw.campaign ?? '',
+      stage: raw.stage ?? '',
+      tank: raw.tank ?? '',
+      concentration: Number(raw.concentration),
+      volume: Number(raw.volume),
+      weight: Number(raw.weight),
+      levelIndicator: raw.levelIndicator ?? '',
+      pH: Number(raw.pH)
+    };
+  }
+
+  private normalizeDateValue(value: ModalRow['date']): string {
+    if (!value) {
+      return '';
     }
 
     if (value instanceof Date) {
-      return value.toISOString().split('T')[0];
+      return Number.isNaN(value.getTime()) ? '' : value.toISOString().split('T')[0];
     }
 
-    if (typeof value === 'number') {
-      return Number.isFinite(value) ? String(value) : '';
-    }
-
-    if (typeof value === 'string') {
-      return value;
+    if (typeof value === 'string' || typeof value === 'number') {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
     }
 
     return '';
+  }
+
+  private coerceNumber(value: unknown): number | null {
+    if (value === undefined || value === null) {
+      return null;
+    }
+
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null;
+    }
+
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
   }
 
   private buildFilters(): DataFilters {
@@ -607,4 +741,3 @@ export class ExtractionDashboardComponent implements OnInit {
       });
   }
 }
-
