@@ -32,746 +32,1445 @@ interface ModalField {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <section class="pov" [class.modal-open]="editingRow()">
-      <form [formGroup]="filterForm" class="filters" (ngSubmit)="onSubmit()">
-        <label>
-          <span>Date</span>
-          <input type="date" formControlName="date" />
-        </label>
-        <label>
-          <span>Plant</span>
-          <input type="text" formControlName="plant" placeholder="Plant" />
-        </label>
-        <label>
-          <span>Product</span>
-          <input type="text" formControlName="product" placeholder="Product" />
-        </label>
-        <label>
-          <span>Campaign</span>
-          <input type="text" formControlName="campaign" placeholder="Campaign" />
-        </label>
-        <label>
-          <span>Stage</span>
-          <input type="text" formControlName="stage" placeholder="Stage" />
-        </label>
-        <div class="actions">
-          <button type="submit">Apply</button>
-          <button type="button" (click)="resetFilters()">Reset</button>
+    <div class="extraction-dashboard">
+      <!-- Animated Background -->
+      <div class="background-container">
+        <div class="floating-shapes">
+          <div class="shape shape-1"></div>
+          <div class="shape shape-2"></div>
+          <div class="shape shape-3"></div>
+          <div class="shape shape-4"></div>
+          <div class="shape shape-5"></div>
         </div>
-      </form>
-
-      <div class="summary">
-        <div>
-          <span class="label">Avg Concentration (g/l)</span>
-          <span class="value">{{ stats().avgConcentration | number:'1.0-2' }}</span>
-        </div>
-        <div>
-          <span class="label">Total Volume (gal)</span>
-          <span class="value">{{ stats().totalVolume | number:'1.0-2' }}</span>
-        </div>
-        <div>
-          <span class="label">Total Weight (kg)</span>
-          <span class="value">{{ stats().totalWeight | number:'1.0-2' }}</span>
-        </div>
-        <div>
-          <span class="label">Avg pH</span>
-          <span class="value">{{ stats().avgPh | number:'1.0-2' }}</span>
-        </div>
+        <div class="gradient-overlay"></div>
       </div>
 
-      <div class="quick-add-section">
-        <h3 class="quick-add-title">Add New Record</h3>
-        <div class="quick-add-form">
-          <div class="quick-add-grid">
+      <!-- Header Section -->
+      <header class="dashboard-header">
+        <div class="header-content">
+          <div class="title-section">
+            <div class="title-text">
+              <h1>Extraction Operations</h1>
+              <p>Real-time monitoring and analytics for extraction workflows</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="pov" [class.modal-open]="editingRow()">
+        <!-- Filters Card -->
+        <div class="filters-card">
+          <h3 class="card-title">
+            Filter Data
+          </h3>
+          <form [formGroup]="filterForm" class="filters" (ngSubmit)="onSubmit()">
             <label>
               <span>Date</span>
-              <input type="date" [formControl]="quickAddControls.date" />
+              <input type="date" formControlName="date" />
             </label>
             <label>
               <span>Plant</span>
-              <input type="text" [formControl]="quickAddControls.plant" placeholder="Plant" />
+              <input type="text" formControlName="plant" placeholder="Enter plant number" />
             </label>
             <label>
               <span>Product</span>
-              <input type="text" [formControl]="quickAddControls.product" placeholder="Product" />
-            </label>
-            <label>
-              <span>Campaign</span>
-              <input type="text" [formControl]="quickAddControls.campaign" placeholder="Campaign" />
+              <input type="text" formControlName="product" placeholder="Enter product" />
             </label>
             <label>
               <span>Stage</span>
-              <input type="text" [formControl]="quickAddControls.stage" placeholder="Stage" />
+              <input type="text" formControlName="stage" placeholder="Extraction stage" />
             </label>
             <label>
-              <span>Tank</span>
-              <input type="text" [formControl]="quickAddControls.tank" placeholder="Tank" />
+              <span>Campaign</span>
+              <input type="text" formControlName="campaign" placeholder="Campaign ID" />
             </label>
-            <label>
-              <span>Concentration (g/l)</span>
-              <input type="number" [formControl]="quickAddControls.concentration" placeholder="Concentration" step="any" />
-            </label>
-            <label>
-              <span>Volume (gal)</span>
-              <input type="number" [formControl]="quickAddControls.volume" placeholder="Volume" step="any" />
-            </label>
-            <label>
-              <span>Weight (kg)</span>
-              <input type="number" [formControl]="quickAddControls.weight" placeholder="Weight" step="any" />
-            </label>
-            <label>
-              <span>Level Indicator</span>
-              <input type="text" [formControl]="quickAddControls.levelIndicator" placeholder="Level Indicator" />
-            </label>
-            <label>
-              <span>pH</span>
-              <input type="number" [formControl]="quickAddControls.pH" placeholder="pH" step="any" />
-            </label>
+            <div class="actions">
+              <button type="submit" class="btn-primary">
+                Apply Filters
+              </button>
+              <button type="button" (click)="resetFilters()" class="btn-secondary">
+                Reset
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-icon">CONC</div>
+              <span class="stat-label">Avg Concentration</span>
+            </div>
+            <div class="stat-value">{{ stats().avgConcentration | number:'1.0-2' }} g/l</div>
+            <div class="stat-trend positive">
+              <span class="trend-icon">STBL</span>
+              <span>Steady</span>
+            </div>
           </div>
-          @if (quickSaveError()) {
-            <p class="quick-add-error">{{ quickSaveError() }}</p>
-          }
-          <div class="quick-add-actions">
-            <button type="button" class="quick-save-btn" (click)="quickSave()" [disabled]="!canQuickSave()">
-              @if (isQuickSaving()) {
-                <span class="saving">⏳ Saving...</span>
-              } @else {
-                <span class="save-text">💾 Save Record</span>
-              }
-            </button>
-            <button type="button" class="quick-clear-btn" (click)="resetQuickAddForm()" [disabled]="isQuickSaving()">
-              🗑️ Clear
-            </button>
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-icon">VOL</div>
+              <span class="stat-label">Total Volume</span>
+            </div>
+            <div class="stat-value">{{ stats().totalVolume | number:'1.0-2' }} gal</div>
+            <div class="stat-trend positive">
+              <span class="trend-icon">UP</span>
+              <span>Active</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-icon">WT</div>
+              <span class="stat-label">Total Weight</span>
+            </div>
+            <div class="stat-value">{{ stats().totalWeight | number:'1.0-2' }} kg</div>
+            <div class="stat-trend positive">
+              <span class="trend-icon">UP</span>
+              <span>Active</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-icon">pH</div>
+              <span class="stat-label">Average pH</span>
+            </div>
+            <div class="stat-value">{{ stats().avgPh | number:'1.0-2' }}</div>
+            <div
+              class="stat-trend"
+              [class.positive]="stats().avgPh >= 6 && stats().avgPh <= 8"
+              [class.negative]="stats().avgPh < 6 || stats().avgPh > 8"
+            >
+              <span class="trend-icon">{{ stats().avgPh >= 6 && stats().avgPh <= 8 ? 'OK' : 'ALRT' }}</span>
+              <span>{{ stats().avgPh >= 6 && stats().avgPh <= 8 ? 'Balanced' : 'Monitor' }}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      @if (!isLoading()) {
-        <div class="table-wrapper" [class.dimmed]="editingRow()">
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Plant</th>
-                <th>Product</th>
-                <th>Campaign</th>
-                <th>Stage</th>
-                <th>Tank</th>
-                <th>Concentration (g/l)</th>
-                <th>Volume (gal)</th>
-                <th>Weight (kg)</th>
-                <th>Level Indicator</th>
-                <th>pH</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of rows(); track row._id || $index) {
-                <tr class="data-row">
-                  <td>{{ row.date | date:'yyyy-MM-dd' }}</td>
-                  <td>{{ row.plant }}</td>
-                  <td>{{ row.product }}</td>
-                  <td>{{ row.campaign }}</td>
-                  <td>{{ row.stage }}</td>
-                  <td>{{ row.tank }}</td>
-                  <td>{{ row.concentration | number:'1.0-2' }}</td>
-                  <td>{{ row.volume | number:'1.0-2' }}</td>
-                  <td>{{ row.weight | number:'1.0-2' }}</td>
-                  <td>{{ row.levelIndicator }}</td>
-                  <td class="row-actions">
-                    <span>{{ row.pH | number:'1.0-2' }}</span>
-                    <button type="button" class="row-edit-button" (click)="openEditModal(row)">Edit</button>
-                  </td>
-                </tr>
-              } @empty {
-                <tr>
-                  <td colspan="11" class="empty">No extraction records match the selected filters.</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      } @else {
-        <div class="loading">Loading extraction data...</div>
-      }
-
-      @if (editingRow()) {
-        <div class="modal-backdrop">
-          <div class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
-            <header class="modal-header">
-              <h2 id="edit-modal-title">Edit Extraction Record</h2>
-              <button type="button" class="modal-close" (click)="closeEditModal()" aria-label="Close">&times;</button>
-            </header>
-            <form class="modal-form" [formGroup]="editForm" (ngSubmit)="submitEdit()">
-              <div class="modal-grid">
-                @for (field of modalFields; track field.key) {
-                  <label [attr.for]="'field-' + field.key">
-                    <span>{{ field.label }}</span>
-                    <input
-                      [id]="'field-' + field.key"
-                      [type]="field.type"
-                      [formControlName]="field.key"
-                      [attr.placeholder]="field.label"
-                    />
-                  </label>
+        <!-- Quick Add Section -->
+        <div class="quick-add-section">
+          <div class="card-header">
+            <h3 class="card-title">
+              Add New Record
+            </h3>
+            <div class="header-accent"></div>
+          </div>
+          <div class="quick-add-form">
+            <div class="quick-add-grid">
+              <label>
+                <span>Date</span>
+                <input type="date" [formControl]="quickAddControls.date" />
+              </label>
+              <label>
+                <span>Plant</span>
+                <input type="text" [formControl]="quickAddControls.plant" placeholder="Plant number" />
+              </label>
+              <label>
+                <span>Product</span>
+                <input type="text" [formControl]="quickAddControls.product" placeholder="Product name" />
+              </label>
+              <label>
+                <span>Campaign</span>
+                <input type="text" [formControl]="quickAddControls.campaign" placeholder="Campaign ID" />
+              </label>
+              <label>
+                <span>Stage</span>
+                <input type="text" [formControl]="quickAddControls.stage" placeholder="Extraction stage" />
+              </label>
+              <label>
+                <span>Tank</span>
+                <input type="text" [formControl]="quickAddControls.tank" placeholder="Tank identifier" />
+              </label>
+              <label>
+                <span>Concentration (g/l)</span>
+                <input type="number" [formControl]="quickAddControls.concentration" placeholder="0.00" step="any" />
+              </label>
+              <label>
+                <span>Volume (gal)</span>
+                <input type="number" [formControl]="quickAddControls.volume" placeholder="0.00" step="any" />
+              </label>
+              <label>
+                <span>Weight (kg)</span>
+                <input type="number" [formControl]="quickAddControls.weight" placeholder="0.00" step="any" />
+              </label>
+              <label>
+                <span>Level Indicator</span>
+                <input type="text" [formControl]="quickAddControls.levelIndicator" placeholder="Level indicator" />
+              </label>
+              <label>
+                <span>pH</span>
+                <input type="number" [formControl]="quickAddControls.pH" placeholder="0.00" step="any" />
+              </label>
+            </div>
+            @if (quickSaveError()) {
+              <div class="error-message">
+                <span class="error-icon">ERROR</span>
+                {{ quickSaveError() }}
+              </div>
+            }
+            <div class="quick-add-actions">
+              <button type="button" class="quick-save-btn" (click)="quickSave()" [disabled]="!canQuickSave()">
+                @if (isQuickSaving()) {
+                  <div class="loading-spinner"></div>
+                  <span class="saving">Saving...</span>
+                } @else {
+                  Save Record
                 }
-              </div>
-              @if (mutationError()) {
-                <p class="modal-error">{{ mutationError() }}</p>
-              }
-              <div class="modal-actions">
-                <button type="submit" class="btn-primary" [disabled]="!canSubmitEdit()">Save</button>
-                <button type="button" class="btn-danger" (click)="deleteCurrentRow()" [disabled]="!canDelete()">Delete Row</button>
-                <button type="button" class="btn-secondary" (click)="closeEditModal()" [disabled]="isMutating()">Cancel</button>
-              </div>
-            </form>
+              </button>
+              <button type="button" class="quick-clear-btn" (click)="resetQuickAddForm()" [disabled]="isQuickSaving()">
+                Clear Form
+              </button>
+            </div>
           </div>
         </div>
-      }
-    </section>
+
+        <!-- Data Table Section -->
+        <div class="data-section">
+          <div class="section-header">
+            <h3 class="section-title">
+              Extraction Records
+            </h3>
+            <div class="record-count">
+              {{ rows().length }} record{{ rows().length !== 1 ? 's' : '' }}
+            </div>
+          </div>
+
+          @if (!isLoading()) {
+            <div class="table-container" [class.dimmed]="editingRow()">
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Plant</th>
+                      <th>Product</th>
+                      <th>Campaign</th>
+                      <th>Stage</th>
+                      <th>Tank</th>
+                      <th>Concentration (g/l)</th>
+                      <th>Volume (gal)</th>
+                      <th>Weight (kg)</th>
+                      <th>Level Indicator</th>
+                      <th>pH</th>
+                      <th class="actions-header">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of rows(); track row._id || $index) {
+                      <tr class="data-row">
+                        <td class="date-cell">{{ row.date | date:'MMM dd, yyyy' }}</td>
+                        <td class="plant-cell">
+                          <span class="plant-badge">{{ row.plant }}</span>
+                        </td>
+                        <td class="product-cell">{{ row.product }}</td>
+                        <td class="campaign-cell">
+                          <span class="campaign-badge">{{ row.campaign }}</span>
+                        </td>
+                        <td class="stage-cell">{{ row.stage }}</td>
+                        <td class="tank-cell">{{ row.tank }}</td>
+                        <td class="amount-cell concentration">
+                          <span class="amount-value">{{ row.concentration | number:'1.0-2' }}</span>
+                        </td>
+                        <td class="amount-cell volume">
+                          <span class="amount-value">{{ row.volume | number:'1.0-2' }}</span>
+                        </td>
+                        <td class="amount-cell weight">
+                          <span class="amount-value">{{ row.weight | number:'1.0-2' }}</span>
+                        </td>
+                        <td class="level-indicator-cell">{{ row.levelIndicator }}</td>
+                        <td class="amount-cell ph">
+                          <span class="amount-value">{{ row.pH | number:'1.0-2' }}</span>
+                        </td>
+                        <td class="actions-cell">
+                          <button type="button" class="edit-button" (click)="openEditModal(row)">
+                            Edit
+                          </button>
+                        </td>
+                      </tr>
+                    } @empty {
+                      <tr class="empty-row">
+                        <td colspan="12" class="empty-message">
+                          <div class="empty-content">
+                            <div class="empty-icon">NO DATA</div>
+                            <h4>No Records Found</h4>
+                            <p>No extraction records match your current filters. Try adjusting your search criteria or add a new record.</p>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          } @else {
+            <div class="loading-container">
+              <div class="loading-content">
+                <div class="loading-spinner large"></div>
+                <h4>Loading Data</h4>
+                <p>Fetching extraction records...</p>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Modal for editing -->
+        @if (editingRow()) {
+          <div class="modal-backdrop">
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+              <header class="modal-header">
+                <div class="modal-title-section">
+                  <div class="modal-icon">EDIT</div>
+                  <h2 id="edit-modal-title">Edit Extraction Record</h2>
+                </div>
+                <button type="button" class="modal-close" (click)="closeEditModal()" aria-label="Close">
+                  <span class="close-icon">X</span>
+                </button>
+              </header>
+              <form class="modal-form" [formGroup]="editForm" (ngSubmit)="submitEdit()">
+                <div class="modal-grid">
+                  @for (field of modalFields; track field.key) {
+                    <label [attr.for]="'field-' + field.key" class="modal-field">
+                      <span class="field-label">{{ field.label }}</span>
+                      <input
+                        [id]="'field-' + field.key"
+                        [type]="field.type"
+                        [formControlName]="field.key"
+                        [attr.placeholder]="field.label"
+                        class="field-input"
+                      />
+                    </label>
+                  }
+                </div>
+                @if (mutationError()) {
+                  <div class="error-message modal-error">
+                    <span class="error-icon">ERROR</span>
+                    {{ mutationError() }}
+                  </div>
+                }
+                <div class="modal-actions">
+                  <button type="submit" class="btn-primary modal-btn" [disabled]="!canSubmitEdit()">
+                    Save Changes
+                  </button>
+                  <button type="button" class="btn-danger modal-btn" (click)="deleteCurrentRow()" [disabled]="!canDelete()">
+                    Delete Record
+                  </button>
+                  <button type="button" class="btn-secondary modal-btn" (click)="closeEditModal()" [disabled]="isMutating()">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        }
+      </section>
+    </div>
   `,
   styles: [
-    `      .pov {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-        padding: 1.5rem;
-        background: #f8fafc;
-        border-radius: 0.75rem;
+    `
+      * {
+        box-sizing: border-box;
+      }
+
+      .extraction-dashboard {
+        min-height: 100vh;
         position: relative;
+        overflow-x: hidden;
+        background: #0a0f1c;
+        color: white;
       }
-      .filters {
-        display: grid;
-        gap: 1rem;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        align-items: end;
-      }
-      .filters label {
-        display: flex;
-        flex-direction: column;
-        font-size: 0.85rem;
-        color: #1e293b;
-      }
-      .filters input {
-        margin-top: 0.25rem;
-        padding: 0.45rem 0.6rem;
-        border-radius: 0.5rem;
-        border: 1px solid #cbd5e1;
-      }
-      .actions {
-        display: flex;
-        gap: 0.5rem;
-      }
-      .actions button {
-        padding: 0.5rem 0.9rem;
-        border-radius: 999px;
-        border: none;
-        cursor: pointer;
-        background: #1d4ed8;
-        color: #fff;
-      }
-      .actions button[type='button'] {
-        background: #475569;
-      }
-      .summary {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: 1rem;
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 0.75rem;
-        padding: 1rem;
-      }
-      .summary .label {
-        display: block;
-        font-size: 0.75rem;
-        color: #475569;
-      }
-      .summary .value {
-        font-size: 1.05rem;
-        font-weight: 600;
-        color: #0f172a;
-      }
-      .table-wrapper {
-        position: relative;
-        padding-right: 3rem;
-        background: #fff;
-        border-radius: 0.75rem;
-        border: 1px solid #e2e8f0;
-      }
-      .table-wrapper.dimmed {
-        opacity: 0.4;
-        pointer-events: none;
-      }
-      .table-wrapper.dimmed .row-edit-button {
-        opacity: 1;
-        pointer-events: auto;
-        transform: translate(2.05rem, -50%);
-      }
-      table {
-        position: relative;
-        width: 100%;
-        border-collapse: collapse;
-      }
-      thead {
-        position: relative;
-      }
-      thead::after {
-        content: '';
-        position: absolute;
+
+      /* Advanced Background - Matching Home Component */
+      .background-container {
+        position: fixed;
         top: 0;
-        right: -3rem;
-        width: 3rem;
+        left: 0;
+        width: 100%;
         height: 100%;
-        background: #f1f5f9;
-        border-top-right-radius: 0.75rem;
+        z-index: -1;
       }
-      tbody tr.data-row {
-        position: relative;
+
+      .floating-shapes {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
       }
-      tbody tr.data-row::after {
-        content: '';
+
+      .shape {
+        position: absolute;
+        border-radius: 50%;
+        background: linear-gradient(45deg, rgba(29, 78, 216, 0.1), rgba(34, 197, 94, 0.1));
+        backdrop-filter: blur(1px);
+        animation: float 20s infinite linear;
+      }
+
+      .shape-1 {
+        width: 300px;
+        height: 300px;
+        top: 10%;
+        left: -150px;
+        animation-delay: 0s;
+        animation-duration: 25s;
+      }
+
+      .shape-2 {
+        width: 200px;
+        height: 200px;
+        top: 60%;
+        right: -100px;
+        animation-delay: -8s;
+        animation-duration: 30s;
+      }
+
+      .shape-3 {
+        width: 150px;
+        height: 150px;
+        top: 30%;
+        left: 80%;
+        animation-delay: -15s;
+        animation-duration: 22s;
+      }
+
+      .shape-4 {
+        width: 250px;
+        height: 250px;
+        bottom: 20%;
+        left: 10%;
+        animation-delay: -12s;
+        animation-duration: 28s;
+      }
+
+      .shape-5 {
+        width: 180px;
+        height: 180px;
+        top: 5%;
+        left: 50%;
+        animation-delay: -20s;
+        animation-duration: 35s;
+      }
+
+      @keyframes float {
+        0% {
+          transform: translateY(0) rotate(0deg);
+          opacity: 0.3;
+        }
+        50% {
+          opacity: 0.6;
+        }
+        100% {
+          transform: translateY(-100vh) rotate(360deg);
+          opacity: 0;
+        }
+      }
+
+      .gradient-overlay {
         position: absolute;
         top: 0;
         left: 0;
-        right: -3rem;
-        bottom: -1px;
-        background: #fff;
-        border-bottom: 1px solid #e2e8f0;
-        pointer-events: auto;
-        transition: background 0.18s ease, border-color 0.18s ease;
-        z-index: 0;
+        width: 100%;
+        height: 100%;
+        background:
+          radial-gradient(circle at 20% 30%, rgba(29, 78, 216, 0.15) 0%, transparent 50%),
+          radial-gradient(circle at 80% 70%, rgba(34, 197, 94, 0.1) 0%, transparent 50%),
+          linear-gradient(135deg, #0a0f1c 0%, #1e293b 100%);
       }
-      tbody tr.data-row:hover::after {
-        background: linear-gradient(90deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.06) 55%, rgba(59, 130, 246, 0.12));
-        border-bottom-color: #bfdbfe;
+
+      /* Header Section */
+      .dashboard-header {
+        padding: 2rem;
+        position: relative;
+        z-index: 2;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.02);
+        backdrop-filter: blur(20px);
       }
-      tbody tr.data-row td {
+
+      .header-content {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .title-section {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+      }
+
+      .icon-wrapper {
+        position: relative;
+      }
+
+      .dashboard-icon {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #f59e0b;
         position: relative;
         z-index: 1;
-        border-bottom: none;
-        background: transparent;
+        letter-spacing: 1px;
       }
-      tbody tr.data-row td.row-actions {
-        position: relative;
-        padding-right: 3rem;
-        white-space: nowrap;
-      }
-      tbody tr.data-row td.row-actions span {
-        display: inline-block;
-        padding-right: 1rem;
-      }
-      .row-edit-button {
+
+      .icon-glow {
         position: absolute;
         top: 50%;
-        right: 0;
-        transform: translate(2.4rem, -50%);
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.18s ease, transform 0.18s ease;
-        padding: 0.3rem 0.85rem;
-        font-size: 0.75rem;
-        border-radius: 9999px;
-        border: 1px solid #bfdbfe;
-        background: linear-gradient(120deg, #eef2ff, #dbeafe);
-        color: #1d4ed8;
-        box-shadow: 0 4px 10px rgba(59, 130, 246, 0.16);
-        z-index: 2;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 60px;
+        height: 60px;
+        background: radial-gradient(circle, rgba(245, 158, 11, 0.4) 0%, transparent 70%);
+        border-radius: 50%;
+        filter: blur(15px);
+        animation: glow 3s ease-in-out infinite alternate;
       }
-      .row-edit-button:hover {
-        background: linear-gradient(120deg, #dbeafe, #bfdbfe);
-      }
-      tbody tr.data-row:hover .row-edit-button,
-      tbody tr.data-row td.row-actions:hover .row-edit-button {
-        opacity: 1;
-        pointer-events: auto;
-        transform: translate(2.05rem, -50%);
-      }
-      th,
-      td {
-        padding: 0.65rem;
-        border-bottom: 1px solid #e2e8f0;
-        text-align: left;
-        font-size: 0.85rem;
-      }
-      th {
-        background: #f1f5f9;
-        font-weight: 600;
-        color: #1e293b;
-      }
-      .empty {
-        text-align: center;
-        color: #64748b;
-        font-style: italic;
-      }
-      .loading {
-        padding: 2rem;
-        text-align: center;
-        color: #475569;
-        background: #fff;
-        border-radius: 0.75rem;
-        border: 1px solid #e2e8f0;
-      }
-      .modal-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(15, 23, 42, 0.45);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 1.5rem;
-        z-index: 1000;
-      }
-      .modal {
-        width: min(560px, 100%);
-        max-height: calc(100vh - 3rem);
-        background: #ffffff;
-        border-radius: 1rem;
-        box-shadow: 0 25px 65px rgba(15, 23, 42, 0.25);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-      }
-      .modal-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1rem 1.25rem;
-        border-bottom: 1px solid #e2e8f0;
-      }
-      .modal-header h2 {
-        margin: 0;
-        font-size: 1.1rem;
-        color: #0f172a;
-      }
-      .modal-close {
-        border: none;
-        background: transparent;
-        font-size: 1.5rem;
-        cursor: pointer;
-        color: #475569;
-        line-height: 1;
-      }
-      .modal-form {
-        display: flex;
-        flex-direction: column;
-        gap: 1.25rem;
-        padding: 1.25rem;
-        overflow-y: auto;
-      }
-      .modal-grid {
-        display: grid;
-        gap: 1rem;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      }
-      .modal-grid label {
-        display: flex;
-        flex-direction: column;
-        gap: 0.35rem;
-        font-size: 0.85rem;
-        color: #1e293b;
-      }
-      .modal-grid input {
-        padding: 0.55rem 0.7rem;
-        border-radius: 0.6rem;
-        border: 1px solid #cbd5e1;
-        font-size: 0.85rem;
-      }
-      .modal-error {
-        margin: 0.25rem 0 0;
-        color: #b91c1c;
-        font-size: 0.85rem;
-      }
-      .modal-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        justify-content: flex-end;
-      }
-      .modal-actions button {
-        border: none;
-        border-radius: 999px;
-        padding: 0.55rem 1.2rem;
-        font-size: 0.9rem;
-        cursor: pointer;
-        transition: background 0.2s ease, color 0.2s ease;
-      }
-      .modal-actions .btn-primary {
-        background: #2563eb;
-        color: #ffffff;
-      }
-      .modal-actions .btn-primary:hover {
-        background: #1d4ed8;
-      }
-      .modal-actions .btn-danger {
-        background: #fee2e2;
-        color: #b91c1c;
-      }
-      .modal-actions .btn-danger:hover {
-        background: #fecaca;
-      }
-      .modal-actions .btn-secondary {
-        background: #e2e8f0;
-        color: #0f172a;
-      }
-      .modal-actions .btn-secondary:hover {
-        background: #cbd5f5;
-      }
-      @media (max-width: 640px) {
-        .modal {
-          max-height: calc(100vh - 2rem);
+
+      @keyframes glow {
+        from {
+          opacity: 0.5;
+          transform: translate(-50%, -50%) scale(0.8);
         }
-        .modal-actions {
-          justify-content: center;
-        }
-        .table-wrapper {
-          padding-right: 0;
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-          position: relative;
-          border-radius: 0.75rem;
-          box-shadow: inset -10px 0 10px -10px rgba(0, 0, 0, 0.1);
-          margin-bottom: 1.5rem;
-        }
-        .table-wrapper::after {
-          content: '← Scroll to see more →';
-          position: sticky;
-          top: 100%;
-          left: 50%;
-          transform: translateX(-50%);
-          background: rgba(59, 130, 246, 0.9);
-          color: white;
-          padding: 0.25rem 0.5rem;
-          font-size: 0.65rem;
-          border-radius: 0.375rem;
-          pointer-events: none;
-          z-index: 3;
-          margin-top: 0.5rem;
-          display: block;
-          width: fit-content;
-          margin-left: auto;
-          margin-right: auto;
-        }
-        table {
-          min-width: 1000px;
-          width: 1000px;
-        }
-        th, td {
-          padding: 0.4rem 0.25rem;
-          font-size: 0.7rem;
-          white-space: nowrap;
-          border-right: 1px solid #e2e8f0;
-        }
-        th:last-child, td:last-child {
-          border-right: none;
-        }
-        th:first-child, td:first-child {
-          min-width: 80px;
-          width: 80px;
-          position: sticky;
-          left: 0;
-          background: #f1f5f9;
-          z-index: 2;
-          box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
-        }
-        tbody tr.data-row td:first-child {
-          background: #fff;
-          box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
-        }
-        th:nth-child(2), td:nth-child(2) {
-          min-width: 60px;
-          width: 60px;
-        }
-        th:nth-child(3), td:nth-child(3) {
-          min-width: 70px;
-          width: 70px;
-        }
-        th:nth-child(4), td:nth-child(4) {
-          min-width: 80px;
-          width: 80px;
-        }
-        th:nth-child(5), td:nth-child(5) {
-          min-width: 60px;
-          width: 60px;
-        }
-        th:nth-child(6), td:nth-child(6) {
-          min-width: 60px;
-          width: 60px;
-        }
-        th:nth-child(7), td:nth-child(7) {
-          min-width: 90px;
-          width: 90px;
-        }
-        th:nth-child(8), td:nth-child(8) {
-          min-width: 80px;
-          width: 80px;
-        }
-        th:nth-child(9), td:nth-child(9) {
-          min-width: 80px;
-          width: 80px;
-        }
-        th:nth-child(10), td:nth-child(10) {
-          min-width: 90px;
-          width: 90px;
-        }
-        th:nth-child(11), td:nth-child(11) {
-          min-width: 120px;
-          width: 120px;
-        }
-        thead::after {
-          display: none;
-        }
-        tbody tr.data-row::after {
-          right: 0;
-        }
-        tbody tr.data-row td.row-actions {
-          padding-right: 0.25rem;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        tbody tr.data-row td.row-actions span {
-          padding-right: 0.3rem;
-          flex-shrink: 0;
-        }
-        .row-edit-button {
-          position: static;
-          transform: none;
-          opacity: 1;
-          pointer-events: auto;
-          margin-left: 0.25rem;
-          font-size: 0.6rem;
-          padding: 0.15rem 0.3rem;
-          white-space: nowrap;
-          flex-shrink: 0;
-          border-radius: 4px;
-        }
-        tbody tr.data-row:hover .row-edit-button,
-        tbody tr.data-row td.row-actions:hover .row-edit-button,
-        .table-wrapper.dimmed .row-edit-button {
-          transform: none;
+        to {
+          opacity: 0.8;
+          transform: translate(-50%, -50%) scale(1.2);
         }
       }
 
-      .quick-add-section {
-        background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
-        border: 2px solid #0ea5e9;
-        border-radius: 0.75rem;
-        padding: 1.25rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
+      .title-text h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0 0 0.5rem 0;
+        background: linear-gradient(135deg, #ffffff 0%, #f59e0b 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
-      .quick-add-title {
-        margin: 0 0 1rem 0;
+
+      .title-text p {
+        margin: 0;
+        color: #cbd5e1;
         font-size: 1.1rem;
-        color: #0f172a;
+      }
+
+      .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(34, 197, 94, 0.1);
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        backdrop-filter: blur(10px);
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #22c55e;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+        }
+      }
+
+      .status-indicator span {
+        color: #22c55e;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      /* Main Content */
+      .pov {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        padding: 2rem;
+        position: relative;
+        z-index: 2;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      /* Card Styles */
+      .filters-card,
+      .quick-add-section,
+      .data-section {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 1.5rem;
+        padding: 2rem;
+        transition: all 0.4s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .filters-card::before,
+      .quick-add-section::before,
+      .data-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+        transition: left 0.5s;
+      }
+
+      .filters-card:hover::before,
+      .quick-add-section:hover::before,
+      .data-section:hover::before {
+        left: 100%;
+      }
+
+      .card-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin: 0 0 1.5rem 0;
+        color: white;
+      }
+
+      .title-icon {
+        font-size: 0.8rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+        padding: 0.3rem 0.6rem;
+        border-radius: 6px;
+        letter-spacing: 0.5px;
+      }
+
+      /* Filters */
+      .filters {
+        display: grid;
+        gap: 1.5rem;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        align-items: end;
+      }
+
+      .filters label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        color: #e2e8f0;
+        font-weight: 500;
+      }
+
+      .filters input {
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+      }
+
+      .filters input:focus {
+        outline: none;
+        border-color: #f59e0b;
+        background: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+      }
+
+      .filters input::placeholder {
+        color: #94a3b8;
+      }
+
+      .actions {
+        display: flex;
+        gap: 1rem;
+        align-items: end;
+      }
+
+      /* Button Styles */
+      .btn-primary,
+      .btn-secondary,
+      .btn-danger {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 999px;
+        border: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        backdrop-filter: blur(10px);
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        background: linear-gradient(135deg, #d97706, #b45309);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+      }
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: #e2e8f0;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .btn-secondary:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        transform: translateY(-2px);
+      }
+
+      .btn-danger {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+      }
+
+      .btn-danger:hover:not(:disabled) {
+        background: linear-gradient(135deg, #dc2626, #b91c1c);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+      }
+
+      .btn-icon {
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none !important;
+        box-shadow: none !important;
+      }
+
+      /* Statistics Grid */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .stat-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .stat-card:hover {
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      }
+
+      .stat-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+
+      .stat-icon {
+        font-size: 1rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+        color: white;
+        padding: 0.4rem 0.6rem;
+        border-radius: 6px;
+        letter-spacing: 0.5px;
+        min-width: 40px;
+        text-align: center;
+      }
+
+      .stat-label {
+        color: #cbd5e1;
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+
+      .stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: white;
+        margin-bottom: 0.5rem;
+        display: block;
+      }
+
+      .stat-value.negative {
+        color: #ef4444;
+      }
+
+      .stat-trend {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
         font-weight: 600;
       }
+
+      .stat-trend.positive {
+        color: #22c55e;
+      }
+
+      .stat-trend.negative {
+        color: #ef4444;
+      }
+
+      .trend-icon {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+      }
+
+      /* Quick Add Section */
+      .card-header {
+        position: relative;
+        margin-bottom: 1.5rem;
+      }
+
+      .header-accent {
+        position: absolute;
+        bottom: -0.5rem;
+        left: 0;
+        height: 3px;
+        width: 60px;
+        background: linear-gradient(90deg, #f59e0b, #22c55e);
+        border-radius: 2px;
+      }
+
       .quick-add-form {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 1.5rem;
       }
+
       .quick-add-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
+        gap: 1.5rem;
       }
+
       .quick-add-grid label {
         display: flex;
         flex-direction: column;
-        gap: 0.35rem;
-        font-size: 0.85rem;
-        color: #1e293b;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        color: #e2e8f0;
         font-weight: 500;
       }
+
       .quick-add-grid input {
-        padding: 0.55rem 0.7rem;
-        border: 1px solid #cbd5e1;
-        border-radius: 0.5rem;
-        font-size: 0.85rem;
-        background: white;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        padding: 0.75rem 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 0.75rem;
+        font-size: 0.9rem;
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
       }
+
       .quick-add-grid input:focus {
         outline: none;
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        border-color: #22c55e;
+        background: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
       }
-      .quick-add-grid input:invalid:not(:focus):not(:placeholder-shown) {
-        border-color: #ef4444;
+
+      .quick-add-grid input::placeholder {
+        color: #94a3b8;
       }
+
       .quick-add-actions {
         display: flex;
-        gap: 0.75rem;
+        gap: 1rem;
         justify-content: flex-end;
         align-items: center;
       }
+
       .quick-save-btn {
-        padding: 0.6rem 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
         border: none;
-        border-radius: 0.5rem;
-        background: linear-gradient(135deg, #10b981, #059669);
+        border-radius: 0.75rem;
+        background: linear-gradient(135deg, #22c55e, #16a34a);
         color: white;
         cursor: pointer;
         font-size: 0.9rem;
         font-weight: 600;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+      }
+
+      .quick-save-btn:hover:not(:disabled) {
+        background: linear-gradient(135deg, #16a34a, #15803d);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+      }
+
+      .quick-clear-btn {
         display: flex;
         align-items: center;
         gap: 0.5rem;
-      }
-      .quick-save-btn:hover:not(:disabled) {
-        background: linear-gradient(135deg, #059669, #047857);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-      }
-      .quick-save-btn:disabled {
-        background: #9ca3af;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
-      }
-      .quick-clear-btn {
-        padding: 0.6rem 1rem;
-        border: 1px solid #d1d5db;
-        border-radius: 0.5rem;
-        background: white;
-        color: #6b7280;
+        padding: 0.75rem 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 0.75rem;
+        background: rgba(255, 255, 255, 0.05);
+        color: #e2e8f0;
         cursor: pointer;
         font-size: 0.9rem;
-        transition: all 0.2s ease;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
       }
+
       .quick-clear-btn:hover:not(:disabled) {
-        background: #f9fafb;
-        border-color: #9ca3af;
-        color: #374151;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        transform: translateY(-2px);
       }
-      .quick-clear-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
+
+      /* Error Message */
+      .error-message {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 0.75rem;
+        color: #fca5a5;
+        font-size: 0.9rem;
+        backdrop-filter: blur(10px);
       }
-      .quick-add-error {
+
+      .error-icon {
+        font-size: 0.7rem;
+        font-weight: 800;
+        background: #ef4444;
+        color: white;
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        letter-spacing: 0.5px;
+      }
+
+      /* Data Section */
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.4rem;
+        font-weight: 700;
         margin: 0;
-        color: #dc2626;
-        font-size: 0.85rem;
+        color: white;
+      }
+
+      .record-count {
+        background: rgba(34, 197, 94, 0.1);
+        color: #22c55e;
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        border: 1px solid rgba(34, 197, 94, 0.3);
+      }
+
+      /* Table Styles */
+      .table-container {
+        position: relative;
+        transition: opacity 0.3s ease;
+      }
+
+      .table-container.dimmed {
+        opacity: 0.4;
+        pointer-events: none;
+      }
+
+      .table-wrapper {
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 1rem;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .data-table thead {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .data-table th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #e2e8f0;
+        font-size: 0.9rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .data-table td {
+        padding: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+      }
+
+      .data-row:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .date-cell {
+        color: #cbd5e1;
         font-weight: 500;
       }
 
-      @media (max-width: 768px) {
-        .quick-add-section {
-          padding: 1rem;
-        }
-        .quick-add-grid {
-          grid-template-columns: 1fr;
-        }
-        .quick-add-actions {
+      .plant-badge,
+      .campaign-badge {
+        background: rgba(29, 78, 216, 0.2);
+        color: #93c5fd;
+        padding: 0.3rem 0.8rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        border: 1px solid rgba(29, 78, 216, 0.3);
+        display: inline-block;
+      }
+
+      .campaign-badge {
+        background: rgba(34, 197, 94, 0.2);
+        color: #86efac;
+        border-color: rgba(34, 197, 94, 0.3);
+      }
+
+      .amount-cell {
+        font-weight: 600;
+        font-family: 'Courier New', monospace;
+      }
+
+      .amount-cell.incoming .amount-value {
+        color: #22c55e;
+      }
+
+      .amount-cell.outgoing .amount-value {
+        color: #f59e0b;
+      }
+
+      .edit-button {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        border-radius: 20px;
+        background: rgba(245, 158, 11, 0.1);
+        color: #fbbf24;
+        cursor: pointer;
+        font-size: 0.8rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+      }
+
+      .edit-button:hover {
+        background: rgba(245, 158, 11, 0.2);
+        transform: scale(1.05);
+      }
+
+      /* Empty State */
+      .empty-row .empty-message {
+        text-align: center;
+        padding: 3rem;
+      }
+
+      .empty-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .empty-icon {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #64748b;
+        background: rgba(100, 116, 139, 0.1);
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        letter-spacing: 1px;
+        border: 2px dashed rgba(100, 116, 139, 0.3);
+      }
+
+      .empty-content h4 {
+        margin: 0;
+        color: #cbd5e1;
+        font-size: 1.2rem;
+      }
+
+      .empty-content p {
+        margin: 0;
+        color: #94a3b8;
+        max-width: 400px;
+        line-height: 1.6;
+      }
+
+      /* Loading State */
+      .loading-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 4rem;
+      }
+
+      .loading-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        text-align: center;
+      }
+
+      .loading-spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid rgba(255, 255, 255, 0.1);
+        border-top: 3px solid #f59e0b;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      .loading-spinner.large {
+        width: 48px;
+        height: 48px;
+        border-width: 4px;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      .loading-content h4 {
+        margin: 0;
+        color: #e2e8f0;
+        font-size: 1.2rem;
+      }
+
+      .loading-content p {
+        margin: 0;
+        color: #94a3b8;
+      }
+
+      /* Modal Styles */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 15, 28, 0.8);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        z-index: 1000;
+      }
+
+      .modal {
+        width: min(600px, 100%);
+        max-height: calc(100vh - 4rem);
+        background: rgba(30, 41, 59, 0.95);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 1.5rem;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .modal-title-section {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .modal-icon {
+        font-size: 0.9rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+        padding: 0.4rem 0.6rem;
+        border-radius: 6px;
+        letter-spacing: 0.5px;
+      }
+
+      .modal-header h2 {
+        margin: 0;
+        font-size: 1.3rem;
+        color: white;
+        font-weight: 700;
+      }
+
+      .modal-close {
+        border: none;
+        background: rgba(255, 255, 255, 0.1);
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        cursor: pointer;
+        color: #cbd5e1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+      }
+
+      .modal-close:hover {
+        background: rgba(239, 68, 68, 0.2);
+        color: #fca5a5;
+      }
+
+      .close-icon {
+        font-size: 1.4rem;
+        line-height: 1;
+        font-weight: 400;
+      }
+
+      .modal-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        padding: 2rem;
+        overflow-y: auto;
+      }
+
+      .modal-grid {
+        display: grid;
+        gap: 1.5rem;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      }
+
+      .modal-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .field-label {
+        font-size: 0.9rem;
+        color: #e2e8f0;
+        font-weight: 500;
+      }
+
+      .field-input {
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+      }
+
+      .field-input:focus {
+        outline: none;
+        border-color: #f59e0b;
+        background: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+      }
+
+      .field-input::placeholder {
+        color: #94a3b8;
+      }
+
+      .modal-error {
+        margin: 0;
+      }
+
+      .modal-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: flex-end;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .modal-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 1200px) {
+        .header-content {
           flex-direction: column;
-          align-items: stretch;
+          gap: 1rem;
+          text-align: center;
         }
       }
 
-    `
+      @media (max-width: 768px) {
+        .extraction-dashboard {
+          padding: 0;
+        }
+
+        .dashboard-header {
+          padding: 1.5rem 1rem;
+        }
+
+        .title-text h1 {
+          font-size: 2rem;
+        }
+
+        .pov {
+          padding: 1.5rem 1rem;
+        }
+
+        .filters-card,
+        .quick-add-section,
+        .data-section {
+          padding: 1.5rem;
+        }
+
+        .filters {
+          grid-template-columns: 1fr;
+        }
+
+        .actions {
+          flex-direction: column;
+        }
+
+        .stats-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .quick-add-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .quick-add-actions {
+          flex-direction: column;
+        }
+
+        .table-wrapper {
+          overflow-x: auto;
+        }
+
+        .data-table {
+          min-width: 800px;
+        }
+
+        .modal {
+          margin: 1rem;
+          max-height: calc(100vh - 2rem);
+        }
+
+        .modal-header {
+          padding: 1rem 1.5rem;
+        }
+
+        .modal-form {
+          padding: 1.5rem;
+        }
+
+        .modal-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .modal-actions {
+          flex-direction: column;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .dashboard-header {
+          padding: 1rem;
+        }
+
+        .title-text h1 {
+          font-size: 1.8rem;
+        }
+
+        .pov {
+          padding: 1rem;
+        }
+
+        .filters-card,
+        .quick-add-section,
+        .data-section {
+          padding: 1rem;
+        }
+      }
+    
+
+      .amount-cell.concentration .amount-value {
+        color: #38bdf8;
+      }
+
+      .amount-cell.volume .amount-value {
+        color: #f97316;
+      }
+
+      .amount-cell.weight .amount-value {
+        color: #22c55e;
+      }
+
+      .amount-cell.ph .amount-value {
+        color: #818cf8;
+      }
+`
   ]
 })
 // Exported: used in app.routes.ts for lazy loading
