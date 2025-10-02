@@ -102,40 +102,33 @@ type FermentationFormValue = Record<ModalFieldKey, unknown>;
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-header">
-              <div class="stat-icon">WT</div>
+              <div class="stat-icon-wrapper">
+                <div class="stat-icon">WT</div>
+                <div class="stat-icon-glow weight-glow"></div>
+              </div>
               <span class="stat-label">Total Weight</span>
             </div>
             <div class="stat-value">{{ stats().totalWeight | number:'1.0-2' }} lbs</div>
-            <div class="stat-trend positive">
-              <span class="trend-icon">UP</span>
-              <span>Active</span>
-            </div>
           </div>
           <div class="stat-card">
             <div class="stat-header">
-              <div class="stat-icon">RCV</div>
+              <div class="stat-icon-wrapper">
+                <div class="stat-icon">RCV</div>
+                <div class="stat-icon-glow received-glow"></div>
+              </div>
               <span class="stat-label">Total Received</span>
             </div>
             <div class="stat-value">{{ stats().totalReceived | number:'1.0-2' }} lbs</div>
-            <div class="stat-trend positive">
-              <span class="trend-icon">UP</span>
-              <span>Active</span>
-            </div>
           </div>
           <div class="stat-card">
             <div class="stat-header">
-              <div class="stat-icon">LVL</div>
+              <div class="stat-icon-wrapper">
+                <div class="stat-icon">LVL</div>
+                <div class="stat-icon-glow level-glow"></div>
+              </div>
               <span class="stat-label">Avg Level Indicator</span>
             </div>
             <div class="stat-value">{{ stats().avgLevelIndicator | number:'1.0-2' }}</div>
-            <div
-              class="stat-trend"
-              [class.positive]="stats().avgLevelIndicator >= 0"
-              [class.negative]="stats().avgLevelIndicator < 0"
-            >
-              <span class="trend-icon">{{ stats().avgLevelIndicator >= 0 ? 'STABLE' : 'LOW' }}</span>
-              <span>{{ stats().avgLevelIndicator >= 0 ? 'Stable' : 'Monitor' }}</span>
-            </div>
           </div>
         </div>
 
@@ -516,7 +509,7 @@ type FermentationFormValue = Record<ModalFieldKey, unknown>;
         font-size: 2.5rem;
         font-weight: 800;
         margin: 0 0 0.5rem 0;
-        background: linear-gradient(135deg, #ffffff 0%, #f59e0b 100%);
+        background: linear-gradient(135deg, #ffffff 0%, #8b5cf6 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -774,6 +767,10 @@ type FermentationFormValue = Record<ModalFieldKey, unknown>;
         margin-bottom: 1rem;
       }
 
+      .stat-icon-wrapper {
+        position: relative;
+      }
+
       .stat-icon {
         font-size: 1rem;
         font-weight: 800;
@@ -784,6 +781,42 @@ type FermentationFormValue = Record<ModalFieldKey, unknown>;
         letter-spacing: 0.5px;
         min-width: 40px;
         text-align: center;
+        position: relative;
+        z-index: 1;
+      }
+
+      .stat-icon-glow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 35px;
+        height: 35px;
+        border-radius: 6px;
+        filter: blur(8px);
+        opacity: 0.6;
+        animation: statGlow 3s ease-in-out infinite alternate;
+      }
+
+      .weight-glow {
+        background: radial-gradient(circle, #8b5cf6 0%, transparent 70%);
+      }
+      .received-glow {
+        background: radial-gradient(circle, #8b5cf6 0%, transparent 70%);
+      }
+      .level-glow {
+        background: radial-gradient(circle, #8b5cf6 0%, transparent 70%);
+      }
+
+      @keyframes statGlow {
+        0% {
+          opacity: 0.4;
+          transform: translate(-50%, -50%) scale(0.8);
+        }
+        100% {
+          opacity: 0.8;
+          transform: translate(-50%, -50%) scale(1.2);
+        }
       }
 
       .stat-label {

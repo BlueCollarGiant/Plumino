@@ -99,10 +99,6 @@ interface ModalField {
               <span class="stat-label">Total Incoming</span>
             </div>
             <div class="stat-value">{{ stats().totalIncoming | number:'1.0-2' }} kg</div>
-            <div class="stat-trend positive">
-              <span class="trend-icon">UP</span>
-              <span>Active</span>
-            </div>
           </div>
           <div class="stat-card">
             <div class="stat-header">
@@ -110,10 +106,6 @@ interface ModalField {
               <span class="stat-label">Total Outgoing</span>
             </div>
             <div class="stat-value">{{ stats().totalOutgoing | number:'1.0-2' }} kg</div>
-            <div class="stat-trend positive">
-              <span class="trend-icon">UP</span>
-              <span>Active</span>
-            </div>
           </div>
           <div class="stat-card">
             <div class="stat-header">
@@ -121,10 +113,6 @@ interface ModalField {
               <span class="stat-label">Net Difference</span>
             </div>
             <div class="stat-value" [class.negative]="stats().net < 0">{{ stats().net | number:'1.0-2' }} kg</div>
-            <div class="stat-trend" [class.negative]="stats().net < 0" [class.positive]="stats().net >= 0">
-              <span class="trend-icon">{{ stats().net >= 0 ? 'UP' : 'DOWN' }}</span>
-              <span>{{ stats().net >= 0 ? 'Surplus' : 'Deficit' }}</span>
-            </div>
           </div>
         </div>
 

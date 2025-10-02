@@ -99,51 +99,43 @@ interface ModalField {
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-header">
-              <div class="stat-icon">CONC</div>
+              <div class="stat-icon-wrapper">
+                <div class="stat-icon">CONC</div>
+                <div class="stat-icon-glow concentration-glow"></div>
+              </div>
               <span class="stat-label">Avg Concentration</span>
             </div>
             <div class="stat-value">{{ stats().avgConcentration | number:'1.0-2' }} g/l</div>
-            <div class="stat-trend positive">
-              <span class="trend-icon">STBL</span>
-              <span>Steady</span>
-            </div>
           </div>
           <div class="stat-card">
             <div class="stat-header">
-              <div class="stat-icon">VOL</div>
+              <div class="stat-icon-wrapper">
+                <div class="stat-icon">VOL</div>
+                <div class="stat-icon-glow volume-glow"></div>
+              </div>
               <span class="stat-label">Total Volume</span>
             </div>
             <div class="stat-value">{{ stats().totalVolume | number:'1.0-2' }} gal</div>
-            <div class="stat-trend positive">
-              <span class="trend-icon">UP</span>
-              <span>Active</span>
-            </div>
           </div>
           <div class="stat-card">
             <div class="stat-header">
-              <div class="stat-icon">WT</div>
+              <div class="stat-icon-wrapper">
+                <div class="stat-icon">WT</div>
+                <div class="stat-icon-glow weight-glow"></div>
+              </div>
               <span class="stat-label">Total Weight</span>
             </div>
             <div class="stat-value">{{ stats().totalWeight | number:'1.0-2' }} kg</div>
-            <div class="stat-trend positive">
-              <span class="trend-icon">UP</span>
-              <span>Active</span>
-            </div>
           </div>
           <div class="stat-card">
             <div class="stat-header">
-              <div class="stat-icon">pH</div>
+              <div class="stat-icon-wrapper">
+                <div class="stat-icon">pH</div>
+                <div class="stat-icon-glow ph-glow"></div>
+              </div>
               <span class="stat-label">Average pH</span>
             </div>
             <div class="stat-value">{{ stats().avgPh | number:'1.0-2' }}</div>
-            <div
-              class="stat-trend"
-              [class.positive]="stats().avgPh >= 6 && stats().avgPh <= 8"
-              [class.negative]="stats().avgPh < 6 || stats().avgPh > 8"
-            >
-              <span class="trend-icon">{{ stats().avgPh >= 6 && stats().avgPh <= 8 ? 'OK' : 'ALRT' }}</span>
-              <span>{{ stats().avgPh >= 6 && stats().avgPh <= 8 ? 'Balanced' : 'Monitor' }}</span>
-            </div>
           </div>
         </div>
 
@@ -540,7 +532,7 @@ interface ModalField {
         font-size: 2.5rem;
         font-weight: 800;
         margin: 0 0 0.5rem 0;
-        background: linear-gradient(135deg, #ffffff 0%, #f59e0b 100%);
+        background: linear-gradient(135deg, #ffffff 0%, #06b6d4 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -798,6 +790,10 @@ interface ModalField {
         margin-bottom: 1rem;
       }
 
+      .stat-icon-wrapper {
+        position: relative;
+      }
+
       .stat-icon {
         font-size: 1rem;
         font-weight: 800;
@@ -808,6 +804,45 @@ interface ModalField {
         letter-spacing: 0.5px;
         min-width: 40px;
         text-align: center;
+        position: relative;
+        z-index: 1;
+      }
+
+      .stat-icon-glow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 35px;
+        height: 35px;
+        border-radius: 6px;
+        filter: blur(8px);
+        opacity: 0.6;
+        animation: statGlow 3s ease-in-out infinite alternate;
+      }
+
+      .concentration-glow {
+        background: radial-gradient(circle, #06b6d4 0%, transparent 70%);
+      }
+      .volume-glow {
+        background: radial-gradient(circle, #06b6d4 0%, transparent 70%);
+      }
+      .weight-glow {
+        background: radial-gradient(circle, #06b6d4 0%, transparent 70%);
+      }
+      .ph-glow {
+        background: radial-gradient(circle, #06b6d4 0%, transparent 70%);
+      }
+
+      @keyframes statGlow {
+        0% {
+          opacity: 0.4;
+          transform: translate(-50%, -50%) scale(0.8);
+        }
+        100% {
+          opacity: 0.8;
+          transform: translate(-50%, -50%) scale(1.2);
+        }
       }
 
       .stat-label {
@@ -1453,7 +1488,7 @@ interface ModalField {
           padding: 1rem;
         }
       }
-    
+
 
       .amount-cell.concentration .amount-value {
         color: #38bdf8;
