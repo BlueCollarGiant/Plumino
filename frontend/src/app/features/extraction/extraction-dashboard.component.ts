@@ -456,6 +456,133 @@ interface ModalField {
         .modal-actions {
           justify-content: center;
         }
+        .table-wrapper {
+          padding-right: 0;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          position: relative;
+          border-radius: 0.75rem;
+          box-shadow: inset -10px 0 10px -10px rgba(0, 0, 0, 0.1);
+          margin-bottom: 1.5rem;
+        }
+        .table-wrapper::after {
+          content: '← Scroll to see more →';
+          position: sticky;
+          top: 100%;
+          left: 50%;
+          transform: translateX(-50%);
+          background: rgba(59, 130, 246, 0.9);
+          color: white;
+          padding: 0.25rem 0.5rem;
+          font-size: 0.65rem;
+          border-radius: 0.375rem;
+          pointer-events: none;
+          z-index: 3;
+          margin-top: 0.5rem;
+          display: block;
+          width: fit-content;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        table {
+          min-width: 1000px;
+          width: 1000px;
+        }
+        th, td {
+          padding: 0.4rem 0.25rem;
+          font-size: 0.7rem;
+          white-space: nowrap;
+          border-right: 1px solid #e2e8f0;
+        }
+        th:last-child, td:last-child {
+          border-right: none;
+        }
+        th:first-child, td:first-child {
+          min-width: 80px;
+          width: 80px;
+          position: sticky;
+          left: 0;
+          background: #f1f5f9;
+          z-index: 2;
+          box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+        }
+        tbody tr.data-row td:first-child {
+          background: #fff;
+          box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+        }
+        th:nth-child(2), td:nth-child(2) {
+          min-width: 60px;
+          width: 60px;
+        }
+        th:nth-child(3), td:nth-child(3) {
+          min-width: 70px;
+          width: 70px;
+        }
+        th:nth-child(4), td:nth-child(4) {
+          min-width: 80px;
+          width: 80px;
+        }
+        th:nth-child(5), td:nth-child(5) {
+          min-width: 60px;
+          width: 60px;
+        }
+        th:nth-child(6), td:nth-child(6) {
+          min-width: 60px;
+          width: 60px;
+        }
+        th:nth-child(7), td:nth-child(7) {
+          min-width: 90px;
+          width: 90px;
+        }
+        th:nth-child(8), td:nth-child(8) {
+          min-width: 80px;
+          width: 80px;
+        }
+        th:nth-child(9), td:nth-child(9) {
+          min-width: 80px;
+          width: 80px;
+        }
+        th:nth-child(10), td:nth-child(10) {
+          min-width: 90px;
+          width: 90px;
+        }
+        th:nth-child(11), td:nth-child(11) {
+          min-width: 120px;
+          width: 120px;
+        }
+        thead::after {
+          display: none;
+        }
+        tbody tr.data-row::after {
+          right: 0;
+        }
+        tbody tr.data-row td.row-actions {
+          padding-right: 0.25rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        tbody tr.data-row td.row-actions span {
+          padding-right: 0.3rem;
+          flex-shrink: 0;
+        }
+        .row-edit-button {
+          position: static;
+          transform: none;
+          opacity: 1;
+          pointer-events: auto;
+          margin-left: 0.25rem;
+          font-size: 0.6rem;
+          padding: 0.15rem 0.3rem;
+          white-space: nowrap;
+          flex-shrink: 0;
+          border-radius: 4px;
+        }
+        tbody tr.data-row:hover .row-edit-button,
+        tbody tr.data-row td.row-actions:hover .row-edit-button,
+        .table-wrapper.dimmed .row-edit-button {
+          transform: none;
+        }
       }
 
     `
