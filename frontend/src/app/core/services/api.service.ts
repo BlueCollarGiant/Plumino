@@ -1,120 +1,125 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
-
-export type PackagingAggregateId =
-  | string
-  | {
-      campaign?: string;
-      date?: string;
-    };
-
-export interface PackagingAggregate {
-  _id: PackagingAggregateId;
-  outgoingTotal: number;
-  incomingTotal: number;
-}
+import { Injectable, inject, signal, computed } from '@angular/core';
+import { Observable, shareReplay } from 'rxjs';
+import { toObservable } from '@angular/core/rxjs-interop';
 
 export interface PackagingFilters {
   [key: string]: unknown;
-  date?: string;
-  plant?: string;
-  product?: string;
-  packageType?: string;
-  campaign?: string;
-  range?: string;
+  readonly date?: string;
+  readonly plant?: string;
+  readonly product?: string;
+  readonly packageType?: string;
+  readonly campaign?: string;
+  readonly range?: string;
 }
 
 export interface DataFilters {
   [key: string]: unknown;
-  date?: string;
-  plant?: string;
-  product?: string;
-  campaign?: string;
-  stage?: string;
+  readonly date?: string;
+  readonly plant?: string;
+  readonly product?: string;
+  readonly campaign?: string;
+  readonly stage?: string;
 }
 
 export interface FermentationResponse {
-  _id?: string;
-  date?: string | Date;
-  plant?: string;
-  product?: string;
-  campaign?: string;
-  stage?: string;
-  tank?: string;
-  levelIndicator?: string;
-  weight?: number;
-  weightLbs?: number;
-  receivedAmount?: number;
-  receivedAmountLbs?: number;
+  readonly _id?: string;
+  readonly date?: string | Date;
+  readonly plant?: string;
+  readonly product?: string;
+  readonly campaign?: string;
+  readonly stage?: string;
+  readonly tank?: string;
+  readonly levelIndicator?: string;
+  readonly weight?: number;
+  readonly weightLbs?: number;
+  readonly receivedAmount?: number;
+  readonly receivedAmountLbs?: number;
 }
 
 export interface FermentationRequest {
-  date: string | Date;
-  plant: string;
-  product: string;
-  campaign: string;
-  stage: string;
-  tank: string;
-  levelIndicator: string;
-  weight: number;
-  receivedAmount: number;
+  readonly date: string | Date;
+  readonly plant: string;
+  readonly product: string;
+  readonly campaign: string;
+  readonly stage: string;
+  readonly tank: string;
+  readonly levelIndicator: string;
+  readonly weight: number;
+  readonly receivedAmount: number;
 }
 
 export interface ExtractionResponse {
-  _id?: string;
-  date?: string | Date;
-  plant?: string;
-  product?: string;
-  campaign?: string;
-  stage?: string;
-  tank?: string;
-  concentration?: number;
-  volume?: number;
-  weight?: number;
-  levelIndicator?: string;
-  pH?: number;
-}
-export interface ExtractionRequest {
-  date: string | Date;
-  plant: string;
-  product: string;
-  campaign: string;
-  stage: string;
-  tank: string;
-  concentration: number;
-  volume: number;
-  weight: number;
-  levelIndicator: string;
-  pH: number;
+  readonly _id?: string;
+  readonly date?: string | Date;
+  readonly plant?: string;
+  readonly product?: string;
+  readonly campaign?: string;
+  readonly stage?: string;
+  readonly tank?: string;
+  readonly concentration?: number;
+  readonly volume?: number;
+  readonly weight?: number;
+  readonly levelIndicator?: string;
+  readonly pH?: number;
 }
 
+export interface ExtractionRequest {
+  readonly date: string | Date;
+  readonly plant: string;
+  readonly product: string;
+  readonly campaign: string;
+  readonly stage: string;
+  readonly tank: string;
+  readonly concentration: number;
+  readonly volume: number;
+  readonly weight: number;
+  readonly levelIndicator: string;
+  readonly pH: number;
+}
 
 export interface PackagingResponse {
-  _id: string;
-  date: string;
-  plant: string;
-  product: string;
-  campaign: string;
-  packageType: string;
-  incomingAmountKg: number;
-  outgoingAmountKg: number;
+  readonly _id: string;
+  readonly date: string;
+  readonly plant: string;
+  readonly product: string;
+  readonly campaign: string;
+  readonly packageType: string;
+  readonly incomingAmountKg: number;
+  readonly outgoingAmountKg: number;
 }
 
 export interface PackagingRequest {
-  date: string | Date;
-  plant: string;
-  product: string;
-  campaign: string;
-  packageType: string;
-  incomingAmountKg: number;
-  outgoingAmountKg: number;
+  readonly date: string | Date;
+  readonly plant: string;
+  readonly product: string;
+  readonly campaign: string;
+  readonly packageType: string;
+  readonly incomingAmountKg: number;
+  readonly outgoingAmountKg: number;
 }
 
 @Injectable({ providedIn: 'root' })
+// Exported: used in all three dashboard components
 export class ApiService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = 'http://localhost:5000/api';
+  private readonly baseUrl = signal('http://localhost:5000/api');
+
+  // Signal-based caching for performance optimization
+  private readonly packagingCache = signal<Map<string, PackagingResponse[]>>(new Map());
+  private readonly fermentationCache = signal<Map<string, FermentationResponse[]>>(new Map());
+  private readonly extractionCache = signal<Map<string, ExtractionResponse[]>>(new Map());
+
+  // Computed signals for cache status
+  readonly packagingCacheSize = computed(() => this.packagingCache().size);
+  readonly fermentationCacheSize = computed(() => this.fermentationCache().size);
+  readonly extractionCacheSize = computed(() => this.extractionCache().size);
+  readonly totalCacheSize = computed(() =>
+    this.packagingCacheSize() + this.fermentationCacheSize() + this.extractionCacheSize()
+  );
+
+  // Observable from baseUrl signal for reactive URL changes
+  readonly baseUrl$ = toObservable(this.baseUrl);
 
   private buildParams(filters: Record<string, unknown> = {}): HttpParams {
     let params = new HttpParams();
@@ -128,75 +133,166 @@ export class ApiService {
     return params;
   }
 
+  private generateCacheKey(filters: Record<string, unknown>): string {
+    return JSON.stringify(filters, Object.keys(filters).sort());
+  }
+
+  private invalidatePackagingCache(): void {
+    this.packagingCache.set(new Map());
+  }
+
+  private invalidateFermentationCache(): void {
+    this.fermentationCache.set(new Map());
+  }
+
+  private invalidateExtractionCache(): void {
+    this.extractionCache.set(new Map());
+  }
+
+  // Clear all caches - useful for memory management
+  clearAllCaches(): void {
+    this.invalidatePackagingCache();
+    this.invalidateFermentationCache();
+    this.invalidateExtractionCache();
+  }
+
+  // Update base URL if needed (e.g., for different environments)
+  updateBaseUrl(newUrl: string): void {
+    this.baseUrl.set(newUrl);
+    this.clearAllCaches(); // Clear caches when URL changes
+  }
+
   // Fetch packaging records with optional filters converted into query parameters
   getFilteredPackaging(filters: PackagingFilters = {}): Observable<PackagingResponse[]> {
-    return this.http.get<PackagingResponse[]>(`${this.baseUrl}/packaging/filter`, {
+    const cacheKey = this.generateCacheKey(filters);
+    const cached = this.packagingCache().get(cacheKey);
+
+    if (cached) {
+      // Return cached data as observable
+      return new Observable(observer => {
+        observer.next(cached);
+        observer.complete();
+      });
+    }
+
+    const request = this.http.get<PackagingResponse[]>(`${this.baseUrl()}/packaging/filter`, {
       params: this.buildParams(filters)
+    }).pipe(
+      shareReplay(1)
+    );
+
+    // Cache the result
+    request.subscribe(data => {
+      const currentCache = this.packagingCache();
+      currentCache.set(cacheKey, data);
+      this.packagingCache.set(new Map(currentCache));
     });
+
+    return request;
   }
 
   updatePackaging(id: string, payload: PackagingRequest): Observable<PackagingResponse> {
-    return this.http.put<PackagingResponse>(`${this.baseUrl}/packaging/${id}`, payload);
+    const request = this.http.put<PackagingResponse>(`${this.baseUrl()}/packaging/${id}`, payload);
+
+    // Invalidate cache on mutation
+    request.subscribe(() => this.invalidatePackagingCache());
+
+    return request;
   }
 
   deletePackaging(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/packaging/${id}`);
-  }
+    const request = this.http.delete<void>(`${this.baseUrl()}/packaging/${id}`);
 
-  // Aggregated totals grouped by plant
-  getPackagingStatsByPlant(filters: PackagingFilters = {}): Observable<PackagingAggregate[]> {
-    return this.http.get<PackagingAggregate[]>(`${this.baseUrl}/packaging/stats/by-plant`, {
-      params: this.buildParams(filters)
-    });
-  }
+    // Invalidate cache on mutation
+    request.subscribe(() => this.invalidatePackagingCache());
 
-  // Aggregated totals grouped by product
-  getPackagingStatsByProduct(filters: PackagingFilters = {}): Observable<PackagingAggregate[]> {
-    return this.http.get<PackagingAggregate[]>(`${this.baseUrl}/packaging/stats/by-product`, {
-      params: this.buildParams(filters)
-    });
-  }
-
-  // Aggregated totals grouped by campaign
-  getPackagingStatsByCampaign(filters: PackagingFilters = {}): Observable<PackagingAggregate[]> {
-    return this.http.get<PackagingAggregate[]>(`${this.baseUrl}/packaging/stats/by-campaign`, {
-      params: this.buildParams(filters)
-    });
-  }
-
-  // Aggregated totals grouped by date
-  getPackagingStatsByDate(filters: PackagingFilters = {}): Observable<PackagingAggregate[]> {
-    return this.http.get<PackagingAggregate[]>(`${this.baseUrl}/packaging/stats/by-date`, {
-      params: this.buildParams(filters)
-    });
+    return request;
   }
 
   getFermentationData(filters: DataFilters = {}): Observable<FermentationResponse[]> {
-    return this.http.get<FermentationResponse[]>(`${this.baseUrl}/fermentation/filter`, {
+    const cacheKey = this.generateCacheKey(filters);
+    const cached = this.fermentationCache().get(cacheKey);
+
+    if (cached) {
+      return new Observable(observer => {
+        observer.next(cached);
+        observer.complete();
+      });
+    }
+
+    const request = this.http.get<FermentationResponse[]>(`${this.baseUrl()}/fermentation/filter`, {
       params: this.buildParams(filters)
+    }).pipe(
+      shareReplay(1)
+    );
+
+    request.subscribe(data => {
+      const currentCache = this.fermentationCache();
+      currentCache.set(cacheKey, data);
+      this.fermentationCache.set(new Map(currentCache));
     });
+
+    return request;
   }
 
   updateFermentation(id: string, payload: FermentationRequest): Observable<FermentationResponse> {
-    return this.http.put<FermentationResponse>(`${this.baseUrl}/fermentation/${id}`, payload);
+    const request = this.http.put<FermentationResponse>(`${this.baseUrl()}/fermentation/${id}`, payload);
+
+    request.subscribe(() => this.invalidateFermentationCache());
+
+    return request;
   }
 
   deleteFermentation(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/fermentation/${id}`);
+    const request = this.http.delete<void>(`${this.baseUrl()}/fermentation/${id}`);
+
+    request.subscribe(() => this.invalidateFermentationCache());
+
+    return request;
   }
 
   getExtractionData(filters: DataFilters = {}): Observable<ExtractionResponse[]> {
-    return this.http.get<ExtractionResponse[]>(`${this.baseUrl}/extraction/filter`, {
+    const cacheKey = this.generateCacheKey(filters);
+    const cached = this.extractionCache().get(cacheKey);
+
+    if (cached) {
+      return new Observable(observer => {
+        observer.next(cached);
+        observer.complete();
+      });
+    }
+
+    const request = this.http.get<ExtractionResponse[]>(`${this.baseUrl()}/extraction/filter`, {
       params: this.buildParams(filters)
+    }).pipe(
+      shareReplay(1)
+    );
+
+    request.subscribe(data => {
+      const currentCache = this.extractionCache();
+      currentCache.set(cacheKey, data);
+      this.extractionCache.set(new Map(currentCache));
     });
+
+    return request;
   }
 
   updateExtraction(id: string, payload: ExtractionRequest): Observable<ExtractionResponse> {
-    return this.http.put<ExtractionResponse>(`${this.baseUrl}/extraction/${id}`, payload);
+    const request = this.http.put<ExtractionResponse>(`${this.baseUrl()}/extraction/${id}`, payload);
+
+    request.subscribe(() => this.invalidateExtractionCache());
+
+    return request;
   }
 
   deleteExtraction(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/extraction/${id}`);
+    const request = this.http.delete<void>(`${this.baseUrl()}/extraction/${id}`);
+
+    request.subscribe(() => this.invalidateExtractionCache());
+
+    return request;
   }
 }
+
+
 

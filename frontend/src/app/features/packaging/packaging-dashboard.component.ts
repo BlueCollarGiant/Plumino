@@ -450,6 +450,7 @@ interface ModalField {
     `
   ]
 })
+// Exported: used in app.routes.ts for lazy loading
 export class PackagingDashboardComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly apiService = inject(ApiService);
@@ -712,6 +713,8 @@ export class PackagingDashboardComponent implements OnInit {
       });
   }
 }
+
+
 
 
 

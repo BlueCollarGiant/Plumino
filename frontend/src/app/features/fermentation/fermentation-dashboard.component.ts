@@ -17,8 +17,7 @@ type ModalFieldKey =
   | 'levelIndicator'
   | 'weight'
   | 'receivedAmount'
-  | 'weightLbs'
-  | 'receivedAmountLbs';
+  ;
 
 type ModalRow = Partial<Record<ModalFieldKey, unknown>> & { _id?: string };
 
@@ -436,6 +435,7 @@ interface ModalField {
     `
   ]
 })
+// Exported: used in app.routes.ts for lazy loading
 export class FermentationDashboardComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly apiService = inject(ApiService);
@@ -723,7 +723,7 @@ export class FermentationDashboardComponent implements OnInit {
     this.isLoading.set(true);
     const filters = this.buildFilters();
 
-    // TODO: replace stub once fermentation endpoint is available
+
     this.apiService
       .getFermentationData(filters)
       .pipe(takeUntilDestroyed(this.destroyRef))
