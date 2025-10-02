@@ -49,6 +49,18 @@ export interface FermentationResponse {
   receivedAmountLbs?: number;
 }
 
+export interface FermentationRequest {
+  date: string | Date;
+  plant: string;
+  product: string;
+  campaign: string;
+  stage: string;
+  tank: string;
+  levelIndicator: string;
+  weight: number;
+  receivedAmount: number;
+}
+
 export interface ExtractionResponse {
   _id?: string;
   date?: string | Date;
@@ -163,6 +175,14 @@ export class ApiService {
     return this.http.get<FermentationResponse[]>(`${this.baseUrl}/fermentation/filter`, {
       params: this.buildParams(filters)
     });
+  }
+
+  updateFermentation(id: string, payload: FermentationRequest): Observable<FermentationResponse> {
+    return this.http.put<FermentationResponse>(`${this.baseUrl}/fermentation/${id}`, payload);
+  }
+
+  deleteFermentation(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/fermentation/${id}`);
   }
 
   getExtractionData(filters: DataFilters = {}): Observable<ExtractionResponse[]> {

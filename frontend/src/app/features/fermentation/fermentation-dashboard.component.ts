@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime } from 'rxjs';
 
-import { ApiService, DataFilters, FermentationResponse } from '../../core/services/api.service';
+import { ApiService, DataFilters, FermentationRequest, FermentationResponse } from '../../core/services/api.service';
 
 
 type ModalFieldKey =
@@ -15,10 +15,12 @@ type ModalFieldKey =
   | 'stage'
   | 'tank'
   | 'levelIndicator'
+  | 'weight'
+  | 'receivedAmount'
   | 'weightLbs'
   | 'receivedAmountLbs';
 
-type ModalRow = Partial<Record<ModalFieldKey, unknown>>;
+type ModalRow = Partial<Record<ModalFieldKey, unknown>> & { _id?: string };
 
 interface ModalField {
   key: ModalFieldKey;
@@ -111,7 +113,7 @@ interface ModalField {
         </table>
       </div>
       <ng-template #loading>
-        <div class="loading">Loading fermentation data�</div>
+        <div class="loading">Loading fermentation data...</div>
       </ng-template>
 
       <div class="modal-backdrop" *ngIf="editingRow()">
@@ -120,22 +122,23 @@ interface ModalField {
             <h2 id="edit-modal-title">Edit Fermentation Record</h2>
             <button type="button" class="modal-close" (click)="closeEditModal()" aria-label="Close">&times;</button>
           </header>
-          <form class="modal-form">
+          <form class="modal-form" [formGroup]="editForm" (ngSubmit)="submitEdit()">
             <div class="modal-grid">
               <label *ngFor="let field of modalFields" [attr.for]="'field-' + field.key">
                 <span>{{ field.label }}</span>
                 <input
                   [id]="'field-' + field.key"
                   [type]="field.type"
-                  [value]="getFieldValue(editingRow(), field.key)"
+                  [formControlName]="field.key"
                   [attr.placeholder]="field.label"
                 />
               </label>
             </div>
+            <p class="modal-error" *ngIf="mutationError()">{{ mutationError() }}</p>
             <div class="modal-actions">
-              <button type="button" class="btn-primary">Save</button>
-              <button type="button" class="btn-danger">Delete Row</button>
-              <button type="button" class="btn-secondary" (click)="closeEditModal()">Cancel</button>
+              <button type="submit" class="btn-primary" [disabled]="isMutating() || editForm.invalid">Save</button>
+              <button type="button" class="btn-danger" (click)="deleteCurrentRow()" [disabled]="isMutating()">Delete Row</button>
+              <button type="button" class="btn-secondary" (click)="closeEditModal()" [disabled]="isMutating()">Cancel</button>
             </div>
           </form>
         </div>
@@ -451,6 +454,21 @@ export class FermentationDashboardComponent implements OnInit {
 
   protected readonly editingRow = signal<ModalRow | null>(null);
 
+  protected readonly editForm = this.fb.group({
+    date: ['', Validators.required],
+    plant: ['', Validators.required],
+    product: ['', Validators.required],
+    campaign: ['', Validators.required],
+    stage: ['', Validators.required],
+    tank: ['', Validators.required],
+    levelIndicator: ['', Validators.required],
+    weight: [null as number | null, [Validators.required, Validators.min(0)]],
+    receivedAmount: [null as number | null, [Validators.required, Validators.min(0)]]
+  });
+
+  protected readonly isMutating = signal(false);
+  protected readonly mutationError = signal<string | null>(null);
+
   protected readonly modalFields: ModalField[] = [
     { key: 'date', label: 'Date', type: 'date' },
     { key: 'plant', label: 'Plant', type: 'text' },
@@ -459,8 +477,8 @@ export class FermentationDashboardComponent implements OnInit {
     { key: 'stage', label: 'Stage', type: 'text' },
     { key: 'tank', label: 'Tank', type: 'text' },
     { key: 'levelIndicator', label: 'Level Indicator', type: 'text' },
-    { key: 'weightLbs', label: 'Weight (lbs)', type: 'number' },
-    { key: 'receivedAmountLbs', label: 'Received (lbs)', type: 'number' }
+    { key: 'weight', label: 'Weight (lbs)', type: 'number' },
+    { key: 'receivedAmount', label: 'Received (lbs)', type: 'number' }
   ];
 
   protected readonly stats = computed(() => {
@@ -513,47 +531,169 @@ export class FermentationDashboardComponent implements OnInit {
   }
 
   protected openEditModal(row: FermentationResponse): void {
+    this.mutationError.set(null);
+    this.isMutating.set(false);
+
+    this.editForm.reset({
+      date: this.normalizeDateValue(row.date),
+      plant: row.plant ?? '',
+      product: row.product ?? '',
+      campaign: row.campaign ?? '',
+      stage: row.stage ?? '',
+      tank: row.tank ?? '',
+      levelIndicator: row.levelIndicator ?? '',
+      weight: this.coerceNumber(row.weightLbs ?? row.weight),
+      receivedAmount: this.coerceNumber(row.receivedAmountLbs ?? row.receivedAmount)
+    });
+
     this.editingRow.set({ ...row });
   }
 
   protected closeEditModal(): void {
+    this.editForm.reset();
     this.editingRow.set(null);
+    this.mutationError.set(null);
+    this.isMutating.set(false);
   }
 
-  protected getFieldValue(row: ModalRow | null, key: ModalFieldKey): string {
-    if (!row) {
-      return '';
+  protected submitEdit(): void {
+    const current = this.editingRow();
+
+    if (!current?._id) {
+      console.warn('Attempted to save fermentation record without an identifier.');
+      return;
     }
 
-    const value = row[key];
-    if (value === undefined || value === null) {
-      return '';
+    if (this.editForm.invalid) {
+      this.editForm.markAllAsTouched();
+      return;
     }
 
-    if (key === 'date') {
-      if (value instanceof Date) {
-        return value.toISOString().split('T')[0];
-      }
-      if (typeof value === 'string') {
-        return value.includes('T') ? value.split('T')[0] : value;
-      }
+    let payload: FermentationRequest;
+    try {
+      payload = this.buildFermentationPayload();
+    } catch (err) {
+      this.mutationError.set('Unable to prepare fermentation payload.');
+      return;
+    }
+
+    this.isMutating.set(true);
+    this.mutationError.set(null);
+
+    this.apiService
+      .updateFermentation(current._id, payload)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.rows.update((rows) =>
+            rows.map((item) => (item._id === updated._id ? { ...item, ...updated } : item))
+          );
+          this.isMutating.set(false);
+          this.closeEditModal();
+        },
+        error: (err) => {
+          console.error('Failed to update fermentation record', err);
+          this.isMutating.set(false);
+          this.mutationError.set('Failed to update fermentation record.');
+        }
+      });
+  }
+
+  protected deleteCurrentRow(): void {
+    const current = this.editingRow();
+
+    if (!current?._id) {
+      console.warn('Attempted to delete fermentation record without an identifier.');
+      return;
+    }
+
+    this.isMutating.set(true);
+    this.mutationError.set(null);
+
+    this.apiService
+      .deleteFermentation(current._id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.rows.update((rows) => rows.filter((item) => item._id !== current._id));
+          this.isMutating.set(false);
+          this.closeEditModal();
+        },
+        error: (err) => {
+          console.error('Failed to delete fermentation record', err);
+          this.isMutating.set(false);
+          this.mutationError.set('Failed to delete fermentation record.');
+        }
+      });
+  }
+
+  private buildFermentationPayload(): FermentationRequest {
+    const raw = this.editForm.getRawValue();
+    const normalizedDate = this.normalizeDateValue(raw.date);
+
+    if (!normalizedDate) {
+      throw new Error('Invalid date provided');
+    }
+
+    const parsedDate = new Date(normalizedDate);
+    const weight = this.coerceNumber(raw.weight);
+    const receivedAmount = this.coerceNumber(raw.receivedAmount);
+
+    if (weight === null || receivedAmount === null) {
+      throw new Error('Invalid weight or received amount');
+    }
+
+    return {
+      date: parsedDate.toISOString(),
+      plant: raw.plant ?? '',
+      product: raw.product ?? '',
+      campaign: raw.campaign ?? '',
+      stage: raw.stage ?? '',
+      tank: raw.tank ?? '',
+      levelIndicator: raw.levelIndicator ?? '',
+      weight,
+      receivedAmount
+    };
+  }
+
+  private normalizeDateValue(value: unknown): string {
+    if (!value) {
+      return '';
     }
 
     if (value instanceof Date) {
-      return value.toISOString().split('T')[0];
+      return Number.isNaN(value.getTime()) ? '' : value.toISOString().split('T')[0];
     }
 
-    if (typeof value === 'number') {
-      return Number.isFinite(value) ? String(value) : '';
-    }
-
-    if (typeof value === 'string') {
-      return value;
+    if (typeof value === 'string' || typeof value === 'number') {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
     }
 
     return '';
   }
 
+  private coerceNumber(value: unknown): number | null {
+    if (value === undefined || value === null) {
+      return null;
+    }
+
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null;
+    }
+
+    if (typeof value === 'string') {
+      const normalized = value.replace(/[^0-9.-]/g, '');
+      if (!normalized) {
+        return null;
+      }
+      const parsedValue = Number(normalized);
+      return Number.isFinite(parsedValue) ? parsedValue : null;
+    }
+
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
   protected resolveNumber(primary?: number | null, fallback?: number | null): number {
     return (primary ?? fallback ?? 0) as number;
   }
@@ -600,7 +740,4 @@ export class FermentationDashboardComponent implements OnInit {
       });
   }
 }
-
-
-
 

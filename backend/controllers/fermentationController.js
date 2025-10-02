@@ -39,7 +39,9 @@ const fermentationSchema = Joi.object({
   campaign: Joi.string().required(),
   tank: Joi.string().required(),
   stage: Joi.string().required(),
-  levelIndicator: Joi.string().required()
+  levelIndicator: Joi.string().required(),
+  weight: Joi.number().min(0).required(),
+  receivedAmount: Joi.number().min(0).required()
 });
 
 // GET all
