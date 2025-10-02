@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, OnInit, computed, inject, signal, effect } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators, FormControl } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime } from 'rxjs';
 
@@ -68,6 +68,57 @@ interface ModalField {
         <div>
           <span class="label">Net Difference (kg)</span>
           <span class="value" [class.negative]="stats().net < 0">{{ stats().net | number:'1.0-2' }}</span>
+        </div>
+      </div>
+
+      <div class="quick-add-section">
+        <h3 class="quick-add-title">Add New Record</h3>
+        <div class="quick-add-form">
+          <div class="quick-add-grid">
+            <label>
+              <span>Date</span>
+              <input type="date" [formControl]="quickAddControls.date" />
+            </label>
+            <label>
+              <span>Plant</span>
+              <input type="text" [formControl]="quickAddControls.plant" placeholder="Plant" />
+            </label>
+            <label>
+              <span>Product</span>
+              <input type="text" [formControl]="quickAddControls.product" placeholder="Product" />
+            </label>
+            <label>
+              <span>Campaign</span>
+              <input type="text" [formControl]="quickAddControls.campaign" placeholder="Campaign" />
+            </label>
+            <label>
+              <span>Package</span>
+              <input type="text" [formControl]="quickAddControls.packageType" placeholder="Package" />
+            </label>
+            <label>
+              <span>Incoming (kg)</span>
+              <input type="number" [formControl]="quickAddControls.incomingAmountKg" placeholder="Incoming" step="any" />
+            </label>
+            <label>
+              <span>Outgoing (kg)</span>
+              <input type="number" [formControl]="quickAddControls.outgoingAmountKg" placeholder="Outgoing" step="any" />
+            </label>
+          </div>
+          @if (quickSaveError()) {
+            <p class="quick-add-error">{{ quickSaveError() }}</p>
+          }
+          <div class="quick-add-actions">
+            <button type="button" class="quick-save-btn" (click)="quickSave()" [disabled]="!canQuickSave()">
+              @if (isQuickSaving()) {
+                <span class="saving">⏳ Saving...</span>
+              } @else {
+                <span class="save-text">💾 Save Record</span>
+              }
+            </button>
+            <button type="button" class="quick-clear-btn" (click)="resetQuickAddForm()" [disabled]="isQuickSaving()">
+              🗑️ Clear
+            </button>
+          </div>
         </div>
       </div>
 
@@ -568,6 +619,126 @@ interface ModalField {
           transform: none;
         }
       }
+
+      .quick-add-section {
+        background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+        border: 2px solid #0ea5e9;
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
+      }
+      .quick-add-title {
+        margin: 0 0 1rem 0;
+        font-size: 1.1rem;
+        color: #0f172a;
+        font-weight: 600;
+      }
+      .quick-add-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .quick-add-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+      .quick-add-grid label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        font-size: 0.85rem;
+        color: #1e293b;
+        font-weight: 500;
+      }
+      .quick-add-grid input {
+        padding: 0.55rem 0.7rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 0.5rem;
+        font-size: 0.85rem;
+        background: white;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+      .quick-add-grid input:focus {
+        outline: none;
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+      }
+      .quick-add-grid input:invalid:not(:focus):not(:placeholder-shown) {
+        border-color: #ef4444;
+      }
+      .quick-add-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+        align-items: center;
+      }
+      .quick-save-btn {
+        padding: 0.6rem 1.2rem;
+        border: none;
+        border-radius: 0.5rem;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .quick-save-btn:hover:not(:disabled) {
+        background: linear-gradient(135deg, #059669, #047857);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+      }
+      .quick-save-btn:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+      .quick-clear-btn {
+        padding: 0.6rem 1rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        background: white;
+        color: #6b7280;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+      }
+      .quick-clear-btn:hover:not(:disabled) {
+        background: #f9fafb;
+        border-color: #9ca3af;
+        color: #374151;
+      }
+      .quick-clear-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .quick-add-error {
+        margin: 0;
+        color: #dc2626;
+        font-size: 0.85rem;
+        font-weight: 500;
+      }
+
+      @media (max-width: 768px) {
+        .quick-add-section {
+          padding: 1rem;
+        }
+        .quick-add-grid {
+          grid-template-columns: 1fr;
+        }
+        .quick-add-actions {
+          flex-direction: column;
+          align-items: stretch;
+        }
+      }
+
     `
   ]
 })
@@ -598,6 +769,40 @@ export class PackagingDashboardComponent implements OnInit {
     incomingAmountKg: [null as number | null, [Validators.required, Validators.min(0.0000001)]],
     outgoingAmountKg: [null as number | null, [Validators.required, Validators.min(0.0000001)]]
   });
+
+  // Quick add controls for inline table entry
+  protected readonly quickAddControls = {
+    date: new FormControl('', Validators.required),
+    plant: new FormControl('', Validators.required),
+    product: new FormControl('', Validators.required),
+    campaign: new FormControl('', Validators.required),
+    packageType: new FormControl('', Validators.required),
+    incomingAmountKg: new FormControl(null as number | null, [Validators.required, Validators.min(0.0000001)]),
+    outgoingAmountKg: new FormControl(null as number | null, [Validators.required, Validators.min(0.0000001)])
+  };
+
+  protected readonly isQuickSaving = signal(false);
+  protected readonly quickSaveError = signal<string | null>(null);
+
+  protected canQuickSave(): boolean {
+    const controls = this.quickAddControls;
+    const dateValue = controls.date.value;
+    const plantValue = controls.plant.value;
+    const productValue = controls.product.value;
+    const campaignValue = controls.campaign.value;
+    const packageTypeValue = controls.packageType.value;
+    const incomingValue = controls.incomingAmountKg.value;
+    const outgoingValue = controls.outgoingAmountKg.value;
+
+    return !this.isQuickSaving() &&
+           !!dateValue &&
+           !!plantValue &&
+           !!productValue &&
+           !!campaignValue &&
+           !!packageTypeValue &&
+           incomingValue !== null && incomingValue !== undefined && incomingValue > 0 &&
+           outgoingValue !== null && outgoingValue !== undefined && outgoingValue > 0;
+  }
 
   protected readonly isMutating = signal(false);
   protected readonly mutationError = signal<string | null>(null);
@@ -651,7 +856,7 @@ export class PackagingDashboardComponent implements OnInit {
     this.filterForm.valueChanges
       .pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.loadData());
-  });
+  }, { allowSignalWrites: false });
 
   private readonly modalStateEffect = effect(() => {
     // Clear mutation errors when modal opens/closes
@@ -660,7 +865,7 @@ export class PackagingDashboardComponent implements OnInit {
       this.mutationError.set(null);
       this.isMutating.set(false);
     }
-  });
+  }, { allowSignalWrites: false });
 
   private readonly loadingStateEffect = effect(() => {
     // Log loading state changes for debugging
@@ -669,7 +874,7 @@ export class PackagingDashboardComponent implements OnInit {
     if (!loading && count > 0) {
       console.debug(`Loaded ${count} packaging records`);
     }
-  });
+  }, { allowSignalWrites: false });
 
   ngOnInit(): void {
     // Initial data load
@@ -683,6 +888,58 @@ export class PackagingDashboardComponent implements OnInit {
   protected resetFilters(): void {
     this.filterForm.reset({ date: '', plant: '', product: '', packageType: '', campaign: '' });
     this.loadData();
+  }
+
+  protected quickSave(): void {
+    if (!this.canQuickSave()) {
+      Object.values(this.quickAddControls).forEach(control => control.markAsTouched());
+      return;
+    }
+
+    const formData = {
+      date: this.quickAddControls.date.value,
+      plant: this.quickAddControls.plant.value,
+      product: this.quickAddControls.product.value,
+      campaign: this.quickAddControls.campaign.value,
+      packageType: this.quickAddControls.packageType.value,
+      incomingAmountKg: this.quickAddControls.incomingAmountKg.value,
+      outgoingAmountKg: this.quickAddControls.outgoingAmountKg.value
+    };
+
+    let payload: PackagingRequest;
+    try {
+      payload = this.buildPackagingPayloadFromQuickAdd(formData);
+    } catch (err) {
+      console.error('Unable to prepare quick add payload', err);
+      this.quickSaveError.set('Unable to prepare data.');
+      return;
+    }
+
+    this.isQuickSaving.set(true);
+    this.quickSaveError.set(null);
+
+    this.apiService
+      .addPackagingEntry(payload)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (newRecord: PackagingResponse) => {
+          this.rows.update(rows => [newRecord, ...rows]);
+          this.resetQuickAddForm();
+          this.isQuickSaving.set(false);
+        },
+        error: (err: any) => {
+          console.error('Failed to add packaging record', err);
+          this.isQuickSaving.set(false);
+          this.quickSaveError.set('Failed to add record.');
+        }
+      });
+  }
+
+  protected resetQuickAddForm(): void {
+    Object.values(this.quickAddControls).forEach(control => {
+      control.reset();
+      control.markAsUntouched();
+    });
   }
 
   protected openEditModal(row: PackagingResponse): void {
@@ -798,6 +1055,24 @@ export class PackagingDashboardComponent implements OnInit {
       packageType: raw.packageType ?? '',
       incomingAmountKg: Number(raw.incomingAmountKg),
       outgoingAmountKg: Number(raw.outgoingAmountKg)
+    };
+  }
+
+  private buildPackagingPayloadFromQuickAdd(formData: any): PackagingRequest {
+    const parsedDate = new Date(formData.date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      throw new Error('Invalid date provided');
+    }
+
+    return {
+      date: parsedDate.toISOString(),
+      plant: formData.plant ?? '',
+      product: formData.product ?? '',
+      campaign: formData.campaign ?? '',
+      packageType: formData.packageType ?? '',
+      incomingAmountKg: Number(formData.incomingAmountKg),
+      outgoingAmountKg: Number(formData.outgoingAmountKg)
     };
   }
 

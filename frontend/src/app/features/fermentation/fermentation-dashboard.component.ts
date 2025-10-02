@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, OnInit, computed, inject, signal, effect } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators, FormControl } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime } from 'rxjs';
 
@@ -26,6 +26,9 @@ interface ModalField {
   readonly label: string;
   readonly type: 'text' | 'number' | 'date';
 }
+
+type FermentationFormValue = Record<ModalFieldKey, unknown>;
+
 
 @Component({
   selector: 'app-fermentation-dashboard',
@@ -72,6 +75,65 @@ interface ModalField {
         <div>
           <span class="label">Avg Level Indicator</span>
           <span class="value">{{ stats().avgLevelIndicator | number:'1.0-2' }}</span>
+        </div>
+      </div>
+
+      <div class="quick-add-section">
+        <h3 class="quick-add-title">Add New Record</h3>
+        <div class="quick-add-form">
+          <div class="quick-add-grid">
+            <label>
+              <span>Date</span>
+              <input type="date" [formControl]="quickAddControls.date" />
+            </label>
+            <label>
+              <span>Plant</span>
+              <input type="text" [formControl]="quickAddControls.plant" placeholder="Plant" />
+            </label>
+            <label>
+              <span>Product</span>
+              <input type="text" [formControl]="quickAddControls.product" placeholder="Product" />
+            </label>
+            <label>
+              <span>Campaign</span>
+              <input type="text" [formControl]="quickAddControls.campaign" placeholder="Campaign" />
+            </label>
+            <label>
+              <span>Stage</span>
+              <input type="text" [formControl]="quickAddControls.stage" placeholder="Stage" />
+            </label>
+            <label>
+              <span>Tank</span>
+              <input type="text" [formControl]="quickAddControls.tank" placeholder="Tank" />
+            </label>
+            <label>
+              <span>Level Indicator</span>
+              <input type="text" [formControl]="quickAddControls.levelIndicator" placeholder="Level Indicator" />
+            </label>
+            <label>
+              <span>Weight (lbs)</span>
+              <input type="number" [formControl]="quickAddControls.weight" placeholder="Weight" step="any" />
+            </label>
+            <label>
+              <span>Received (lbs)</span>
+              <input type="number" [formControl]="quickAddControls.receivedAmount" placeholder="Received" step="any" />
+            </label>
+          </div>
+          @if (quickSaveError()) {
+            <p class="quick-add-error">{{ quickSaveError() }}</p>
+          }
+          <div class="quick-add-actions">
+            <button type="button" class="quick-save-btn" (click)="quickSave()" [disabled]="!canQuickSave()">
+              @if (isQuickSaving()) {
+                <span class="saving">⏳ Saving...</span>
+              } @else {
+                <span class="save-text">💾 Save Record</span>
+              }
+            </button>
+            <button type="button" class="quick-clear-btn" (click)="resetQuickAddForm()" [disabled]="isQuickSaving()">
+              🗑️ Clear
+            </button>
+          </div>
         </div>
       </div>
 
@@ -217,6 +279,90 @@ interface ModalField {
         font-weight: 600;
         color: #0f172a;
       }
+      .manual-entry {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .manual-entry-toggle {
+        align-self: flex-start;
+        border: none;
+        border-radius: 999px;
+        padding: 0.45rem 1.1rem;
+        background: #1d4ed8;
+        color: #fff;
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: background 0.2s ease;
+      }
+      .manual-entry-toggle:hover {
+        background: #1e40af;
+      }
+      .manual-entry-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .manual-entry-grid {
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      }
+      .manual-entry-grid label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        font-size: 0.8rem;
+        color: #1e293b;
+      }
+      .manual-entry-grid input {
+        padding: 0.5rem 0.65rem;
+        border-radius: 0.6rem;
+        border: 1px solid #cbd5e1;
+        font-size: 0.85rem;
+      }
+      .manual-entry-error {
+        margin: 0;
+        color: #b91c1c;
+        font-size: 0.85rem;
+        font-weight: 500;
+      }
+      .manual-entry-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+      }
+      .manual-entry-actions button {
+        border: none;
+        border-radius: 999px;
+        padding: 0.5rem 1.1rem;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: background 0.2s ease, color 0.2s ease;
+      }
+      .manual-entry-cancel {
+        background: #e2e8f0;
+        color: #0f172a;
+      }
+      .manual-entry-cancel:hover {
+        background: #cbd5f5;
+      }
+      .manual-entry-save {
+        background: #2563eb;
+        color: #fff;
+      }
+      .manual-entry-save:hover {
+        background: #1d4ed8;
+      }
+      .manual-entry-save:disabled,
+      .manual-entry-cancel:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
       .table-wrapper {
         position: relative;
         padding-right: 3rem;
@@ -325,6 +471,118 @@ interface ModalField {
         text-align: center;
         color: #64748b;
         font-style: italic;
+      }
+      .quick-add-section {
+        background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+        border: 2px solid #0ea5e9;
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
+      }
+      .quick-add-title {
+        margin: 0 0 1rem 0;
+        font-size: 1.1rem;
+        color: #0f172a;
+        font-weight: 600;
+      }
+      .quick-add-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .quick-add-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+      .quick-add-grid label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        font-size: 0.85rem;
+        color: #1e293b;
+        font-weight: 500;
+      }
+      .quick-add-grid input {
+        padding: 0.55rem 0.7rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 0.5rem;
+        font-size: 0.85rem;
+        background: white;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+      .quick-add-grid input:focus {
+        outline: none;
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+      }
+      .quick-add-grid input:invalid:not(:focus):not(:placeholder-shown) {
+        border-color: #ef4444;
+      }
+      .quick-add-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+        align-items: center;
+      }
+      .quick-save-btn {
+        padding: 0.6rem 1.2rem;
+        border: none;
+        border-radius: 0.5rem;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .quick-save-btn:hover:not(:disabled) {
+        background: linear-gradient(135deg, #059669, #047857);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+      }
+      .quick-save-btn:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+      .quick-clear-btn {
+        padding: 0.6rem 1rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        background: white;
+        color: #6b7280;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+      }
+      .quick-clear-btn:hover:not(:disabled) {
+        background: #f9fafb;
+        border-color: #9ca3af;
+        color: #374151;
+      }
+      .quick-clear-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .quick-add-error {
+        margin: 0;
+        color: #dc2626;
+        font-size: 0.85rem;
+        font-weight: 500;
+      }
+      .saving {
+        animation: pulse 1.5s infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
       }
       .loading {
         padding: 2rem;
@@ -560,6 +818,23 @@ interface ModalField {
         .table-wrapper.dimmed .row-edit-button {
           transform: none;
         }
+        .quick-add-section {
+          padding: 1rem;
+          margin-bottom: 1rem;
+        }
+        .quick-add-grid {
+          grid-template-columns: 1fr;
+          gap: 0.75rem;
+        }
+        .quick-add-actions {
+          flex-direction: column-reverse;
+          gap: 0.5rem;
+        }
+        .quick-save-btn,
+        .quick-clear-btn {
+          width: 100%;
+          justify-content: center;
+        }
       }
     `
   ]
@@ -597,6 +872,47 @@ export class FermentationDashboardComponent implements OnInit {
 
   protected readonly isMutating = signal(false);
   protected readonly mutationError = signal<string | null>(null);
+
+  // Quick add controls for inline table entry
+  protected readonly quickAddControls = {
+    date: new FormControl('', Validators.required),
+    plant: new FormControl('', Validators.required),
+    product: new FormControl('', Validators.required),
+    campaign: new FormControl('', Validators.required),
+    stage: new FormControl('', Validators.required),
+    tank: new FormControl('', Validators.required),
+    levelIndicator: new FormControl('', Validators.required),
+    weight: new FormControl(null as number | null, [Validators.required, Validators.min(0)]),
+    receivedAmount: new FormControl(null as number | null, [Validators.required, Validators.min(0)])
+  };
+
+  protected readonly isQuickSaving = signal(false);
+  protected readonly quickSaveError = signal<string | null>(null);
+
+  protected canQuickSave(): boolean {
+    // Method gets called on every change detection cycle
+    const controls = this.quickAddControls;
+    const dateValue = controls.date.value;
+    const plantValue = controls.plant.value;
+    const productValue = controls.product.value;
+    const campaignValue = controls.campaign.value;
+    const stageValue = controls.stage.value;
+    const tankValue = controls.tank.value;
+    const levelIndicatorValue = controls.levelIndicator.value;
+    const weightValue = controls.weight.value;
+    const receivedAmountValue = controls.receivedAmount.value;
+
+    return !this.isQuickSaving() &&
+           !!dateValue &&
+           !!plantValue &&
+           !!productValue &&
+           !!campaignValue &&
+           !!stageValue &&
+           !!tankValue &&
+           !!levelIndicatorValue &&
+           weightValue !== null && weightValue !== undefined && weightValue >= 0 &&
+           receivedAmountValue !== null && receivedAmountValue !== undefined && receivedAmountValue >= 0;
+  }
 
   // Computed signals for derived state
   protected readonly hasData = computed(() => this.rows().length > 0);
@@ -673,7 +989,7 @@ export class FermentationDashboardComponent implements OnInit {
     if (!loading && count > 0) {
       console.debug(`Loaded ${count} fermentation records`);
     }
-  });
+  }, { allowSignalWrites: false });
 
   ngOnInit(): void {
     // Initial data load
@@ -687,6 +1003,60 @@ export class FermentationDashboardComponent implements OnInit {
   protected resetFilters(): void {
     this.filterForm.reset({ date: '', plant: '', product: '', stage: '', campaign: '' });
     this.loadData();
+  }
+
+  protected quickSave(): void {
+    if (!this.canQuickSave()) {
+      Object.values(this.quickAddControls).forEach(control => control.markAsTouched());
+      return;
+    }
+
+    const formData = {
+      date: this.quickAddControls.date.value,
+      plant: this.quickAddControls.plant.value,
+      product: this.quickAddControls.product.value,
+      campaign: this.quickAddControls.campaign.value,
+      stage: this.quickAddControls.stage.value,
+      tank: this.quickAddControls.tank.value,
+      levelIndicator: this.quickAddControls.levelIndicator.value,
+      weight: this.quickAddControls.weight.value,
+      receivedAmount: this.quickAddControls.receivedAmount.value
+    };
+
+    let payload: FermentationRequest;
+    try {
+      payload = this.buildFermentationPayloadFromRaw(formData as FermentationFormValue);
+    } catch (err) {
+      console.error('Unable to prepare quick add payload', err);
+      this.quickSaveError.set('Unable to prepare data.');
+      return;
+    }
+
+    this.isQuickSaving.set(true);
+    this.quickSaveError.set(null);
+
+    this.apiService
+      .addFermentationEntry(payload)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (newRecord) => {
+          this.rows.update(rows => [newRecord, ...rows]);
+          this.resetQuickAddForm();
+          this.isQuickSaving.set(false);
+        },
+        error: (err) => {
+          console.error('Failed to add fermentation record', err);
+          this.isQuickSaving.set(false);
+          this.quickSaveError.set('Failed to add record.');
+        }
+      });
+  }
+
+  protected resetQuickAddForm(): void {
+    Object.values(this.quickAddControls).forEach(control => {
+      control.reset();
+      control.markAsUntouched();
+    });
   }
 
   protected openEditModal(row: FermentationResponse): void {
@@ -787,7 +1157,10 @@ export class FermentationDashboardComponent implements OnInit {
   }
 
   private buildFermentationPayload(): FermentationRequest {
-    const raw = this.editForm.getRawValue();
+    return this.buildFermentationPayloadFromRaw(this.editForm.getRawValue() as FermentationFormValue);
+  }
+
+  private buildFermentationPayloadFromRaw(raw: FermentationFormValue): FermentationRequest {
     const normalizedDate = this.normalizeDateValue(raw.date);
 
     if (!normalizedDate) {
@@ -804,12 +1177,12 @@ export class FermentationDashboardComponent implements OnInit {
 
     return {
       date: parsedDate.toISOString(),
-      plant: raw.plant ?? '',
-      product: raw.product ?? '',
-      campaign: raw.campaign ?? '',
-      stage: raw.stage ?? '',
-      tank: raw.tank ?? '',
-      levelIndicator: raw.levelIndicator ?? '',
+      plant: this.coerceString(raw.plant),
+      product: this.coerceString(raw.product),
+      campaign: this.coerceString(raw.campaign),
+      stage: this.coerceString(raw.stage),
+      tank: this.coerceString(raw.tank),
+      levelIndicator: this.coerceString(raw.levelIndicator),
       weight,
       receivedAmount
     };
@@ -852,6 +1225,13 @@ export class FermentationDashboardComponent implements OnInit {
 
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private coerceString(value: unknown): string {
+    if (typeof value === 'string') {
+      return value.trim();
+    }
+    return '';
   }
   protected resolveNumber(primary?: number | null, fallback?: number | null): number {
     return (primary ?? fallback ?? 0) as number;
@@ -899,4 +1279,6 @@ export class FermentationDashboardComponent implements OnInit {
       });
   }
 }
+
+/* Added manual entry form with API create hook, toggled visibility, and refresh wiring. */
 

@@ -1,6 +1,6 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+﻿import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { Observable, shareReplay } from 'rxjs';
+import { Observable, shareReplay, tap } from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
 
 export interface PackagingFilters {
@@ -191,20 +191,26 @@ export class ApiService {
     return request;
   }
 
-  updatePackaging(id: string, payload: PackagingRequest): Observable<PackagingResponse> {
-    const request = this.http.put<PackagingResponse>(`${this.baseUrl()}/packaging/${id}`, payload);
+  addPackagingEntry(payload: PackagingRequest): Observable<PackagingResponse> {
+    const request = this.http.post<PackagingResponse>(`${this.baseUrl()}/packaging`, payload).pipe(
+      tap(() => this.invalidatePackagingCache())
+    );
 
-    // Invalidate cache on mutation
-    request.subscribe(() => this.invalidatePackagingCache());
+    return request;
+  }
+
+  updatePackaging(id: string, payload: PackagingRequest): Observable<PackagingResponse> {
+    const request = this.http.put<PackagingResponse>(`${this.baseUrl()}/packaging/${id}`, payload).pipe(
+      tap(() => this.invalidatePackagingCache())
+    );
 
     return request;
   }
 
   deletePackaging(id: string): Observable<void> {
-    const request = this.http.delete<void>(`${this.baseUrl()}/packaging/${id}`);
-
-    // Invalidate cache on mutation
-    request.subscribe(() => this.invalidatePackagingCache());
+    const request = this.http.delete<void>(`${this.baseUrl()}/packaging/${id}`).pipe(
+      tap(() => this.invalidatePackagingCache())
+    );
 
     return request;
   }
@@ -235,18 +241,26 @@ export class ApiService {
     return request;
   }
 
-  updateFermentation(id: string, payload: FermentationRequest): Observable<FermentationResponse> {
-    const request = this.http.put<FermentationResponse>(`${this.baseUrl()}/fermentation/${id}`, payload);
+  addFermentationEntry(payload: FermentationRequest): Observable<FermentationResponse> {
+    const request = this.http.post<FermentationResponse>(`${this.baseUrl()}/fermentation`, payload).pipe(
+      tap(() => this.invalidateFermentationCache())
+    );
 
-    request.subscribe(() => this.invalidateFermentationCache());
+    return request;
+  }
+
+  updateFermentation(id: string, payload: FermentationRequest): Observable<FermentationResponse> {
+    const request = this.http.put<FermentationResponse>(`${this.baseUrl()}/fermentation/${id}`, payload).pipe(
+      tap(() => this.invalidateFermentationCache())
+    );
 
     return request;
   }
 
   deleteFermentation(id: string): Observable<void> {
-    const request = this.http.delete<void>(`${this.baseUrl()}/fermentation/${id}`);
-
-    request.subscribe(() => this.invalidateFermentationCache());
+    const request = this.http.delete<void>(`${this.baseUrl()}/fermentation/${id}`).pipe(
+      tap(() => this.invalidateFermentationCache())
+    );
 
     return request;
   }
@@ -277,22 +291,35 @@ export class ApiService {
     return request;
   }
 
-  updateExtraction(id: string, payload: ExtractionRequest): Observable<ExtractionResponse> {
-    const request = this.http.put<ExtractionResponse>(`${this.baseUrl()}/extraction/${id}`, payload);
+  addExtractionEntry(payload: ExtractionRequest): Observable<ExtractionResponse> {
+    const request = this.http.post<ExtractionResponse>(`${this.baseUrl()}/extraction`, payload).pipe(
+      tap(() => this.invalidateExtractionCache())
+    );
 
-    request.subscribe(() => this.invalidateExtractionCache());
+    return request;
+  }
+
+  updateExtraction(id: string, payload: ExtractionRequest): Observable<ExtractionResponse> {
+    const request = this.http.put<ExtractionResponse>(`${this.baseUrl()}/extraction/${id}`, payload).pipe(
+      tap(() => this.invalidateExtractionCache())
+    );
 
     return request;
   }
 
   deleteExtraction(id: string): Observable<void> {
-    const request = this.http.delete<void>(`${this.baseUrl()}/extraction/${id}`);
-
-    request.subscribe(() => this.invalidateExtractionCache());
+    const request = this.http.delete<void>(`${this.baseUrl()}/extraction/${id}`).pipe(
+      tap(() => this.invalidateExtractionCache())
+    );
 
     return request;
   }
 }
+
+
+
+
+
 
 
 
