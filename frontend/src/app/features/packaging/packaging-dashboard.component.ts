@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime } from 'rxjs';
 
-import { ApiService, PackagingFilters, PackagingResponse } from '../../core/services/api.service';
+import { ApiService, PackagingFilters, PackagingRequest, PackagingResponse } from '../../core/services/api.service';
 
 type ModalFieldKey =
   | 'date'
@@ -15,7 +15,7 @@ type ModalFieldKey =
   | 'incomingAmountKg'
   | 'outgoingAmountKg';
 
-type ModalRow = Partial<Record<ModalFieldKey, unknown>>;
+type ModalRow = Partial<Record<ModalFieldKey, unknown>> & { _id?: string };
 
 interface ModalField {
   key: ModalFieldKey;
@@ -104,7 +104,7 @@ interface ModalField {
         </table>
       </div>
       <ng-template #loading>
-        <div class="loading">Loading packaging data…</div>
+        <div class="loading">Loading packaging data...</div>
       </ng-template>
 
       <div class="modal-backdrop" *ngIf="editingRow()">
@@ -113,22 +113,23 @@ interface ModalField {
             <h2 id="edit-modal-title">Edit Packaging Record</h2>
             <button type="button" class="modal-close" (click)="closeEditModal()" aria-label="Close">&times;</button>
           </header>
-          <form class="modal-form">
+          <form class="modal-form" [formGroup]="editForm" (ngSubmit)="submitEdit()">
             <div class="modal-grid">
               <label *ngFor="let field of modalFields" [attr.for]="'field-' + field.key">
                 <span>{{ field.label }}</span>
                 <input
                   [id]="'field-' + field.key"
                   [type]="field.type"
-                  [value]="getFieldValue(editingRow(), field.key)"
+                  [formControlName]="field.key"
                   [attr.placeholder]="field.label"
                 />
               </label>
             </div>
+            <p class="modal-error" *ngIf="mutationError()">{{ mutationError() }}</p>
             <div class="modal-actions">
-              <button type="button" class="btn-primary">Save</button>
-              <button type="button" class="btn-danger">Delete Row</button>
-              <button type="button" class="btn-secondary" (click)="closeEditModal()">Cancel</button>
+              <button type="submit" class="btn-primary" [disabled]="isMutating() || editForm.invalid">Save</button>
+              <button type="button" class="btn-danger" (click)="deleteCurrentRow()" [disabled]="isMutating()">Delete Row</button>
+              <button type="button" class="btn-secondary" (click)="closeEditModal()" [disabled]="isMutating()">Cancel</button>
             </div>
           </form>
         </div>
@@ -398,6 +399,11 @@ interface ModalField {
         border: 1px solid #cbd5e1;
         font-size: 0.85rem;
       }
+      .modal-error {
+        margin: 0.25rem 0 0;
+        color: #b91c1c;
+        font-size: 0.85rem;
+      }
       .modal-actions {
         display: flex;
         flex-wrap: wrap;
@@ -461,6 +467,19 @@ export class PackagingDashboardComponent implements OnInit {
   protected readonly isLoading = signal(false);
   protected readonly editingRow = signal<ModalRow | null>(null);
 
+  protected readonly editForm = this.fb.group({
+    date: ['', Validators.required],
+    plant: ['', Validators.required],
+    product: ['', Validators.required],
+    campaign: ['', Validators.required],
+    packageType: ['', Validators.required],
+    incomingAmountKg: [null as number | null, [Validators.required, Validators.min(0.0000001)]],
+    outgoingAmountKg: [null as number | null, [Validators.required, Validators.min(0.0000001)]]
+  });
+
+  protected readonly isMutating = signal(false);
+  protected readonly mutationError = signal<string | null>(null);
+
   protected readonly modalFields: ModalField[] = [
     { key: 'date', label: 'Date', type: 'date' },
     { key: 'plant', label: 'Plant', type: 'text' },
@@ -515,44 +534,149 @@ export class PackagingDashboardComponent implements OnInit {
   }
 
   protected openEditModal(row: PackagingResponse): void {
+    this.mutationError.set(null);
+    this.isMutating.set(false);
+
+    this.editForm.reset({
+      date: this.normalizeDateValue(row.date),
+      plant: row.plant ?? '',
+      product: row.product ?? '',
+      campaign: row.campaign ?? '',
+      packageType: row.packageType ?? '',
+      incomingAmountKg: this.coerceNumber(row.incomingAmountKg),
+      outgoingAmountKg: this.coerceNumber(row.outgoingAmountKg)
+    });
+
     this.editingRow.set({ ...row });
   }
 
   protected closeEditModal(): void {
+    this.editForm.reset();
     this.editingRow.set(null);
+    this.mutationError.set(null);
+    this.isMutating.set(false);
   }
-  protected getFieldValue(row: ModalRow | null, key: ModalFieldKey): string {
-    if (!row) {
-      return '';
+
+  protected submitEdit(): void {
+    const current = this.editingRow();
+
+    if (!current?._id) {
+      console.warn('Attempted to save packaging record without an identifier.');
+      return;
     }
 
-    const value = row[key];
-    if (value === undefined || value === null) {
-      return '';
+    if (this.editForm.invalid) {
+      this.editForm.markAllAsTouched();
+      return;
     }
 
-    if (key === 'date') {
-      if (value instanceof Date) {
-        return value.toISOString().split('T')[0];
-      }
-      if (typeof value === 'string') {
-        return value.includes('T') ? value.split('T')[0] : value;
-      }
+    let payload: PackagingRequest;
+    try {
+      payload = this.buildPackagingPayload();
+    } catch (err) {
+      this.mutationError.set('Unable to prepare packaging payload.');
+      return;
+    }
+
+    this.isMutating.set(true);
+    this.mutationError.set(null);
+
+    this.apiService
+      .updatePackaging(current._id, payload)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.rows.update((rows) =>
+            rows.map((item) => (item._id === updated._id ? { ...item, ...updated } : item))
+          );
+          this.isMutating.set(false);
+          this.closeEditModal();
+        },
+        error: (err) => {
+          console.error('Failed to update packaging record', err);
+          this.isMutating.set(false);
+          this.mutationError.set('Failed to update packaging record.');
+        }
+      });
+  }
+
+  protected deleteCurrentRow(): void {
+    const current = this.editingRow();
+
+    if (!current?._id) {
+      console.warn('Attempted to delete packaging record without an identifier.');
+      return;
+    }
+
+    this.isMutating.set(true);
+    this.mutationError.set(null);
+
+    this.apiService
+      .deletePackaging(current._id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.rows.update((rows) => rows.filter((item) => item._id !== current._id));
+          this.isMutating.set(false);
+          this.closeEditModal();
+        },
+        error: (err) => {
+          console.error('Failed to delete packaging record', err);
+          this.isMutating.set(false);
+          this.mutationError.set('Failed to delete packaging record.');
+        }
+      });
+  }
+
+  private buildPackagingPayload(): PackagingRequest {
+    const raw = this.editForm.getRawValue();
+    const normalizedDate = this.normalizeDateValue(raw.date);
+
+    if (!normalizedDate) {
+      throw new Error('Invalid date provided');
+    }
+
+    const parsedDate = new Date(normalizedDate);
+
+    return {
+      date: parsedDate.toISOString(),
+      plant: raw.plant ?? '',
+      product: raw.product ?? '',
+      campaign: raw.campaign ?? '',
+      packageType: raw.packageType ?? '',
+      incomingAmountKg: Number(raw.incomingAmountKg),
+      outgoingAmountKg: Number(raw.outgoingAmountKg)
+    };
+  }
+
+  private normalizeDateValue(value: ModalRow['date']): string {
+    if (!value) {
+      return '';
     }
 
     if (value instanceof Date) {
-      return value.toISOString().split('T')[0];
+      return Number.isNaN(value.getTime()) ? '' : value.toISOString().split('T')[0];
     }
 
-    if (typeof value === 'number') {
-      return Number.isFinite(value) ? String(value) : '';
-    }
-
-    if (typeof value === 'string') {
-      return value;
+    if (typeof value === 'string' || typeof value === 'number') {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
     }
 
     return '';
+  }
+
+  private coerceNumber(value: unknown): number | null {
+    if (value === undefined || value === null) {
+      return null;
+    }
+
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null;
+    }
+
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
   }
 
   private buildFilters(): PackagingFilters {

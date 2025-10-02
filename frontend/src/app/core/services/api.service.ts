@@ -89,6 +89,16 @@ export interface PackagingResponse {
   outgoingAmountKg: number;
 }
 
+export interface PackagingRequest {
+  date: string | Date;
+  plant: string;
+  product: string;
+  campaign: string;
+  packageType: string;
+  incomingAmountKg: number;
+  outgoingAmountKg: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http = inject(HttpClient);
@@ -111,6 +121,14 @@ export class ApiService {
     return this.http.get<PackagingResponse[]>(`${this.baseUrl}/packaging/filter`, {
       params: this.buildParams(filters)
     });
+  }
+
+  updatePackaging(id: string, payload: PackagingRequest): Observable<PackagingResponse> {
+    return this.http.put<PackagingResponse>(`${this.baseUrl}/packaging/${id}`, payload);
+  }
+
+  deletePackaging(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/packaging/${id}`);
   }
 
   // Aggregated totals grouped by plant
