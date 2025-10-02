@@ -14,22 +14,22 @@ import { Subscription } from 'rxjs';
 })
 export class App implements OnInit, OnDestroy {
   protected readonly title = signal('Plumino');
-  
+
   systemStatus = signal<SystemStatus>({
     backend: false,
     database: false,
     lastChecked: new Date(),
     message: 'Connecting...'
   });
-  
+
   statusClass = computed(() => {
     const status = this.systemStatus();
-    const result = status.backend && status.database ? 'online' : 
+    const result = status.backend && status.database ? 'online' :
                    status.backend ? 'partial' : 'offline';
     console.log('Status class calculated:', result, 'Backend:', status.backend, 'Database:', status.database);
     return result;
   });
-  
+
   private healthSubscription?: Subscription;
 
   constructor(private healthService: HealthService) {}
@@ -59,5 +59,5 @@ export class App implements OnInit, OnDestroy {
     }
   }
 
-  
+
 }

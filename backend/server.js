@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
+const mongoose = require('mongoose');
 require('dotenv').config();
 const connectDB = require('./config/db.js');
 connectDB();
@@ -24,7 +25,6 @@ app.get('/api/health', async (req, res) => {
   
   try {
     // Test database connection with a simple query
-    const mongoose = require('mongoose');
     if (mongoose.connection.readyState === 1) {
       // Test with a simple ping to verify DB is responsive
       await mongoose.connection.db.admin().ping();
