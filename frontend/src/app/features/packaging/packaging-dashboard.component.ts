@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal, effect } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime } from 'rxjs';
@@ -15,12 +15,12 @@ type ModalFieldKey =
   | 'incomingAmountKg'
   | 'outgoingAmountKg';
 
-type ModalRow = Partial<Record<ModalFieldKey, unknown>> & { _id?: string };
+type ModalRow = Partial<Record<ModalFieldKey, unknown>> & { readonly _id?: string };
 
 interface ModalField {
-  key: ModalFieldKey;
-  label: string;
-  type: 'text' | 'number' | 'date';
+  readonly key: ModalFieldKey;
+  readonly label: string;
+  readonly type: 'text' | 'number' | 'date';
 }
 
 @Component({
@@ -71,69 +71,79 @@ interface ModalField {
         </div>
       </div>
 
-      <div class="table-wrapper" [class.dimmed]="editingRow()" *ngIf="!isLoading(); else loading">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Plant</th>
-              <th>Product</th>
-              <th>Campaign</th>
-              <th>Package</th>
-              <th>Incoming (kg)</th>
-              <th>Outgoing (kg)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="data-row" *ngFor="let row of rows()">
-              <td>{{ row.date | date:'yyyy-MM-dd' }}</td>
-              <td>{{ row.plant }}</td>
-              <td>{{ row.product }}</td>
-              <td>{{ row.campaign }}</td>
-              <td>{{ row.packageType }}</td>
-              <td>{{ row.incomingAmountKg | number:'1.0-2' }}</td>
-              <td class="row-actions">
-                <span>{{ row.outgoingAmountKg | number:'1.0-2' }}</span>
-                <button type="button" class="row-edit-button" (click)="openEditModal(row)">Edit</button>
-              </td>
-            </tr>
-            <tr *ngIf="!rows().length">
-              <td colspan="7" class="empty">No packaging records match the selected filters.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <ng-template #loading>
-        <div class="loading">Loading packaging data...</div>
-      </ng-template>
-
-      <div class="modal-backdrop" *ngIf="editingRow()">
-        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
-          <header class="modal-header">
-            <h2 id="edit-modal-title">Edit Packaging Record</h2>
-            <button type="button" class="modal-close" (click)="closeEditModal()" aria-label="Close">&times;</button>
-          </header>
-          <form class="modal-form" [formGroup]="editForm" (ngSubmit)="submitEdit()">
-            <div class="modal-grid">
-              <label *ngFor="let field of modalFields" [attr.for]="'field-' + field.key">
-                <span>{{ field.label }}</span>
-                <input
-                  [id]="'field-' + field.key"
-                  [type]="field.type"
-                  [formControlName]="field.key"
-                  [attr.placeholder]="field.label"
-                />
-              </label>
-            </div>
-            <p class="modal-error" *ngIf="mutationError()">{{ mutationError() }}</p>
-            <div class="modal-actions">
-              <button type="submit" class="btn-primary" [disabled]="isMutating() || editForm.invalid">Save</button>
-              <button type="button" class="btn-danger" (click)="deleteCurrentRow()" [disabled]="isMutating()">Delete Row</button>
-              <button type="button" class="btn-secondary" (click)="closeEditModal()" [disabled]="isMutating()">Cancel</button>
-            </div>
-          </form>
+      @if (!isLoading()) {
+        <div class="table-wrapper" [class.dimmed]="editingRow()">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Plant</th>
+                <th>Product</th>
+                <th>Campaign</th>
+                <th>Package</th>
+                <th>Incoming (kg)</th>
+                <th>Outgoing (kg)</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of rows(); track row._id || $index) {
+                <tr class="data-row">
+                  <td>{{ row.date | date:'yyyy-MM-dd' }}</td>
+                  <td>{{ row.plant }}</td>
+                  <td>{{ row.product }}</td>
+                  <td>{{ row.campaign }}</td>
+                  <td>{{ row.packageType }}</td>
+                  <td>{{ row.incomingAmountKg | number:'1.0-2' }}</td>
+                  <td class="row-actions">
+                    <span>{{ row.outgoingAmountKg | number:'1.0-2' }}</span>
+                    <button type="button" class="row-edit-button" (click)="openEditModal(row)">Edit</button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="empty">No packaging records match the selected filters.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
-      </div>
+      } @else {
+        <div class="loading">Loading packaging data...</div>
+      }
+
+      @if (editingRow()) {
+        <div class="modal-backdrop">
+          <div class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+            <header class="modal-header">
+              <h2 id="edit-modal-title">Edit Packaging Record</h2>
+              <button type="button" class="modal-close" (click)="closeEditModal()" aria-label="Close">&times;</button>
+            </header>
+            <form class="modal-form" [formGroup]="editForm" (ngSubmit)="submitEdit()">
+              <div class="modal-grid">
+                @for (field of modalFields; track field.key) {
+                  <label [attr.for]="'field-' + field.key">
+                    <span>{{ field.label }}</span>
+                    <input
+                      [id]="'field-' + field.key"
+                      [type]="field.type"
+                      [formControlName]="field.key"
+                      [attr.placeholder]="field.label"
+                    />
+                  </label>
+                }
+              </div>
+              @if (mutationError()) {
+                <p class="modal-error">{{ mutationError() }}</p>
+              }
+              <div class="modal-actions">
+                <button type="submit" class="btn-primary" [disabled]="!canSubmitEdit()">Save</button>
+                <button type="button" class="btn-danger" (click)="deleteCurrentRow()" [disabled]="!canDelete()">Delete Row</button>
+                <button type="button" class="btn-secondary" (click)="closeEditModal()" [disabled]="isMutating()">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      }
     </section>
   `,
   styles: [
@@ -481,7 +491,14 @@ export class PackagingDashboardComponent implements OnInit {
   protected readonly isMutating = signal(false);
   protected readonly mutationError = signal<string | null>(null);
 
-  protected readonly modalFields: ModalField[] = [
+  // Computed signals for derived state
+  protected readonly hasData = computed(() => this.rows().length > 0);
+  protected readonly recordCount = computed(() => this.rows().length);
+  protected readonly isModalOpen = computed(() => !!this.editingRow());
+  protected readonly canSubmitEdit = computed(() => !this.isMutating() && this.editForm.valid);
+  protected readonly canDelete = computed(() => !this.isMutating() && !!this.editingRow()?._id);
+
+  protected readonly modalFields: readonly ModalField[] = [
     { key: 'date', label: 'Date', type: 'date' },
     { key: 'plant', label: 'Plant', type: 'text' },
     { key: 'product', label: 'Product', type: 'text' },
@@ -489,7 +506,7 @@ export class PackagingDashboardComponent implements OnInit {
     { key: 'packageType', label: 'Package', type: 'text' },
     { key: 'incomingAmountKg', label: 'Incoming (kg)', type: 'number' },
     { key: 'outgoingAmountKg', label: 'Outgoing (kg)', type: 'number' }
-  ];
+  ] as const;
 
   protected readonly stats = computed(() => {
     const data = this.rows();
@@ -498,7 +515,7 @@ export class PackagingDashboardComponent implements OnInit {
         totalIncoming: 0,
         totalOutgoing: 0,
         net: 0
-      };
+      } as const;
     }
 
     const totals = data.reduce(
@@ -514,14 +531,37 @@ export class PackagingDashboardComponent implements OnInit {
       totalIncoming: totals.totalIncoming,
       totalOutgoing: totals.totalOutgoing,
       net: totals.totalIncoming - totals.totalOutgoing
-    };
+    } as const;
   });
 
-  ngOnInit(): void {
+  // Effects for side effects management
+  private readonly filterChangesEffect = effect(() => {
+    // React to filter form changes with debounced loading
     this.filterForm.valueChanges
       .pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.loadData());
+  });
 
+  private readonly modalStateEffect = effect(() => {
+    // Clear mutation errors when modal opens/closes
+    const isOpen = this.isModalOpen();
+    if (!isOpen) {
+      this.mutationError.set(null);
+      this.isMutating.set(false);
+    }
+  });
+
+  private readonly loadingStateEffect = effect(() => {
+    // Log loading state changes for debugging
+    const loading = this.isLoading();
+    const count = this.recordCount();
+    if (!loading && count > 0) {
+      console.debug(`Loaded ${count} packaging records`);
+    }
+  });
+
+  ngOnInit(): void {
+    // Initial data load
     this.loadData();
   }
 
