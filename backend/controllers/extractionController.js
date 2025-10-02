@@ -1,6 +1,36 @@
 const Joi = require('joi');
 const Extraction = require('../models/extractionModel');
 
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const buildExtractionFilters = (query = {}) => {
+  const { date, plant, product, campaign, stage } = query;
+  const filters = {};
+
+  if (date) {
+    const parsedDate = new Date(date);
+    if (!Number.isNaN(parsedDate.getTime())) {
+      const startOfDay = new Date(parsedDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(startOfDay);
+      endOfDay.setDate(endOfDay.getDate() + 1);
+      filters.date = { $gte: startOfDay, $lt: endOfDay };
+    }
+  }
+
+  if (plant) filters.plant = plant;
+  if (product) filters.product = product;
+  if (campaign) filters.campaign = campaign;
+  if (stage) {
+    const normalizedStage = String(stage).trim();
+    if (normalizedStage) {
+      filters.stage = new RegExp(`^${escapeRegex(normalizedStage)}$`, 'i');
+    }
+  }
+
+  return filters;
+};
+
 // Joi validation schema
 const extractionSchema = Joi.object({
   date: Joi.date().required(),
@@ -20,6 +50,17 @@ const extractionSchema = Joi.object({
 const getExtractions = async (req, res) => {
   try {
     const extractions = await Extraction.find();
+    res.json(extractions);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+const getExtractionsFiltered = async (req, res) => {
+  const filters = buildExtractionFilters(req.query);
+
+  try {
+    const extractions = await Extraction.find(filters);
     res.json(extractions);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -78,6 +119,7 @@ const deleteExtraction = async (req, res) => {
 
 module.exports = {
   getExtractions,
+  getExtractionsFiltered,
   getExtractionById,
   createExtraction,
   updateExtraction,

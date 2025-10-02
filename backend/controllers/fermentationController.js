@@ -1,6 +1,36 @@
 const Joi = require('joi');
 const Fermentation = require('../models/fermentationModel');
 
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const buildFermentationFilters = (query = {}) => {
+  const { date, plant, product, campaign, stage } = query;
+  const filters = {};
+
+  if (date) {
+    const parsedDate = new Date(date);
+    if (!Number.isNaN(parsedDate.getTime())) {
+      const startOfDay = new Date(parsedDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(startOfDay);
+      endOfDay.setDate(endOfDay.getDate() + 1);
+      filters.date = { $gte: startOfDay, $lt: endOfDay };
+    }
+  }
+
+  if (plant) filters.plant = plant;
+  if (product) filters.product = product;
+  if (campaign) filters.campaign = campaign;
+  if (stage) {
+    const normalizedStage = String(stage).trim();
+    if (normalizedStage) {
+      filters.stage = new RegExp(`^${escapeRegex(normalizedStage)}$`, "i");
+    }
+  }
+
+  return filters;
+};
+
 // Validation schema
 const fermentationSchema = Joi.object({
   date: Joi.date().required(),
@@ -9,13 +39,26 @@ const fermentationSchema = Joi.object({
   campaign: Joi.string().required(),
   tank: Joi.string().required(),
   stage: Joi.string().required(),
-  levelIndicator: Joi.string().required()
+  levelIndicator: Joi.string().required(),
+  weight: Joi.number().min(0).required(),
+  receivedAmount: Joi.number().min(0).required()
 });
 
 // GET all
 const getFermentations = async (req, res) => {
   try {
     const fermentations = await Fermentation.find();
+    res.json(fermentations);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+const getFermentationsFiltered = async (req, res) => {
+  const filters = buildFermentationFilters(req.query);
+
+  try {
+    const fermentations = await Fermentation.find(filters);
     res.json(fermentations);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -78,8 +121,13 @@ const deleteFermentation = async (req, res) => {
 
 module.exports = {
   getFermentations,
+  getFermentationsFiltered,
   getFermentationById,
   createFermentation,
   updateFermentation,
   deleteFermentation
 };
+
+
+
+

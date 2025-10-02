@@ -1,5 +1,5 @@
 // Seeding script temporarily disabled. Remove this comment block when ready to seed.
-/*
+
 const mongoose = require("mongoose");
 const XLSX = require("xlsx");
 require("dotenv").config();
@@ -41,6 +41,47 @@ const headerMap = {
   "Outgoing Amount": "outgoingAmountKg",
 };
 
+const numericFields = new Set([
+  "concentration",
+  "volume",
+  "weight",
+  "pH",
+  "incomingAmountKg",
+  "outgoingAmountKg",
+  "receivedAmount"
+]);
+
+function excelSerialToDate(serial) {
+  if (typeof serial !== "number" || !Number.isFinite(serial)) {
+    return null;
+  }
+
+  const EXCEL_EPOCH_UTC = Date.UTC(1899, 11, 30); // Excel's day 0 (accounts for 1900 leap bug)
+  const milliseconds = Math.round(serial * 86400000); // 24 * 60 * 60 * 1000
+  return new Date(EXCEL_EPOCH_UTC + milliseconds);
+}
+
+function toNumber(value) {
+  if (value === null || value === undefined || value === "") {
+    return 0;
+  }
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.replace(/[^0-9.-]/g, "").trim();
+    if (!normalized) {
+      return 0;
+    }
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
+}
+
 function remapRow(row) {
   const mapped = {};
 
@@ -51,16 +92,24 @@ function remapRow(row) {
     let value = row[key];
 
     if (field === "date" && value) {
-      const parsed = Date.parse(value);
-      if (!isNaN(parsed)) {
-        value = new Date(parsed);
+      if (typeof value === "number") {
+        const excelDate = excelSerialToDate(value);
+        if (!excelDate) {
+          return null;
+        }
+        value = excelDate;
       } else {
-        return null;
+        const parsed = Date.parse(value);
+        if (!Number.isNaN(parsed)) {
+          value = new Date(parsed);
+        } else {
+          return null;
+        }
       }
     }
 
-    if (["concentration", "volume", "weight", "pH", "incomingAmountKg", "outgoingAmountKg"].includes(field)) {
-      value = Number(value) || 0;
+    if (numericFields.has(field)) {
+      value = toNumber(value);
     }
 
     mapped[field] = value;
@@ -104,4 +153,4 @@ async function seed() {
 }
 
 seed();
-*/
+

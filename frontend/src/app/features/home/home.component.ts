@@ -1,0 +1,1003 @@
+import { CommonModule } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
+import { RouterLink } from '@angular/router';
+
+@Component({
+  selector: 'app-home',
+  standalone: true,
+  imports: [CommonModule, RouterLink],
+  template: `
+    <div class="landing-page">
+      <!-- Animated Background -->
+      <div class="background-container">
+        <div class="floating-shapes">
+          <div class="shape shape-1"></div>
+          <div class="shape shape-2"></div>
+          <div class="shape shape-3"></div>
+          <div class="shape shape-4"></div>
+          <div class="shape shape-5"></div>
+        </div>
+        <div class="gradient-overlay"></div>
+      </div>
+
+      <!-- Hero Section -->
+      <section class="hero">
+        <div class="hero-content">
+          <div class="hero-main">
+            <div class="brand-section">
+              <div class="logo-container">
+                <div class="logo-background"></div>
+                <h1 class="company-name">
+                  <span class="plumino">Plumino</span>
+                  <div class="leaf-container">
+                    <div class="leaf-icon">🌿</div>
+                    <div class="leaf-glow"></div>
+                  </div>
+                </h1>
+              </div>
+              <div class="tagline-container">
+                <p class="tagline">Advanced Biotechnology & Amino Acid Manufacturing</p>
+                <div class="tagline-underline"></div>
+              </div>
+              <p class="subtitle">
+                <span class="badge">Formerly BioKyowa Inc.</span>
+                Pioneering fermentation technology since 1982
+              </p>
+            </div>
+
+            <div class="hero-description">
+              <p>Leading the industry in high-quality amino acid production through advanced fermentation technology. Based in Cape Girardeau, Missouri, we serve nutrition, pharmaceutical, cosmetic, and agricultural markets worldwide.</p>
+            </div>
+
+            <div class="cta-section">
+              <h3>Operations Dashboard</h3>
+              <p>Access real-time monitoring and analytics for our manufacturing processes</p>
+              <div class="scroll-indicator">
+                <div class="scroll-text">Explore Operations</div>
+                <div class="scroll-arrow">↓</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Floating Stats -->
+        <div class="floating-stats">
+          <div class="stat-card">
+            <div class="stat-number">40+</div>
+            <div class="stat-label">Years Experience</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">5</div>
+            <div class="stat-label">Certifications</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">1st</div>
+            <div class="stat-label">In U.S. Market</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Operations Cards Section -->
+      <section class="operations">
+        <div class="section-header">
+          <h2>Manufacturing Operations</h2>
+          <p>Real-time monitoring and control systems for all production processes</p>
+        </div>
+
+        <div class="operations-grid">
+          <a routerLink="/packaging" class="operation-card" data-category="packaging">
+            <div class="card-background"></div>
+            <div class="card-content">
+              <div class="card-header">
+                <div class="card-icon-wrapper">
+                  <div class="card-icon">📦</div>
+                  <div class="icon-glow packaging-glow"></div>
+                </div>
+                <div class="card-status">
+                  <div class="status-dot active"></div>
+                  <span>Active</span>
+                </div>
+              </div>
+              <h3>Packaging Operations</h3>
+              <p>Monitor packaging workflows, track incoming vs. outgoing quantities by package and campaign with real-time analytics</p>
+              <div class="card-footer">
+                <div class="card-metrics">
+                  <span class="metric">Live Data</span>
+                  <span class="metric">Analytics</span>
+                </div>
+                <div class="card-arrow">
+                  <span>Enter</span>
+                  <div class="arrow-icon">→</div>
+                </div>
+              </div>
+            </div>
+          </a>
+
+          <a routerLink="/fermentation" class="operation-card" data-category="fermentation">
+            <div class="card-background"></div>
+            <div class="card-content">
+              <div class="card-header">
+                <div class="card-icon-wrapper">
+                  <div class="card-icon">🧪</div>
+                  <div class="icon-glow fermentation-glow"></div>
+                </div>
+                <div class="card-status">
+                  <div class="status-dot active"></div>
+                  <span>Active</span>
+                </div>
+              </div>
+              <h3>Fermentation Control</h3>
+              <p>Review tank activity, levels, and weights across all production facilities with advanced monitoring systems</p>
+              <div class="card-footer">
+                <div class="card-metrics">
+                  <span class="metric">Tank Monitoring</span>
+                  <span class="metric">Controls</span>
+                </div>
+                <div class="card-arrow">
+                  <span>Enter</span>
+                  <div class="arrow-icon">→</div>
+                </div>
+              </div>
+            </div>
+          </a>
+
+          <a routerLink="/extraction" class="operation-card" data-category="extraction">
+            <div class="card-background"></div>
+            <div class="card-content">
+              <div class="card-header">
+                <div class="card-icon-wrapper">
+                  <div class="card-icon">⚗️</div>
+                  <div class="icon-glow extraction-glow"></div>
+                </div>
+                <div class="card-status">
+                  <div class="status-dot active"></div>
+                  <span>Active</span>
+                </div>
+              </div>
+              <h3>Extraction Analytics</h3>
+              <p>Monitor concentration, volume, and pH trends for extraction processes with predictive analytics</p>
+              <div class="card-footer">
+                <div class="card-metrics">
+                  <span class="metric">pH Monitoring</span>
+                  <span class="metric">Trends</span>
+                </div>
+                <div class="card-arrow">
+                  <span>Enter</span>
+                  <div class="arrow-icon">→</div>
+                </div>
+              </div>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <!-- Company Excellence Section -->
+      <section class="excellence">
+        <div class="excellence-content">
+          <div class="excellence-header">
+            <h2>Excellence in Biotechnology</h2>
+            <p>Certified quality and innovation driving the future of amino acid production</p>
+          </div>
+
+          <div class="excellence-grid">
+            <div class="excellence-card">
+              <div class="card-icon-large">🏆</div>
+              <h4>Manufacturing Excellence</h4>
+              <p>ISO 9001:2015, FSSC 22000, HACCP, Kosher, and Halal certified facilities using advanced fermentation technology</p>
+              <div class="achievement-badges">
+                <span class="badge-item">ISO 9001</span>
+                <span class="badge-item">FSSC 22000</span>
+                <span class="badge-item">HACCP</span>
+              </div>
+            </div>
+
+            <div class="excellence-card">
+              <div class="card-icon-large">🌍</div>
+              <h4>Global Impact</h4>
+              <p>First commercial lysine-producing plant in the U.S., serving nutrition, pharmaceutical, and cosmetic industries worldwide</p>
+              <div class="achievement-badges">
+                <span class="badge-item">First in US</span>
+                <span class="badge-item">Global Reach</span>
+                <span class="badge-item">Multi-Industry</span>
+              </div>
+            </div>
+
+            <div class="excellence-card">
+              <div class="card-icon-large">⚡</div>
+              <h4>Innovation Legacy</h4>
+              <p>Over 40 years of continuous innovation in amino acid production with cutting-edge biotechnology processes</p>
+              <div class="achievement-badges">
+                <span class="badge-item">40+ Years</span>
+                <span class="badge-item">Innovation</span>
+                <span class="badge-item">R&D Focus</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  `,
+  styles: [
+    `
+      * {
+        box-sizing: border-box;
+      }
+
+      .landing-page {
+        min-height: 100vh;
+        position: relative;
+        overflow-x: hidden;
+        background: #0a0f1c;
+      }
+
+      /* Advanced Background */
+      .background-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+      }
+
+      .floating-shapes {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      .shape {
+        position: absolute;
+        border-radius: 50%;
+        background: linear-gradient(45deg, rgba(29, 78, 216, 0.1), rgba(34, 197, 94, 0.1));
+        backdrop-filter: blur(1px);
+        animation: float 20s infinite linear;
+      }
+
+      .shape-1 {
+        width: 300px;
+        height: 300px;
+        top: 10%;
+        left: -150px;
+        animation-delay: 0s;
+        animation-duration: 25s;
+      }
+
+      .shape-2 {
+        width: 200px;
+        height: 200px;
+        top: 60%;
+        right: -100px;
+        animation-delay: -8s;
+        animation-duration: 30s;
+      }
+
+      .shape-3 {
+        width: 150px;
+        height: 150px;
+        top: 30%;
+        left: 80%;
+        animation-delay: -15s;
+        animation-duration: 22s;
+      }
+
+      .shape-4 {
+        width: 250px;
+        height: 250px;
+        bottom: 20%;
+        left: 10%;
+        animation-delay: -12s;
+        animation-duration: 28s;
+      }
+
+      .shape-5 {
+        width: 180px;
+        height: 180px;
+        top: 5%;
+        left: 50%;
+        animation-delay: -20s;
+        animation-duration: 35s;
+      }
+
+      @keyframes float {
+        0% {
+          transform: translateY(0) rotate(0deg);
+          opacity: 0.3;
+        }
+        50% {
+          opacity: 0.6;
+        }
+        100% {
+          transform: translateY(-100vh) rotate(360deg);
+          opacity: 0;
+        }
+      }
+
+      .gradient-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background:
+          radial-gradient(circle at 20% 30%, rgba(29, 78, 216, 0.15) 0%, transparent 50%),
+          radial-gradient(circle at 80% 70%, rgba(34, 197, 94, 0.1) 0%, transparent 50%),
+          linear-gradient(135deg, #0a0f1c 0%, #1e293b 100%);
+      }
+
+      /* Hero Section */
+      .hero {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        position: relative;
+        padding: 2rem;
+        color: white;
+      }
+
+      .hero-content {
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
+        position: relative;
+        z-index: 2;
+      }
+
+      .hero-main {
+        max-width: 800px;
+      }
+
+      .brand-section {
+        margin-bottom: 3rem;
+      }
+
+      .logo-container {
+        position: relative;
+        margin-bottom: 2rem;
+      }
+
+      .logo-background {
+        position: absolute;
+        top: -20px;
+        left: -20px;
+        right: -20px;
+        bottom: -20px;
+        background:
+          radial-gradient(circle at 30% 30%, rgba(29, 78, 216, 0.2) 0%, transparent 70%),
+          radial-gradient(circle at 70% 70%, rgba(34, 197, 94, 0.15) 0%, transparent 70%);
+        border-radius: 20px;
+        filter: blur(20px);
+        opacity: 0.7;
+      }
+
+      .company-name {
+        font-size: 4.5rem;
+        font-weight: 800;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        position: relative;
+        z-index: 1;
+      }
+
+      .plumino {
+        background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+        animation: glow 3s ease-in-out infinite alternate;
+      }
+
+      @keyframes glow {
+        from {
+          filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
+        }
+        to {
+          filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.5));
+        }
+      }
+
+      .leaf-container {
+        position: relative;
+      }
+
+      .leaf-icon {
+        font-size: 4rem;
+        position: relative;
+        z-index: 1;
+        animation: leafFloat 4s ease-in-out infinite;
+      }
+
+      .leaf-glow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80px;
+        height: 80px;
+        background: radial-gradient(circle, rgba(34, 197, 94, 0.4) 0%, transparent 70%);
+        border-radius: 50%;
+        filter: blur(10px);
+        animation: leafGlow 2s ease-in-out infinite alternate;
+      }
+
+      @keyframes leafFloat {
+        0%, 100% {
+          transform: translateY(0) rotate(0deg);
+        }
+        50% {
+          transform: translateY(-10px) rotate(5deg);
+        }
+      }
+
+      @keyframes leafGlow {
+        0% {
+          opacity: 0.3;
+          transform: translate(-50%, -50%) scale(0.8);
+        }
+        100% {
+          opacity: 0.6;
+          transform: translate(-50%, -50%) scale(1.2);
+        }
+      }
+
+      .tagline-container {
+        position: relative;
+        margin-bottom: 1rem;
+      }
+
+      .tagline {
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin: 0;
+        color: #e2e8f0;
+        letter-spacing: 0.5px;
+      }
+
+      .tagline-underline {
+        height: 3px;
+        background: linear-gradient(90deg, #1d4ed8, #22c55e);
+        margin-top: 0.5rem;
+        border-radius: 2px;
+        animation: expandLine 2s ease-out;
+      }
+
+      @keyframes expandLine {
+        from {
+          width: 0;
+        }
+        to {
+          width: 100%;
+        }
+      }
+
+      .subtitle {
+        font-size: 1.2rem;
+        margin: 0;
+        color: #cbd5e1;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .badge {
+        background: linear-gradient(135deg, rgba(29, 78, 216, 0.2), rgba(34, 197, 94, 0.2));
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+      }
+
+      .hero-description {
+        margin-bottom: 3rem;
+      }
+
+      .hero-description p {
+        font-size: 1.3rem;
+        line-height: 1.8;
+        margin: 0;
+        color: #cbd5e1;
+        max-width: 700px;
+        opacity: 0.9;
+      }
+
+      .cta-section {
+        margin-bottom: 2rem;
+      }
+
+      .cta-section h3 {
+        font-size: 2rem;
+        margin: 0 0 0.5rem 0;
+        color: #22c55e;
+        font-weight: 700;
+      }
+
+      .cta-section p {
+        font-size: 1.1rem;
+        margin: 0 0 2rem 0;
+        color: #e2e8f0;
+      }
+
+      .scroll-indicator {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 2rem;
+        opacity: 0.7;
+      }
+
+      .scroll-text {
+        font-size: 0.9rem;
+        color: #cbd5e1;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .scroll-arrow {
+        font-size: 1.5rem;
+        animation: bounce 2s infinite;
+      }
+
+      @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {
+          transform: translateY(0);
+        }
+        40% {
+          transform: translateY(-10px);
+        }
+        60% {
+          transform: translateY(-5px);
+        }
+      }
+
+      /* Floating Stats */
+      .floating-stats {
+        position: absolute;
+        right: 2rem;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .stat-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        text-align: center;
+        min-width: 120px;
+        transition: all 0.3s ease;
+      }
+
+      .stat-card:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: scale(1.05);
+      }
+
+      .stat-number {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #22c55e;
+        margin-bottom: 0.5rem;
+      }
+
+      .stat-label {
+        font-size: 0.8rem;
+        color: #cbd5e1;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      /* Operations Section */
+      .operations {
+        padding: 6rem 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 2;
+      }
+
+      .section-header {
+        text-align: center;
+        margin-bottom: 4rem;
+        color: white;
+      }
+
+      .section-header h2 {
+        font-size: 3rem;
+        font-weight: 800;
+        margin: 0 0 1rem 0;
+        background: linear-gradient(135deg, #ffffff 0%, #22c55e 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .section-header p {
+        font-size: 1.2rem;
+        color: #cbd5e1;
+        margin: 0;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .operations-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 2rem;
+      }
+
+      .operation-card {
+        position: relative;
+        text-decoration: none;
+        color: inherit;
+        border-radius: 1.5rem;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        transform-style: preserve-3d;
+        perspective: 1000px;
+      }
+
+      .card-background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 1.5rem;
+        transition: all 0.4s ease;
+      }
+
+      .operation-card:hover {
+        transform: translateY(-15px) rotateX(5deg);
+      }
+
+      .operation-card:hover .card-background {
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+        border-color: rgba(34, 197, 94, 0.3);
+        box-shadow:
+          0 25px 50px rgba(0, 0, 0, 0.3),
+          0 0 50px rgba(34, 197, 94, 0.1);
+      }
+
+      .card-content {
+        position: relative;
+        z-index: 1;
+        padding: 2.5rem;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+      }
+
+      .card-icon-wrapper {
+        position: relative;
+      }
+
+      .card-icon {
+        font-size: 3rem;
+        position: relative;
+        z-index: 1;
+      }
+
+      .icon-glow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        filter: blur(15px);
+        opacity: 0.5;
+        transition: all 0.3s ease;
+      }
+
+      .packaging-glow { background: radial-gradient(circle, #f59e0b 0%, transparent 70%); }
+      .fermentation-glow { background: radial-gradient(circle, #8b5cf6 0%, transparent 70%); }
+      .extraction-glow { background: radial-gradient(circle, #06b6d4 0%, transparent 70%); }
+
+      .operation-card:hover .icon-glow {
+        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1.5);
+      }
+
+      .card-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        color: #22c55e;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #22c55e;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+        }
+      }
+
+      .operation-card h3 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 0 0 1rem 0;
+        color: white;
+      }
+
+      .operation-card p {
+        margin: 0 0 2rem 0;
+        color: #cbd5e1;
+        line-height: 1.6;
+        flex-grow: 1;
+      }
+
+      .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .card-metrics {
+        display: flex;
+        gap: 1rem;
+      }
+
+      .metric {
+        background: rgba(34, 197, 94, 0.1);
+        color: #22c55e;
+        padding: 0.3rem 0.8rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        border: 1px solid rgba(34, 197, 94, 0.2);
+      }
+
+      .card-arrow {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #22c55e;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      .arrow-icon {
+        font-size: 1.2rem;
+        transition: transform 0.3s ease;
+      }
+
+      .operation-card:hover .arrow-icon {
+        transform: translateX(8px);
+      }
+
+      /* Excellence Section */
+      .excellence {
+        background:
+          linear-gradient(135deg, rgba(29, 78, 216, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+        padding: 6rem 2rem;
+        position: relative;
+        z-index: 2;
+      }
+
+      .excellence-content {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .excellence-header {
+        text-align: center;
+        margin-bottom: 4rem;
+        color: white;
+      }
+
+      .excellence-header h2 {
+        font-size: 3rem;
+        font-weight: 800;
+        margin: 0 0 1rem 0;
+        background: linear-gradient(135deg, #ffffff 0%, #22c55e 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .excellence-header p {
+        font-size: 1.2rem;
+        color: #cbd5e1;
+        margin: 0;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .excellence-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 2rem;
+      }
+
+      .excellence-card {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 1.5rem;
+        padding: 3rem;
+        text-align: center;
+        transition: all 0.4s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .excellence-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+        transition: left 0.5s;
+      }
+
+      .excellence-card:hover::before {
+        left: 100%;
+      }
+
+      .excellence-card:hover {
+        transform: translateY(-10px);
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(34, 197, 94, 0.3);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      }
+
+      .card-icon-large {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+        display: block;
+      }
+
+      .excellence-card h4 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 0 1rem 0;
+        color: white;
+      }
+
+      .excellence-card p {
+        margin: 0 0 2rem 0;
+        color: #cbd5e1;
+        line-height: 1.6;
+      }
+
+      .achievement-badges {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.5rem;
+      }
+
+      .badge-item {
+        background: linear-gradient(135deg, rgba(29, 78, 216, 0.2), rgba(34, 197, 94, 0.2));
+        color: #22c55e;
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+      }
+
+      .badge-item:hover {
+        background: linear-gradient(135deg, rgba(29, 78, 216, 0.3), rgba(34, 197, 94, 0.3));
+        transform: scale(1.05);
+      }
+
+      /* Responsive Design */
+      @media (max-width: 1200px) {
+        .floating-stats {
+          position: static;
+          transform: none;
+          flex-direction: row;
+          justify-content: center;
+          margin-top: 3rem;
+        }
+
+        .hero {
+          text-align: center;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .company-name {
+          font-size: 3rem;
+        }
+
+        .hero {
+          padding: 2rem 1rem;
+        }
+
+        .operations {
+          padding: 4rem 1rem;
+        }
+
+        .excellence {
+          padding: 4rem 1rem;
+        }
+
+        .operations-grid,
+        .excellence-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .section-header h2,
+        .excellence-header h2 {
+          font-size: 2.5rem;
+        }
+
+        .floating-stats {
+          flex-direction: column;
+          align-items: center;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .company-name {
+          font-size: 2.5rem;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .leaf-icon {
+          font-size: 3rem;
+        }
+
+        .tagline {
+          font-size: 1.4rem;
+        }
+
+        .card-content {
+          padding: 2rem;
+        }
+      }
+    `
+  ]
+})
+export class HomeComponent implements OnInit {
+  ngOnInit() {
+    // Add any initialization logic here
+  }
+}
+
+
+

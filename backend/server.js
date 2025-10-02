@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
+const mongoose = require('mongoose');
 require('dotenv').config();
 const connectDB = require('./config/db.js');
 connectDB();
@@ -10,9 +11,50 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors({ origin: 'http://localhost:4200' })); // Angular dev server
+app.use(cors({ 
+  origin: ['http://localhost:4200', 'http://localhost:4201'] 
+})); // Angular dev server
 app.use(morgan('dev'));
 app.use(helmet());
+
+// Health check endpoint with real database monitoring
+app.get('/api/health', async (req, res) => {
+  let databaseStatus = false;
+  let databaseError = null;
+  let responseTime = Date.now();
+  
+  try {
+    // Test database connection with a simple query
+    if (mongoose.connection.readyState === 1) {
+      // Test with a simple ping to verify DB is responsive
+      await mongoose.connection.db.admin().ping();
+      databaseStatus = true;
+    }
+  } catch (error) {
+    databaseError = error.message;
+    console.warn('Database health check failed:', error.message);
+  }
+  
+  responseTime = Date.now() - responseTime;
+  
+  const healthData = {
+    status: databaseStatus ? 'healthy' : 'degraded',
+    timestamp: new Date().toISOString(),
+    backend: true, // If we're responding, backend is up
+    database: databaseStatus,
+    uptime: process.uptime(),
+    version: '1.0.0',
+    responseTime: responseTime,
+    databaseError: databaseError,
+    connections: {
+      database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    }
+  };
+  
+  // Return appropriate HTTP status
+  const statusCode = databaseStatus ? 200 : 503;
+  res.status(statusCode).json(healthData);
+});
 
 // Routes
 const apiRoutes = require('./routes/api');
