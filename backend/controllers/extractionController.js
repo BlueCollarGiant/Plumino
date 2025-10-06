@@ -3,6 +3,7 @@ const Extraction = require('../models/extractionModel');
 
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+// Filter builder
 const buildExtractionFilters = (query = {}) => {
   const { date, plant, product, campaign, stage } = query;
   const filters = {};
@@ -31,7 +32,7 @@ const buildExtractionFilters = (query = {}) => {
   return filters;
 };
 
-// Joi validation schema
+// Validation schema
 const extractionSchema = Joi.object({
   date: Joi.date().required(),
   plant: Joi.string().required(),
@@ -43,21 +44,24 @@ const extractionSchema = Joi.object({
   volume: Joi.number().positive().required(),
   weight: Joi.number().positive().required(),
   levelIndicator: Joi.string().required(),
-  pH: Joi.number().min(0).max(14).required()
+  pH: Joi.number().min(0).max(14).required(),
 });
 
-// GET all
+// GET all — operators see only approved
 const getExtractions = async (req, res) => {
   try {
-    const extractions = await Extraction.find();
+    const query = req.user.role === 'operator' ? { approved: true } : {};
+    const extractions = await Extraction.find(query);
     res.json(extractions);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
+// GET filtered
 const getExtractionsFiltered = async (req, res) => {
   const filters = buildExtractionFilters(req.query);
+  if (req.user.role === 'operator') filters.approved = true;
 
   try {
     const extractions = await Extraction.find(filters);
@@ -72,19 +76,28 @@ const getExtractionById = async (req, res) => {
   try {
     const extraction = await Extraction.findById(req.params.id);
     if (!extraction) return res.status(404).json({ message: 'Not found' });
+
+    if (req.user.role === 'operator' && !extraction.approved) {
+      return res.status(403).json({ message: 'Not approved yet' });
+    }
+
     res.json(extraction);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// POST new
+// CREATE — operator’s entries auto-set as unapproved
 const createExtraction = async (req, res) => {
   const { error, value } = extractionSchema.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
 
   try {
-    const extraction = new Extraction(value);
+    const extraction = new Extraction({
+      ...value,
+      createdBy: req.user.id,
+      approved: req.user.role !== 'operator',
+    });
     const saved = await extraction.save();
     res.status(201).json(saved);
   } catch (err) {
@@ -92,21 +105,45 @@ const createExtraction = async (req, res) => {
   }
 };
 
-// PUT update
+// UPDATE — operators can only edit their own unapproved entries
 const updateExtraction = async (req, res) => {
   const { error, value } = extractionSchema.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
 
   try {
-    const updated = await Extraction.findByIdAndUpdate(req.params.id, value, { new: true });
-    if (!updated) return res.status(404).json({ message: 'Not found' });
+    const extraction = await Extraction.findById(req.params.id);
+    if (!extraction) return res.status(404).json({ message: 'Not found' });
+
+    if (req.user.role === 'operator' && (
+      extraction.createdBy.toString() !== req.user.id || extraction.approved
+    )) {
+      return res.status(403).json({ message: 'Permission denied' });
+    }
+
+    Object.assign(extraction, value);
+    const updated = await extraction.save();
     res.json(updated);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// DELETE
+// APPROVE — supervisor/admin
+const approveExtraction = async (req, res) => {
+  try {
+    const extraction = await Extraction.findById(req.params.id);
+    if (!extraction) return res.status(404).json({ message: 'Not found' });
+
+    extraction.approved = true;
+    await extraction.save();
+
+    res.json({ message: 'Extraction approved', extraction });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// DELETE — supervisor/admin only
 const deleteExtraction = async (req, res) => {
   try {
     const deleted = await Extraction.findByIdAndDelete(req.params.id);
@@ -123,5 +160,6 @@ module.exports = {
   getExtractionById,
   createExtraction,
   updateExtraction,
-  deleteExtraction
+  approveExtraction,
+  deleteExtraction,
 };

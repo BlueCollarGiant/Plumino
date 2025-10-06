@@ -1,6 +1,7 @@
 const Joi = require('joi');
 const Packaging = require('../models/packagingModel');
 
+// Utility to build Mongo filters
 const buildPackagingFilters = (query = {}) => {
   const { date, plant, product, campaign, packageType, range, startDate, endDate } = query;
   const filters = {};
@@ -8,11 +9,11 @@ const buildPackagingFilters = (query = {}) => {
   if (date) {
     const parsedDate = new Date(date);
     if (!Number.isNaN(parsedDate.getTime())) {
-      const startOfDay = new Date(parsedDate);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(startOfDay);
-      endOfDay.setDate(endOfDay.getDate() + 1);
-      filters.date = { $gte: startOfDay, $lt: endOfDay };
+      const start = new Date(parsedDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      filters.date = { $gte: start, $lt: end };
     }
   }
 
@@ -23,20 +24,15 @@ const buildPackagingFilters = (query = {}) => {
   };
 
   if (!filters.date && (startDate || endDate)) {
-    const startParsed = startDate ? new Date(startDate) : null;
-    const endParsed = endDate ? new Date(endDate) : null;
-
-    if (startParsed && !Number.isNaN(startParsed.getTime())) {
-      startParsed.setHours(0, 0, 0, 0);
-    }
-    if (endParsed && !Number.isNaN(endParsed.getTime())) {
-      const endOfDay = new Date(endParsed);
-      endOfDay.setHours(0, 0, 0, 0);
-      endOfDay.setDate(endOfDay.getDate() + 1);
-      applyDateBounds(startParsed, endOfDay);
-    } else if (startParsed) {
-      applyDateBounds(startParsed, null);
-    }
+    const s = startDate ? new Date(startDate) : null;
+    const e = endDate ? new Date(endDate) : null;
+    if (s && !isNaN(s)) s.setHours(0, 0, 0, 0);
+    if (e && !isNaN(e)) {
+      const endDay = new Date(e);
+      endDay.setHours(0, 0, 0, 0);
+      endDay.setDate(endDay.getDate() + 1);
+      applyDateBounds(s, endDay);
+    } else if (s) applyDateBounds(s, null);
   }
 
   if (!filters.date && range) {
@@ -45,29 +41,15 @@ const buildPackagingFilters = (query = {}) => {
     const end = new Date(now);
     end.setHours(0, 0, 0, 0);
     end.setDate(end.getDate() + 1);
-
     const start = new Date(end);
-
     switch (normalized) {
-      case '7d':
-        start.setDate(start.getDate() - 7);
-        applyDateBounds(start, end);
-        break;
-      case '1m':
-        start.setMonth(start.getMonth() - 1);
-        applyDateBounds(start, end);
-        break;
-      case '6m':
-        start.setMonth(start.getMonth() - 6);
-        applyDateBounds(start, end);
-        break;
-      case '1y':
-        start.setFullYear(start.getFullYear() - 1);
-        applyDateBounds(start, end);
-        break;
-      default:
-        break;
+      case '7d': start.setDate(start.getDate() - 7); break;
+      case '1m': start.setMonth(start.getMonth() - 1); break;
+      case '6m': start.setMonth(start.getMonth() - 6); break;
+      case '1y': start.setFullYear(start.getFullYear() - 1); break;
+      default: break;
     }
+    applyDateBounds(start, end);
   }
 
   if (plant) filters.plant = plant;
@@ -78,7 +60,7 @@ const buildPackagingFilters = (query = {}) => {
   return filters;
 };
 
-// Joi validation schema
+// Validation schema
 const packagingSchema = Joi.object({
   date: Joi.date().required(),
   plant: Joi.string().required(),
@@ -86,22 +68,26 @@ const packagingSchema = Joi.object({
   campaign: Joi.string().required(),
   packageType: Joi.string().required(),
   incomingAmountKg: Joi.number().positive().required(),
-  outgoingAmountKg: Joi.number().positive().required()
+  outgoingAmountKg: Joi.number().positive().required(),
 });
+
+// ---------- CRUD + Approval Logic ----------
 
 // GET all
 const getPackagings = async (req, res) => {
   try {
-    const packagings = await Packaging.find();
+    const query = req.user.role === 'operator' ? { approved: true } : {};
+    const packagings = await Packaging.find(query);
     res.json(packagings);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// Controller: dynamically filter packaging records by optional query params
+// GET filtered
 const getFilteredPackaging = async (req, res) => {
   const filters = buildPackagingFilters(req.query);
+  if (req.user.role === 'operator') filters.approved = true;
 
   try {
     const packagings = await Packaging.find(filters);
@@ -111,128 +97,72 @@ const getFilteredPackaging = async (req, res) => {
   }
 };
 
-// Aggregation: group packaging totals by plant
+// Aggregations (same logic, but filtered by role)
+const aggregateWithRoleFilter = async (req, pipeline) => {
+  const match = {};
+  if (req.user.role === 'operator') match.approved = true;
+  if (Object.keys(match).length) pipeline.unshift({ $match: match });
+  return Packaging.aggregate(pipeline);
+};
+
 const getPackagingByPlant = async (req, res) => {
-  const filters = buildPackagingFilters(req.query);
   try {
-    const pipeline = [];
-    if (Object.keys(filters).length > 0) {
-      pipeline.push({ $match: filters });
-    }
-    pipeline.push(
-      {
-        $group: {
+    const pipeline = [
+      { $group: {
           _id: '$plant',
           outgoingTotal: { $sum: '$outgoingAmountKg' },
           incomingTotal: { $sum: '$incomingAmountKg' }
-        }
-      },
+        } },
       { $sort: { outgoingTotal: -1 } }
-    );
-
-    const results = await Packaging.aggregate(pipeline);
+    ];
+    const results = await aggregateWithRoleFilter(req, pipeline);
     res.json(results);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+  } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
-// Aggregation: group packaging totals by product
 const getPackagingByProduct = async (req, res) => {
-  const filters = buildPackagingFilters(req.query);
   try {
-    const pipeline = [];
-    if (Object.keys(filters).length > 0) {
-      pipeline.push({ $match: filters });
-    }
-    pipeline.push(
-      {
-        $group: {
+    const pipeline = [
+      { $group: {
           _id: '$product',
           outgoingTotal: { $sum: '$outgoingAmountKg' },
           incomingTotal: { $sum: '$incomingAmountKg' }
-        }
-      },
+        } },
       { $sort: { outgoingTotal: -1 } }
-    );
-
-    const results = await Packaging.aggregate(pipeline);
+    ];
+    const results = await aggregateWithRoleFilter(req, pipeline);
     res.json(results);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+  } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
-// Aggregation: group packaging totals by campaign
 const getPackagingByCampaign = async (req, res) => {
-  const filters = buildPackagingFilters(req.query);
   try {
-    const pipeline = [];
-    if (Object.keys(filters).length > 0) {
-      pipeline.push({ $match: filters });
-    }
-    const hasSpecificCampaign = typeof filters.campaign === 'string';
-
-    if (hasSpecificCampaign) {
-      pipeline.push(
-        {
-          $group: {
-            _id: {
-              campaign: '$campaign',
-              date: { $dateToString: { format: '%Y-%m-%d', date: '$date' } }
-            },
-            outgoingTotal: { $sum: '$outgoingAmountKg' },
-            incomingTotal: { $sum: '$incomingAmountKg' }
-          }
-        },
-        { $sort: { '_id.date': 1 } }
-      );
-    } else {
-      pipeline.push(
-        {
-          $group: {
-            _id: '$campaign',
-            outgoingTotal: { $sum: '$outgoingAmountKg' },
-            incomingTotal: { $sum: '$incomingAmountKg' }
-          }
-        },
-        { $sort: { outgoingTotal: -1 } }
-      );
-    }
-
-    const results = await Packaging.aggregate(pipeline);
-    res.json(results);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// Aggregation: group packaging totals by date (day granularity)
-const getPackagingByDate = async (req, res) => {
-  const filters = buildPackagingFilters(req.query);
-  try {
-    const pipeline = [];
-    if (Object.keys(filters).length > 0) {
-      pipeline.push({ $match: filters });
-    }
-    pipeline.push(
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: '%Y-%m-%d', date: '$date' }
-          },
+    const pipeline = [
+      { $group: {
+          _id: '$campaign',
           outgoingTotal: { $sum: '$outgoingAmountKg' },
           incomingTotal: { $sum: '$incomingAmountKg' }
-        }
-      },
-      { $sort: { _id: 1 } }
-    );
-
-    const results = await Packaging.aggregate(pipeline);
+        } },
+      { $sort: { outgoingTotal: -1 } }
+    ];
+    const results = await aggregateWithRoleFilter(req, pipeline);
     res.json(results);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const getPackagingByDate = async (req, res) => {
+  try {
+    const pipeline = [
+      { $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$date' } },
+          outgoingTotal: { $sum: '$outgoingAmountKg' },
+          incomingTotal: { $sum: '$incomingAmountKg' }
+        } },
+      { $sort: { _id: 1 } }
+    ];
+    const results = await aggregateWithRoleFilter(req, pipeline);
+    res.json(results);
+  } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
 // GET by ID
@@ -240,19 +170,25 @@ const getPackagingById = async (req, res) => {
   try {
     const packaging = await Packaging.findById(req.params.id);
     if (!packaging) return res.status(404).json({ message: 'Not found' });
+    if (req.user.role === 'operator' && !packaging.approved)
+      return res.status(403).json({ message: 'Not approved yet' });
     res.json(packaging);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// POST new
+// CREATE
 const createPackaging = async (req, res) => {
   const { error, value } = packagingSchema.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
 
   try {
-    const packaging = new Packaging(value);
+    const packaging = new Packaging({
+      ...value,
+      createdBy: req.user.id,
+      approved: req.user.role !== 'operator',
+    });
     const saved = await packaging.save();
     res.status(201).json(saved);
   } catch (err) {
@@ -260,15 +196,36 @@ const createPackaging = async (req, res) => {
   }
 };
 
-// PUT update
+// UPDATE
 const updatePackaging = async (req, res) => {
   const { error, value } = packagingSchema.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
 
   try {
-    const updated = await Packaging.findByIdAndUpdate(req.params.id, value, { new: true });
-    if (!updated) return res.status(404).json({ message: 'Not found' });
+    const packaging = await Packaging.findById(req.params.id);
+    if (!packaging) return res.status(404).json({ message: 'Not found' });
+
+    if (req.user.role === 'operator' &&
+        (packaging.createdBy.toString() !== req.user.id || packaging.approved)) {
+      return res.status(403).json({ message: 'Permission denied' });
+    }
+
+    Object.assign(packaging, value);
+    const updated = await packaging.save();
     res.json(updated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// APPROVE
+const approvePackaging = async (req, res) => {
+  try {
+    const packaging = await Packaging.findById(req.params.id);
+    if (!packaging) return res.status(404).json({ message: 'Not found' });
+    packaging.approved = true;
+    await packaging.save();
+    res.json({ message: 'Packaging approved', packaging });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -295,6 +252,6 @@ module.exports = {
   getPackagingById,
   createPackaging,
   updatePackaging,
-  deletePackaging
+  approvePackaging,
+  deletePackaging,
 };
-

@@ -12,7 +12,12 @@ const extractionSchema = new mongoose.Schema({
   weight: { type: Number, required: true },        // kg
   levelIndicator: { type: String, required: true },
   pH: { type: Number, required: true },
-  createdAt: { type: Date, default: Date.now }
+  approved: { type: Boolean, default: false }, // Supervisor/Admin approval
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Employee',
+  },
+  createdAt: { type: Date, default: Date.now },
 });
 
 module.exports = mongoose.model('Extraction', extractionSchema);

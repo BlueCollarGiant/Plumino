@@ -1,4 +1,3 @@
-// models/packagingModel.js
 const mongoose = require('mongoose');
 
 const packagingSchema = new mongoose.Schema({
@@ -9,7 +8,12 @@ const packagingSchema = new mongoose.Schema({
   packageType: { type: String, required: true },     // maps from "package"
   incomingAmountKg: { type: Number, required: true }, // numeric kg
   outgoingAmountKg: { type: Number, required: true }, // numeric kg
-  createdAt: { type: Date, default: Date.now }
+  approved: { type: Boolean, default: false },        // approval flag
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Employee',
+  },
+  createdAt: { type: Date, default: Date.now },
 });
 
 module.exports = mongoose.model('Packaging', packagingSchema);

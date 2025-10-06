@@ -31,6 +31,16 @@ const buildFermentationFilters = (query = {}) => {
   return filters;
 };
 
+const getFermentationsFiltered = async (req, res) => {
+  try {
+    const filters = buildFermentationFilters(req.query);
+    const fermentations = await Fermentation.find(filters);
+    res.json(fermentations);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Validation schema
 const fermentationSchema = Joi.object({
   date: Joi.date().required(),
@@ -47,17 +57,16 @@ const fermentationSchema = Joi.object({
 // GET all
 const getFermentations = async (req, res) => {
   try {
-    const fermentations = await Fermentation.find();
-    res.json(fermentations);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+    let filters = {};
 
-const getFermentationsFiltered = async (req, res) => {
-  const filters = buildFermentationFilters(req.query);
+    if (req.user.role === 'operator') {
+      filters = { createdBy: req.user.id };
+    } else if (req.user.role === 'supervisor' || req.user.role === 'admin') {
+      filters = {}; // See everything
+    } else {
+      filters = { approved: true }; // For frontend/public visibility
+    }
 
-  try {
     const fermentations = await Fermentation.find(filters);
     res.json(fermentations);
   } catch (err) {
@@ -82,6 +91,14 @@ const createFermentation = async (req, res) => {
   if (error) return res.status(400).json({ error: error.details[0].message });
 
   try {
+    // Role-based creation logic
+if (req.user.role === 'operator') {
+  value.approved = false; // Operators’ entries need approval
+} else {
+  value.approved = true; // Supervisors/Admins auto-approved
+}
+
+value.createdBy = req.user.id; // Track who made it
     const fermentation = new Fermentation(value);
     const saved = await fermentation.save();
     res.status(201).json(saved);
@@ -96,13 +113,36 @@ const updateFermentation = async (req, res) => {
   if (error) return res.status(400).json({ error: error.details[0].message });
 
   try {
-    const updated = await Fermentation.findByIdAndUpdate(
-      req.params.id,
-      value,
-      { new: true }
-    );
-    if (!updated) return res.status(404).json({ message: 'Not found' });
+    const fermentation = await Fermentation.findById(req.params.id);
+    if (!fermentation) return res.status(404).json({ message: 'Not found' });
+
+    // Operators: can only edit their own unapproved entries
+    if (req.user.role === 'operator') {
+      if (String(fermentation.createdBy) !== req.user.id) {
+        return res.status(403).json({ message: 'Not authorized to edit this record' });
+      }
+      if (fermentation.approved) {
+        return res.status(403).json({ message: 'Cannot edit approved records' });
+      }
+    }
+
+    Object.assign(fermentation, value);
+    const updated = await fermentation.save();
     res.json(updated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+const approveFermentation = async (req, res) => {
+  try {
+    const fermentation = await Fermentation.findById(req.params.id);
+    if (!fermentation) return res.status(404).json({ message: 'Record not found' });
+
+    fermentation.approved = true;
+    await fermentation.save();
+
+    res.json({ message: 'Fermentation record approved successfully', fermentation });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -125,7 +165,8 @@ module.exports = {
   getFermentationById,
   createFermentation,
   updateFermentation,
-  deleteFermentation
+  deleteFermentation,
+  approveFermentation
 };
 
 
