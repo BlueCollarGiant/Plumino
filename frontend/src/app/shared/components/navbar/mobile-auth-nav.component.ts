@@ -2,12 +2,13 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, signal, inject, DestroyRef } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import { AuthService, LoginRequest } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-mobile-auth-nav',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './mobile-auth-nav.component.html',
   styleUrls: ['./mobile-auth-nav.component.css']
 })
@@ -23,6 +24,7 @@ export class MobileAuthNavComponent {
   protected readonly employeeName = computed(() => this.auth.employee()?.name ?? '');
   protected readonly employeeRole = computed(() => this.auth.employee()?.role ?? '');
   protected readonly employeeDepartment = computed(() => this.auth.employee()?.department ?? '');
+  protected readonly isAdmin = computed(() => this.auth.employee()?.role === 'admin');
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],

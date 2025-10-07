@@ -85,6 +85,14 @@
         <span>{{ employeeDepartment() }}</span>
       </p>
 
+      <a
+        *ngIf="isAdmin()"
+        routerLink="/admin"
+        class="admin-dashboard-button"
+      >
+        Go to Admin Dashboard
+      </a>
+
       <button type="button" class="logout-button" (click)="logout()">
         Logout
       </button>

@@ -221,6 +221,29 @@
   color: rgba(148, 163, 184, 0.65);
 }
 
+.admin-dashboard-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  background: rgba(22, 101, 52, 0.3);
+  color: #bbf7d0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.admin-dashboard-button:hover,
+.admin-dashboard-button:focus-visible {
+  border-color: rgba(74, 222, 128, 0.55);
+  background: rgba(22, 101, 52, 0.45);
+  color: #f0fdf4;
+  outline: none;
+}
+
 .logout-button {
   align-self: flex-start;
   padding: 0.75rem 1.1rem;
