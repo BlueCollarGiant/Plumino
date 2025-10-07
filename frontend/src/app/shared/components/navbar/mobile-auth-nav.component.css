@@ -80,7 +80,6 @@
   right: 10px;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
   padding: 0.35rem 0.6rem;
   border: none;
   border-radius: 999px;
@@ -98,10 +97,6 @@
   color: #bbf7d0;
   transform: translateY(-1px);
   outline: none;
-}
-
-.toggle-icon {
-  font-size: 0.95rem;
 }
 
 .field-error {

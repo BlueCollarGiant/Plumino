@@ -46,11 +46,8 @@
           [attr.aria-pressed]="showPassword()"
           [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
         >
-          <span class="toggle-icon" aria-hidden="true">
-            {{ showPassword() ? '🙈' : '👁️' }}
-          </span>
           <span class="toggle-label">
-            {{ showPassword() ? 'Hide' : 'Show' }}
+            {{ showPassword() ? 'Hide' : 'Show' }} password
           </span>
         </button>
         <div class="field-error" *ngIf="form.controls.password.errors && form.controls.password.touched">
