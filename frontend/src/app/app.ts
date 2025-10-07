@@ -14,6 +14,7 @@ import { Subscription } from 'rxjs';
 })
 export class App implements OnInit, OnDestroy {
   protected readonly title = signal('Plumino');
+  authDrawerOpen = signal(false);
 
   systemStatus = signal<SystemStatus>({
     backend: false,
@@ -48,6 +49,14 @@ export class App implements OnInit, OnDestroy {
     if (this.healthSubscription) {
       this.healthSubscription.unsubscribe();
     }
+  }
+
+  toggleAuthDrawer(): void {
+    this.authDrawerOpen.update(isOpen => !isOpen);
+  }
+
+  closeAuthDrawer(): void {
+    this.authDrawerOpen.set(false);
   }
 
   get statusIcon(): string {

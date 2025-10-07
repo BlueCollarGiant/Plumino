@@ -29,6 +29,45 @@ mongoose
 
 // ---------- Routes ----------
 
+// Health check endpoint (public - no auth required)
+app.get('/api/health', async (req, res) => {
+  let databaseStatus = false;
+  let databaseError = null;
+  let responseTime = Date.now();
+
+  try {
+    // Test database connection with a simple query
+    if (mongoose.connection.readyState === 1) {
+      // Test with a simple ping to verify DB is responsive
+      await mongoose.connection.db.admin().ping();
+      databaseStatus = true;
+    }
+  } catch (error) {
+    databaseError = error.message;
+    console.warn('Database health check failed:', error.message);
+  }
+
+  responseTime = Date.now() - responseTime;
+
+  const healthData = {
+    status: databaseStatus ? 'healthy' : 'degraded',
+    timestamp: new Date().toISOString(),
+    backend: true, // If we're responding, backend is up
+    database: databaseStatus,
+    uptime: process.uptime(),
+    version: '1.0.0',
+    responseTime: responseTime,
+    databaseError: databaseError,
+    connections: {
+      database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    }
+  };
+
+  // Return appropriate HTTP status
+  const statusCode = databaseStatus ? 200 : 503;
+  res.status(statusCode).json(healthData);
+});
+
 // Public routes (e.g. login, register)
 app.use('/api/auth', authRoutes);
 

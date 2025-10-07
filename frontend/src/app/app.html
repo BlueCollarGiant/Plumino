@@ -48,6 +48,17 @@
             <span>Extraction</span>
             <div class="nav-glow"></div>
           </a>
+          <button
+            type="button"
+            class="nav-link nav-login"
+            (click)="toggleAuthDrawer()"
+            [attr.aria-expanded]="authDrawerOpen()"
+            aria-controls="auth-drawer"
+          >
+            <div class="nav-icon">🔒</div>
+            <span>Employee Login</span>
+            <div class="nav-glow"></div>
+          </button>
         </div>
 
         <!-- Premium Status Indicator -->
@@ -83,6 +94,39 @@
       </nav>
     </div>
   </header>
+  <div
+    class="auth-drawer-backdrop"
+    *ngIf="authDrawerOpen()"
+    (click)="closeAuthDrawer()"
+  ></div>
+  <aside
+    id="auth-drawer"
+    class="auth-drawer"
+    [class.open]="authDrawerOpen()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!authDrawerOpen()"
+  >
+    <div class="auth-drawer-header">
+      <h2>Employee Access</h2>
+      <button
+        type="button"
+        class="drawer-close"
+        (click)="closeAuthDrawer()"
+        aria-label="Close login panel"
+      >
+        ✕
+      </button>
+    </div>
+    <div class="auth-drawer-content">
+      <p class="auth-drawer-copy">
+        Use this panel to access internal tools. The login flow will appear here once ready.
+      </p>
+      <div class="auth-drawer-actions">
+        <button type="button" class="drawer-primary" (click)="closeAuthDrawer()">Close</button>
+      </div>
+    </div>
+  </aside>
   <main class="app-content">
     <router-outlet></router-outlet>
   </main>
