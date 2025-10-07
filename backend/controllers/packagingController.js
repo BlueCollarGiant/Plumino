@@ -76,6 +76,7 @@ const packagingSchema = Joi.object({
 // GET all
 const getPackagings = async (req, res) => {
   try {
+    // Operators see only approved entries, supervisors/hr/admin see all
     const query = req.user.role === 'operator' ? { approved: true } : {};
     const packagings = await Packaging.find(query);
     res.json(packagings);
@@ -205,9 +206,14 @@ const updatePackaging = async (req, res) => {
     const packaging = await Packaging.findById(req.params.id);
     if (!packaging) return res.status(404).json({ message: 'Not found' });
 
-    if (req.user.role === 'operator' &&
-        (packaging.createdBy.toString() !== req.user.id || packaging.approved)) {
-      return res.status(403).json({ message: 'Permission denied' });
+    // Operators can only edit their own unapproved entries
+    if (req.user.role === 'operator') {
+      if (!packaging.createdBy || packaging.createdBy.toString() !== req.user.id) {
+        return res.status(403).json({ message: 'You can only edit your own entries' });
+      }
+      if (packaging.approved) {
+        return res.status(403).json({ message: 'Cannot edit approved entries' });
+      }
     }
 
     Object.assign(packaging, value);

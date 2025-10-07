@@ -119,12 +119,10 @@
       </button>
     </div>
     <div class="auth-drawer-content">
-      <p class="auth-drawer-copy">
-        Use this panel to access internal tools. The login flow will appear here once ready.
-      </p>
-      <div class="auth-drawer-actions">
-        <button type="button" class="drawer-primary" (click)="closeAuthDrawer()">Close</button>
-      </div>
+      <app-mobile-auth-nav></app-mobile-auth-nav>
+    </div>
+    <div class="auth-drawer-actions">
+      <button type="button" class="drawer-primary" (click)="closeAuthDrawer()">Close</button>
     </div>
   </aside>
   <main class="app-content">
