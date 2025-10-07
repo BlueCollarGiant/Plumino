@@ -116,6 +116,7 @@ function remapRow(row) {
   }
 
   mapped.createdAt = new Date();
+  mapped.approved = true; // Mark all seeded data as approved
   return mapped;
 }
 

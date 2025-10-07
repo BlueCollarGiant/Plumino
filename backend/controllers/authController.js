@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 // Helper to create JWT
 const generateToken = (employee) => {
   return jwt.sign(
-    { id: employee._id, role: employee.role },
+    { id: employee._id, role: employee.role, department: employee.department },
     process.env.JWT_SECRET,
     { expiresIn: '1d' }
   );
@@ -13,20 +13,20 @@ const generateToken = (employee) => {
 
 // REGISTER new employee
 const registerEmployee = async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role, department } = req.body;
 
   try {
     const existing = await Employee.findOne({ email });
     if (existing) return res.status(400).json({ message: 'Email already in use' });
 
-    const employee = new Employee({ name, email, password, role });
+    const employee = new Employee({ name, email, password, role, department });
     await employee.save();
 
     const token = generateToken(employee);
     res.status(201).json({ 
       message: 'Employee registered successfully',
       token,
-      employee: { id: employee._id, name: employee.name, role: employee.role }
+      employee: { id: employee._id, name: employee.name, role: employee.role, department: employee.department }
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -48,7 +48,7 @@ const loginEmployee = async (req, res) => {
     res.json({
       message: 'Login successful',
       token,
-      employee: { id: employee._id, name: employee.name, role: employee.role }
+      employee: { id: employee._id, name: employee.name, role: employee.role, department: employee.department }
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

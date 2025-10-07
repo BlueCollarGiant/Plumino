@@ -3,12 +3,13 @@ import { RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { HealthService, SystemStatus } from './core/services/health.service';
+import { MobileAuthNavComponent } from './shared/components/navbar/mobile-auth-nav.component';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, HttpClientModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, HttpClientModule, MobileAuthNavComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

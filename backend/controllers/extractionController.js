@@ -114,10 +114,14 @@ const updateExtraction = async (req, res) => {
     const extraction = await Extraction.findById(req.params.id);
     if (!extraction) return res.status(404).json({ message: 'Not found' });
 
-    if (req.user.role === 'operator' && (
-      extraction.createdBy.toString() !== req.user.id || extraction.approved
-    )) {
-      return res.status(403).json({ message: 'Permission denied' });
+    // Operators can only edit their own unapproved entries
+    if (req.user.role === 'operator') {
+      if (!extraction.createdBy || extraction.createdBy.toString() !== req.user.id) {
+        return res.status(403).json({ message: 'You can only edit your own entries' });
+      }
+      if (extraction.approved) {
+        return res.status(403).json({ message: 'Cannot edit approved entries' });
+      }
     }
 
     Object.assign(extraction, value);
