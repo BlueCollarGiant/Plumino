@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 require("dotenv").config();
 
 // Models
@@ -16,43 +17,64 @@ const employeeData = [
     name: "John Admin",
     email: "admin@plumino.com",
     password: "admin123",
-    role: "admin"
+    role: "admin",
+    department: "office"
   },
   {
     name: "Sarah HR Manager",
     email: "hr@plumino.com", 
     password: "hr123",
-    role: "hr"
+    role: "hr",
+    department: "office"
   },
   {
     name: "Jane Supervisor",
     email: "supervisor@plumino.com", 
     password: "supervisor123",
-    role: "supervisor"
+    role: "supervisor",
+    department: "fermentation"
   },
   {
-    name: "Bob Employee",
-    email: "employee@plumino.com",
-    password: "employee123", 
-    role: "employee"
+    name: "Bob Operator",
+    email: "operator@plumino.com",
+    password: "operator123", 
+    role: "operator",
+    department: "extraction"
   },
   {
     name: "Alice Smith",
     email: "alice@plumino.com",
     password: "alice123",
-    role: "employee"
+    role: "operator",
+    department: "packaging"
   },
   {
     name: "Mike Johnson", 
     email: "mike@plumino.com",
     password: "mike123",
-    role: "supervisor"
+    role: "supervisor",
+    department: "extraction"
   },
   {
     name: "Lisa HR Assistant",
     email: "lisa@plumino.com",
     password: "lisa123",
-    role: "hr"
+    role: "hr",
+    department: "office"
+  },
+  {
+    name: "Tom Fermentation Worker",
+    email: "tom@plumino.com",
+    password: "tom123",
+    role: "operator",
+    department: "fermentation"
+  },
+  {
+    name: "Emma Packaging Supervisor",
+    email: "emma@plumino.com",
+    password: "emma123",
+    role: "supervisor",
+    department: "packaging"
   }
 ];
 
@@ -60,15 +82,23 @@ async function seedEmployees() {
   try {
     // Clear existing employees
     await Employee.deleteMany({});
-    console.log("Cleared existing employees");
 
-    // Insert new employee data
-    const result = await Employee.insertMany(employeeData);
+    // Hash passwords before inserting
+    const hashedEmployeeData = await Promise.all(
+      employeeData.map(async (emp) => {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(emp.password, salt);
+        return {
+          ...emp,
+          password: hashedPassword
+        };
+      })
+    );
+
+    // Insert new employee data with hashed passwords
+    const result = await Employee.insertMany(hashedEmployeeData);
     
-    console.log(`Successfully seeded ${result.length} employees:`);
-    result.forEach(emp => {
-      console.log(`- ${emp.name} (${emp.email}) - Role: ${emp.role}`);
-    });
+    console.log(`Seeded ${result.length} employees.`);
     
   } catch (err) {
     console.error("Error seeding employees:", err);

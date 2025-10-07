@@ -17,47 +17,52 @@ const {
 } = require('../controllers/packagingController');
 
 const { authMiddleware, roleAuth } = require('../middleware/auth');
+const { departmentAuth } = require('../middleware/departmentAuth');
 
-// Dashboard stats — everyone logged in can view
-router.get('/packaging/stats/by-plant', authMiddleware, getPackagingByPlant);
-router.get('/packaging/stats/by-product', authMiddleware, getPackagingByProduct);
-router.get('/packaging/stats/by-campaign', authMiddleware, getPackagingByCampaign);
-router.get('/packaging/stats/by-date', authMiddleware, getPackagingByDate);
+// Dashboard stats — only packaging department and office can view
+router.get('/packaging/stats/by-plant', authMiddleware, departmentAuth('packaging'), getPackagingByPlant);
+router.get('/packaging/stats/by-product', authMiddleware, departmentAuth('packaging'), getPackagingByProduct);
+router.get('/packaging/stats/by-campaign', authMiddleware, departmentAuth('packaging'), getPackagingByCampaign);
+router.get('/packaging/stats/by-date', authMiddleware, departmentAuth('packaging'), getPackagingByDate);
 
-// Filters — all logged in users
-router.get('/packaging/filter', authMiddleware, getFilteredPackaging);
-router.get('/packaging', authMiddleware, getPackagings);
-router.get('/packaging/:id', authMiddleware, getPackagingById);
+// Filters — packaging department and office users
+router.get('/packaging/filter', authMiddleware, departmentAuth('packaging'), getFilteredPackaging);
+router.get('/packaging', authMiddleware, departmentAuth('packaging'), getPackagings);
+router.get('/packaging/:id', authMiddleware, departmentAuth('packaging'), getPackagingById);
 
-// CREATE — Operator, Supervisor, Admin
+// CREATE — Operator, Supervisor in packaging dept, or HR/Admin
 router.post(
   '/packaging',
   authMiddleware,
-  roleAuth('operator', 'supervisor', 'admin'),
+  departmentAuth('packaging'),
+  roleAuth('operator', 'supervisor', 'hr', 'admin'),
   createPackaging
 );
 
-// UPDATE — Operator, Supervisor, Admin
+// UPDATE — Operator, Supervisor in packaging dept, or HR/Admin
 router.put(
   '/packaging/:id',
   authMiddleware,
-  roleAuth('operator', 'supervisor', 'admin'),
+  departmentAuth('packaging'),
+  roleAuth('operator', 'supervisor', 'hr', 'admin'),
   updatePackaging
 );
 
-// DELETE — Supervisor/Admin only
+// DELETE — Supervisor/HR/Admin only in packaging dept
 router.delete(
   '/packaging/:id',
   authMiddleware,
-  roleAuth('supervisor', 'admin'),
+  departmentAuth('packaging'),
+  roleAuth('supervisor', 'hr', 'admin'),
   deletePackaging
 );
 
-// APPROVE — Supervisor/Admin only
+// APPROVE — Supervisor/HR/Admin only in packaging dept
 router.put(
   '/packaging/:id/approve',
   authMiddleware,
-  roleAuth('supervisor', 'admin'),
+  departmentAuth('packaging'),
+  roleAuth('supervisor', 'hr', 'admin'),
   approvePackaging
 );
 

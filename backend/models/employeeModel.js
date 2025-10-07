@@ -18,8 +18,13 @@ const employeeSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['employee', 'supervisor', 'hr', 'admin'],
-    default: 'employee'
+    enum: ['operator', 'supervisor', 'hr', 'admin'],
+    default: 'operator'
+  },
+  department: {
+    type: String,
+    enum: ['fermentation', 'extraction', 'packaging', 'office'],
+    required: true
   }
 }, { timestamps: true });
 

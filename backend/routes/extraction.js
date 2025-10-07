@@ -13,40 +13,45 @@ const {
 } = require('../controllers/extractionController');
 
 const { authMiddleware, roleAuth } = require('../middleware/auth');
+const { departmentAuth } = require('../middleware/departmentAuth');
 
-// GET (approved only shown to non-supervisor/admin)
-router.get('/extraction', authMiddleware, getExtractions);
-router.get('/extraction/filter', authMiddleware, getExtractionsFiltered);
-router.get('/extraction/:id', authMiddleware, getExtractionById);
+// GET (approved only shown to non-supervisor/admin) - extraction dept only
+router.get('/extraction', authMiddleware, departmentAuth('extraction'), getExtractions);
+router.get('/extraction/filter', authMiddleware, departmentAuth('extraction'), getExtractionsFiltered);
+router.get('/extraction/:id', authMiddleware, departmentAuth('extraction'), getExtractionById);
 
-// CREATE — Operator, Supervisor, Admin
+// CREATE — Operator, Supervisor in extraction dept, or HR/Admin
 router.post(
   '/extraction',
   authMiddleware,
-  roleAuth('operator', 'supervisor', 'admin'),
+  departmentAuth('extraction'),
+  roleAuth('operator', 'supervisor', 'hr', 'admin'),
   createExtraction
 );
 
-// UPDATE — Operator (own), Supervisor/Admin (any)
+// UPDATE — Operator (own), Supervisor/HR/Admin (any) in extraction dept
 router.put(
   '/extraction/:id',
   authMiddleware,
-  roleAuth('operator', 'supervisor', 'admin'),
+  departmentAuth('extraction'),
+  roleAuth('operator', 'supervisor', 'hr', 'admin'),
   updateExtraction
 );
 
-// DELETE — Supervisor/Admin only
+// DELETE — Supervisor/HR/Admin only in extraction dept
 router.delete(
   '/extraction/:id',
   authMiddleware,
-  roleAuth('supervisor', 'admin'),
+  departmentAuth('extraction'),
+  roleAuth('supervisor', 'hr', 'admin'),
   deleteExtraction
 );
 
 router.put(
   '/extraction/:id/approve',
   authMiddleware,
-  roleAuth('supervisor', 'admin'),
+  departmentAuth('extraction'),
+  roleAuth('supervisor', 'hr', 'admin'),
   approveExtraction
 );
 module.exports = router;
