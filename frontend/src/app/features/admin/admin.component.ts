@@ -1,3 +1,4 @@
+// Imports
 import { CommonModule, TitleCasePipe } from '@angular/common';
 import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -6,7 +7,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
-import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService } from '../../services/employee.service';
+import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services/employee.service';
 
 
 
@@ -16,7 +17,6 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
   imports: [CommonModule, ReactiveFormsModule, TitleCasePipe],
   template: `
     <div class="admin-dashboard">
-      <!-- Animated Background -->
       <div class="background-container">
         <div class="floating-shapes">
           <div class="shape shape-1"></div>
@@ -28,7 +28,6 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
         <div class="gradient-overlay"></div>
       </div>
 
-      <!-- Header Section -->
       <header class="dashboard-header">
         <div class="header-content">
           <div class="title-section">
@@ -152,7 +151,6 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
                     <div class="employee-list">
                       @for (employee of segment.employees; track employee._id) {
                         <div class="employee-card">
-                          <!-- Main employee row (always visible) -->
                           <div class="employee-main-row" (click)="openEmployeeDetailsModal(employee)">
                             <div class="employee-basic-info">
                               <div class="employee-name-section">
@@ -184,7 +182,6 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
         }
       </section>
 
-      <!-- Employee Details Modal -->
       @if (isEmployeeDetailsModalOpen()) {
         <div class="modal-backdrop">
           <div class="modal-panel employee-details-modal">
@@ -199,7 +196,6 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
             </header>
 
             @if (selectedEmployee()) {
-              <!-- View Mode -->
               @if (!isEmployeeEditing(selectedEmployee()!._id)) {
                 <div class="employee-details-content">
                   <div class="employee-details-grid">
@@ -258,7 +254,6 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
                 </div>
               }
 
-              <!-- Edit Mode -->
               @if (isEmployeeEditing(selectedEmployee()!._id)) {
                 <form [formGroup]="editEmployeeForm" (ngSubmit)="saveEmployeeChanges(selectedEmployee()!)" class="edit-employee-form">
                   <div class="employee-details-grid">
@@ -481,6 +476,14 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
   `,
   styles: [
     `
+      /* ======================================================
+         Component: Admin Dashboard
+         Purpose: System administration and employee management interface
+         Linked TS File: admin.component.ts
+         Notes: Responsive design with floating background animations
+         ====================================================== */
+
+      /* Base Layout ------------------------------------------ */
       * {
         box-sizing: border-box;
       }
@@ -493,7 +496,7 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
         color: white;
       }
 
-      /* Advanced Background - Matching Other Dashboards */
+      /* Background & Animations ----------------------------- */
       .background-container {
         position: fixed;
         top: 0;
@@ -589,7 +592,7 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
           linear-gradient(135deg, #0a0f1c 0%, #1e293b 100%);
       }
 
-      /* Header Section */
+      /* Header Section -------------------------------------- */
       .dashboard-header {
         padding: 2rem;
         position: relative;
@@ -666,44 +669,7 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
         font-size: 1.1rem;
       }
 
-      .status-indicator {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: rgba(34, 197, 94, 0.1);
-        padding: 0.5rem 1rem;
-        border-radius: 25px;
-        border: 1px solid rgba(34, 197, 94, 0.3);
-        backdrop-filter: blur(10px);
-      }
-
-      .status-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #22c55e;
-        animation: pulse 2s infinite;
-      }
-
-      @keyframes pulse {
-        0% {
-          box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-        }
-        70% {
-          box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
-        }
-        100% {
-          box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
-        }
-      }
-
-      .status-indicator span {
-        color: #22c55e;
-        font-weight: 600;
-        font-size: 0.9rem;
-      }
-
-      /* Main Content */
+      /* Main Content Area ----------------------------------- */
       .pov {
         display: flex;
         flex-direction: column;
@@ -715,7 +681,7 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
         margin: 0 auto;
       }
 
-      /* Statistics Grid */
+      /* Statistics Cards ------------------------------------ */
       .stats-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -793,85 +759,7 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
         margin-top: 0.5rem;
       }
 
-      /* Statistics Grid */
-      .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-      }
-
-      .stat-card {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 1rem;
-        padding: 1.5rem;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-      }
-
-      .stat-card:hover {
-        background: rgba(255, 255, 255, 0.08);
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-      }
-
-      .stat-header {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 1rem;
-      }
-
-      .stat-icon-wrapper {
-        position: relative;
-      }
-
-      .stat-icon {
-        font-size: 1rem;
-        font-weight: 800;
-        color: white;
-        padding: 0.5rem;
-        border-radius: 8px;
-        letter-spacing: 0.5px;
-        background: linear-gradient(135deg, #6366f1, #4f46e5);
-        position: relative;
-        z-index: 1;
-      }
-
-      .stat-icon-glow {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        filter: blur(10px);
-        opacity: 0.6;
-      }
-
-      .users-glow { background: radial-gradient(circle, rgba(99, 102, 241, 0.4) 0%, transparent 70%); }
-      .active-glow { background: radial-gradient(circle, rgba(34, 197, 94, 0.4) 0%, transparent 70%); }
-      .departments-glow { background: radial-gradient(circle, rgba(249, 115, 22, 0.4) 0%, transparent 70%); }
-      .health-glow { background: radial-gradient(circle, rgba(168, 85, 247, 0.4) 0%, transparent 70%); }
-
-      .stat-label {
-        color: #e2e8f0;
-        font-size: 0.9rem;
-        font-weight: 500;
-      }
-
-      .stat-value {
-        font-size: 2rem;
-        font-weight: 800;
-        color: white;
-        margin-top: 0.5rem;
-      }
-
-      /* Button Styles */
+      /* Buttons & Interactions ------------------------------ */
       .btn-primary,
       .btn-secondary {
         display: flex;
@@ -918,6 +806,7 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
         letter-spacing: 0.5px;
       }
 
+      /* Dashboard Toolbar ----------------------------------- */
       .dashboard-toolbar {
         display: flex;
         align-items: flex-start;
@@ -954,32 +843,12 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
         margin: 0;
       }
 
-      .status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.4rem 0.85rem;
-        border-radius: 999px;
-        font-size: 0.85rem;
-        color: #bbf7d0;
-        background: rgba(34, 197, 94, 0.15);
-        border: 1px solid rgba(34, 197, 94, 0.35);
-        width: fit-content;
-      }
-
-      .status-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: #22c55e;
-        box-shadow: 0 0 10px rgba(34, 197, 94, 0.6);
-      }
-
       .add-button {
         min-width: 180px;
         justify-content: center;
       }
 
+      /* Feedback & Status Messages -------------------------- */
       .feedback-row {
         display: flex;
         flex-direction: column;
@@ -1015,6 +884,7 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
         margin-left: auto;
       }
 
+      /* Loading States -------------------------------------- */
       .loading-state {
         display: flex;
         align-items: center;
@@ -1051,6 +921,7 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
         }
       }
 
+      /* Employee Role Cards --------------------------------- */
       .role-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -1133,6 +1004,7 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
         overflow: hidden;
       }
 
+      /* Employee Lists -------------------------------------- */
       .employee-list {
         display: flex;
         flex-direction: column;
@@ -1145,10 +1017,6 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
 
       .employee-card:last-child {
         border-bottom: none;
-      }
-
-      .employee-card.expanded {
-        background: rgba(15, 23, 42, 0.6);
       }
 
       .employee-main-row {
@@ -1197,7 +1065,6 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
         padding-left: 1rem;
       }
 
-      .expand-icon,
       .view-icon {
         transition: all 0.2s ease;
         color: #64748b;
@@ -1210,10 +1077,6 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
         background: transparent;
       }
 
-      .expand-icon.rotated {
-        transform: rotate(180deg);
-      }
-
       .view-icon:hover {
         background: rgba(148, 163, 184, 0.08);
         color: #334155;
@@ -1223,25 +1086,14 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
         color: #475569;
       }
 
-      .employee-details {
-        padding: 0 1.25rem 1.5rem 1.25rem;
-        border-top: 1px solid rgba(148, 163, 184, 0.08);
-        animation: slideDown 0.3s ease;
+      .empty-state {
+        padding: 2rem 1.25rem;
+        text-align: center;
+        color: #94a3b8;
+        font-size: 0.95rem;
       }
 
-      @keyframes slideDown {
-        from {
-          opacity: 0;
-          max-height: 0;
-          padding: 0 1.25rem;
-        }
-        to {
-          opacity: 1;
-          max-height: 300px;
-          padding: 0 1.25rem 1.5rem 1.25rem;
-        }
-      }
-
+      /* Employee Details & Forms ---------------------------- */
       .employee-details-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -1250,32 +1102,9 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
         margin-bottom: 1.5rem;
       }
 
-      /* Adjust grid for edit mode to prevent overflow */
       .edit-employee-form .employee-details-grid {
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         gap: 0.75rem;
-      }
-
-      /* Responsive adjustments for smaller screens */
-      @media (max-width: 768px) {
-        .employee-details-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .edit-employee-form .employee-details-grid {
-          grid-template-columns: 1fr;
-          gap: 1rem;
-        }
-      }
-
-      @media (max-width: 1200px) {
-        .employee-details-grid {
-          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        }
-
-        .edit-employee-form .employee-details-grid {
-          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        }
       }
 
       .detail-section {
@@ -1355,77 +1184,7 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
         padding: 0.5rem 1rem;
       }
 
-      .department-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.25rem 0.6rem;
-        border-radius: 999px;
-        background: rgba(148, 163, 184, 0.15);
-        color: #e2e8f0;
-        font-size: 0.8rem;
-        max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0.25rem 0.75rem;
-        border-radius: 999px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .badge-admin {
-        background: rgba(59, 130, 246, 0.2);
-        color: #93c5fd;
-      }
-
-      .badge-hr {
-        background: rgba(129, 140, 248, 0.2);
-        color: #c7d2fe;
-      }
-
-      .badge-supervisor {
-        background: rgba(248, 113, 113, 0.2);
-        color: #fecdd3;
-      }
-
-      .badge-operator {
-        background: rgba(45, 212, 191, 0.2);
-        color: #99f6e4;
-      }
-
-      .status-active,
-      .status-inactive {
-        font-weight: 600;
-        font-size: 0.85rem;
-      }
-
-      .status-active {
-        color: #4ade80;
-      }
-
-      .status-inactive {
-        color: #fca5a5;
-      }
-
-      .empty-state {
-        padding: 2rem 1.25rem;
-        text-align: center;
-        color: #94a3b8;
-        font-size: 0.95rem;
-      }
-
+      /* Modal Components ------------------------------------ */
       .modal-backdrop {
         position: fixed;
         inset: 0;
@@ -1545,7 +1304,7 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
         filter: blur(2px);
       }
 
-      /* Responsive Design */
+      /* Responsive Tweaks ----------------------------------- */
       @media (max-width: 768px) {
         .header-content {
           flex-direction: column;
@@ -1574,10 +1333,6 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
           grid-template-columns: 1fr;
         }
 
-        .users-grid {
-          grid-template-columns: 1fr;
-        }
-
         .role-grid {
           grid-template-columns: 1fr;
         }
@@ -1587,23 +1342,37 @@ import { CreateEmployeeRequest, UpdateEmployeeRequest, Employee, EmployeeService
           align-items: flex-start;
         }
 
-        .actions-header,
-        .actions-cell {
-          text-align: left;
+        .employee-details-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .edit-employee-form .employee-details-grid {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+      }
+
+      @media (max-width: 1200px) {
+        .employee-details-grid {
+          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        }
+
+        .edit-employee-form .employee-details-grid {
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
         }
       }
     `
   ]
 })
 export class AdminComponent {
-  // Dependency injection wiring for routing, API access, and lifecycle cleanup delegates.
+  // Signals & State
   private readonly fb = inject(FormBuilder);
   private readonly employeeService = inject(EmployeeService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
-  // Role presentation metadata powering the segmented dashboard view.
+  // Role configuration for UI grouping
   protected readonly roleSegments = [
     {
       role: 'admin' as Employee['role'],
@@ -1627,25 +1396,26 @@ export class AdminComponent {
     }
   ] as const;
 
-  // Session context used to enforce admin-only functionality across the POV.
+  // Authentication & Authorization State
   protected readonly currentEmployee = computed(() => this.authService.employee());
   protected readonly isAdmin = computed(() => this.currentEmployee()?.role === 'admin');
 
-  // Employee roster state management backing the list, modals, and mutations.
+  // Employee Data State
   protected readonly employees = signal<Employee[]>([]);
   protected readonly isLoading = signal(false);
   protected readonly loadError = signal<string | null>(null);
   protected readonly mutationError = signal<string | null>(null);
   protected readonly removeInFlight = signal<string | null>(null);
+
+  // Modal & UI State
   protected readonly isModalOpen = signal(false);
   protected readonly isSaving = signal(false);
-  protected readonly expandedEmployee = signal<string | null>(null);
   protected readonly editingEmployee = signal<string | null>(null);
   protected readonly editingSaving = signal(false);
   protected readonly selectedEmployee = signal<Employee | null>(null);
   protected readonly isEmployeeDetailsModalOpen = signal(false);
 
-  // Add-employee modal form configuration and validation rules.
+  // Forms
   protected readonly addEmployeeForm = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
     email: ['', [Validators.required, Validators.email]],
@@ -1654,7 +1424,6 @@ export class AdminComponent {
     department: ['', Validators.required]
   });
 
-  // Edit-employee form configuration and validation rules.
   protected readonly editEmployeeForm = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
     email: ['', [Validators.required, Validators.email]],
@@ -1662,7 +1431,8 @@ export class AdminComponent {
     department: ['', Validators.required]
   });
 
-  // Department dropdown options derived from the live employee roster.
+  // Helpers / Computed Logic
+  // Extract unique departments from employee list for form dropdown
   protected readonly departmentOptions = computed(() => {
     const departments = new Set(
       this.employees()
@@ -1673,7 +1443,7 @@ export class AdminComponent {
     return Array.from(departments).sort((a, b) => a.localeCompare(b));
   });
 
-  // Aggregated metrics driving the stat tiles at the top of the POV.
+  // Calculate dashboard statistics from employee data
   protected readonly dashboardStats = computed(() => {
     const roster = this.employees();
     const active = roster.filter(employee => employee.isActive ?? true).length;
@@ -1688,7 +1458,7 @@ export class AdminComponent {
     };
   });
 
-  // Role-based grouping used to render the four-column employee layout.
+  // Group employees by role for dashboard display
   protected readonly groupedEmployees = computed(() =>
     this.roleSegments.map(segment => ({
       ...segment,
@@ -1696,7 +1466,8 @@ export class AdminComponent {
     }))
   );
 
-  // Effect bootstraps the view by validating access and loading the roster.
+  // Lifecycle / Init Logic
+  // Initialize component and enforce admin-only access
   private readonly bootstrapEffect = effect(
     () => {
       if (!this.isAdmin()) {
@@ -1709,49 +1480,39 @@ export class AdminComponent {
     { allowSignalWrites: true }
   );
 
-  // Helper exposed to the template for manual refresh actions.
+  // Core Methods
+  // Reload employee data from server
   protected reloadEmployees(): void {
     this.loadEmployees();
   }
 
-  // Toggle employee detail expansion
-  protected toggleEmployeeExpansion(employeeId: string): void {
-    const currentExpanded = this.expandedEmployee();
-    this.expandedEmployee.set(currentExpanded === employeeId ? null : employeeId);
-  }
-
-  // Check if employee is expanded
-  protected isEmployeeExpanded(employeeId: string): boolean {
-    return this.expandedEmployee() === employeeId;
-  }
-
-  // Open employee details modal
+  // Event Handlers / UI Actions
+  // Open employee details modal with selected employee
   protected openEmployeeDetailsModal(employee: Employee): void {
     this.selectedEmployee.set(employee);
     this.isEmployeeDetailsModalOpen.set(true);
     this.mutationError.set(null);
   }
 
-  // Close employee details modal
+  // Close employee details modal and cleanup state
   protected closeEmployeeDetailsModal(): void {
     this.isEmployeeDetailsModalOpen.set(false);
     this.selectedEmployee.set(null);
     this.cancelEditingEmployee();
   }
 
-  // Check if employee is in edit mode
+  // Check if specific employee is currently being edited
   protected isEmployeeEditing(employeeId: string): boolean {
     return this.editingEmployee() === employeeId;
   }
 
-  // Start editing an employee
+  // Start editing employee - populate form with current data
   protected startEditingEmployee(employee: Employee): void {
     if (!this.isAdmin()) return;
 
     this.editingEmployee.set(employee._id);
     this.mutationError.set(null);
 
-    // Populate edit form with current employee data
     this.editEmployeeForm.patchValue({
       name: employee.name,
       email: employee.email,
@@ -1760,14 +1521,14 @@ export class AdminComponent {
     });
   }
 
-  // Cancel editing an employee
+  // Cancel employee editing and reset form
   protected cancelEditingEmployee(): void {
     this.editingEmployee.set(null);
     this.editEmployeeForm.reset();
     this.mutationError.set(null);
   }
 
-  // Save employee changes
+  // Save changes to employee data
   protected saveEmployeeChanges(employee: Employee): void {
     if (!this.isAdmin() || !this.editEmployeeForm.valid) return;
 
@@ -1800,25 +1561,11 @@ export class AdminComponent {
       });
   }
 
-  // Maps an employee role to the corresponding badge styling class.
-  protected roleBadge(role: Employee['role']): string {
-    switch (role) {
-      case 'admin':
-        return 'badge badge-admin';
-      case 'hr':
-        return 'badge badge-hr';
-      case 'supervisor':
-        return 'badge badge-supervisor';
-      default:
-        return 'badge badge-operator';
-    }
-  }
-
-  // Gets ALL supervisors for an employee based on their department
+  // Helpers / Computed Logic
+  // Get supervisors available for a specific employee based on department
   protected getSupervisorsForEmployee(employee: Employee): Employee[] {
     const employees = this.employees();
 
-    // Find all supervisors in the same department
     const supervisors = employees.filter(emp =>
       emp.role === 'supervisor' &&
       emp.department === employee.department &&
@@ -1829,11 +1576,10 @@ export class AdminComponent {
     return supervisors;
   }
 
-  // Gets ALL HR people (they oversee all departments)
+  // Get all active HR personnel
   protected getAllHRPeople(): Employee[] {
     const employees = this.employees();
 
-    // Find all active HR people regardless of department
     const hrPeople = employees.filter(emp =>
       emp.role === 'hr' &&
       (emp.isActive ?? true)
@@ -1842,7 +1588,7 @@ export class AdminComponent {
     return hrPeople;
   }
 
-  // Gets a user-friendly supervisor display text
+  // Generate hierarchical display text for who an employee reports to
   protected getSupervisorDisplayText(employee: Employee): string {
     if (employee.role === 'admin') {
       return 'Reports to executive team';
@@ -1860,12 +1606,10 @@ export class AdminComponent {
       } else if (hrPeople.length === 1) {
         return hrPeople[0].name;
       } else {
-        // Multiple HR people - show all names
         return hrPeople.map(hr => hr.name).join(', ');
       }
     }
 
-    // For operators and other roles
     const supervisors = this.getSupervisorsForEmployee(employee);
 
     if (supervisors.length === 0) {
@@ -1873,12 +1617,12 @@ export class AdminComponent {
     } else if (supervisors.length === 1) {
       return supervisors[0].name;
     } else {
-      // Multiple supervisors - show all names
       return supervisors.map(s => s.name).join(', ');
     }
   }
 
-  // Opens the add employee modal with a clean slate state.
+  // Event Handlers / UI Actions (continued)
+  // Open add employee modal
   protected openAddEmployeeModal(): void {
     if (!this.isAdmin()) {
       return;
@@ -1889,13 +1633,13 @@ export class AdminComponent {
     this.resetAddEmployeeForm();
   }
 
-  // Closes the modal and clears any pending form state.
+  // Close add employee modal
   protected closeAddEmployeeModal(): void {
     this.isModalOpen.set(false);
     this.resetAddEmployeeForm();
   }
 
-  // Submits the modal form to create a new employee and refresh the roster.
+  // Submit new employee form
   protected submitAddEmployee(): void {
     if (!this.isAdmin()) {
       return;
@@ -1926,7 +1670,7 @@ export class AdminComponent {
       });
   }
 
-  // Confirms and executes the deactivate/remove workflow for an employee.
+  // Confirm and execute employee deactivation or removal
   protected confirmDeactivateEmployee(employee: Employee): void {
     if (!this.isAdmin()) {
       return;
@@ -1960,7 +1704,8 @@ export class AdminComponent {
       });
   }
 
-  // Centralized roster fetch used across lifecycle and manual refresh actions.
+  // External Service Calls
+  // Fetch employee data from API
   private loadEmployees(): void {
     this.isLoading.set(true);
     this.loadError.set(null);
@@ -1978,7 +1723,8 @@ export class AdminComponent {
       });
   }
 
-  // Resets the modal form to default values and clears control state flags.
+  // Helpers / Computed Logic (continued)
+  // Reset add employee form to default state
   private resetAddEmployeeForm(): void {
     this.addEmployeeForm.reset({
       name: '',
