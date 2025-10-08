@@ -19,6 +19,13 @@ export interface CreateEmployeeRequest {
   readonly department: string;
 }
 
+export interface UpdateEmployeeRequest {
+  readonly name: string;
+  readonly email: string;
+  readonly role: Employee['role'];
+  readonly department: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class EmployeeService {
   private readonly http = inject(HttpClient);
@@ -39,6 +46,16 @@ export class EmployeeService {
     return this.http.post<Employee>(this.baseUrl, payload).pipe(
       catchError(error => {
         console.error('Failed to create employee', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // Updates an existing employee record.
+  updateEmployee(employeeId: string, payload: UpdateEmployeeRequest): Observable<Employee> {
+    return this.http.put<Employee>(`${this.baseUrl}/${employeeId}`, payload).pipe(
+      catchError(error => {
+        console.error('Failed to update employee', error);
         return throwError(() => error);
       })
     );

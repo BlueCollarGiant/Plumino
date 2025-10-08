@@ -95,4 +95,52 @@ const deactivateEmployee = async (req, res) => {
   }
 };
 
-module.exports = { getEmployee, createEmployee, deleteEmployee, deactivateEmployee };
+// Controller: update employee
+const updateEmployee = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Create validation schema for updates (no password required)
+    const updateSchema = Joi.object({
+      name: Joi.string().min(2).required(),
+      email: Joi.string().email().required(),
+      role: Joi.string().valid('admin', 'hr', 'supervisor', 'operator').required(),
+      department: Joi.string().min(2).required()
+    });
+
+    // Validate request body
+    const { error, value } = updateSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
+
+    // Check if employee exists
+    const existingEmployee = await Employee.findById(id);
+    if (!existingEmployee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+
+    // Check if email is being changed to one that already exists
+    if (value.email !== existingEmployee.email) {
+      const emailExists = await Employee.findOne({ email: value.email, _id: { $ne: id } });
+      if (emailExists) {
+        return res.status(400).json({ message: 'Employee with this email already exists' });
+      }
+    }
+
+    // Update employee
+    const updatedEmployee = await Employee.findByIdAndUpdate(
+      id,
+      value,
+      { new: true }
+    ).select('-password');
+
+    console.log('Updated employee:', updatedEmployee.email);
+    res.status(200).json(updatedEmployee);
+  } catch (error) {
+    console.error('Error updating employee:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { getEmployee, createEmployee, updateEmployee, deleteEmployee, deactivateEmployee };
