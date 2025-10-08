@@ -1,15 +1,18 @@
-import { Component, signal, OnInit, OnDestroy, computed } from '@angular/core';
+import { Component, signal, OnInit, OnDestroy, computed, inject } from '@angular/core';
 import { RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { HealthService, SystemStatus } from './core/services/health.service';
+import { AuthService } from './core/services/auth.service';
+import { NotificationService } from './core/services/notification.service';
 import { MobileAuthNavComponent } from './shared/components/navbar/mobile-auth-nav.component';
+import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, HttpClientModule, MobileAuthNavComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, HttpClientModule, MobileAuthNavComponent, ToastContainerComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -34,10 +37,21 @@ export class App implements OnInit, OnDestroy {
 
   private healthSubscription?: Subscription;
 
-  constructor(private healthService: HealthService) {}
+  constructor(
+    private healthService: HealthService,
+    private authService: AuthService = inject(AuthService),
+    private notificationService: NotificationService = inject(NotificationService)
+  ) {}
 
   ngOnInit() {
     console.log('App component initializing...');
+
+    // Initialize SSE notifications if user is authenticated
+    if (this.authService.isAuthenticated()) {
+      console.log('User is authenticated, connecting to SSE...');
+      this.notificationService.connect();
+    }
+
     this.healthSubscription = this.healthService.status$.subscribe(
       status => {
         console.log('Received status update in app component:', status);

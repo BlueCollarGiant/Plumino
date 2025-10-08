@@ -18,63 +18,72 @@ const employeeData = [
     email: "admin@plumino.com",
     password: "admin123",
     role: "admin",
-    department: "office"
+    department: "office",
+    title: "System Administrator"
   },
   {
     name: "Sarah HR Manager",
     email: "hr@plumino.com", 
     password: "hr123",
     role: "hr",
-    department: "office"
+    department: "office",
+    title: "HR Manager"
   },
   {
     name: "Jane Supervisor",
     email: "supervisor@plumino.com", 
     password: "supervisor123",
     role: "supervisor",
-    department: "fermentation"
+    department: "fermentation",
+    title: "Fermentation Supervisor"
   },
   {
     name: "Bob Operator",
     email: "operator@plumino.com",
     password: "operator123", 
     role: "operator",
-    department: "extraction"
+    department: "extraction",
+    title: "Extraction Operator"
   },
   {
     name: "Alice Smith",
     email: "alice@plumino.com",
     password: "alice123",
     role: "operator",
-    department: "packaging"
+    department: "packaging",
+    title: "Packaging Operator"
   },
   {
     name: "Mike Johnson", 
     email: "mike@plumino.com",
     password: "mike123",
     role: "supervisor",
-    department: "extraction"
+    department: "extraction",
+    title: "Extraction Supervisor"
   },
   {
     name: "Lisa HR Assistant",
     email: "lisa@plumino.com",
     password: "lisa123",
     role: "hr",
-    department: "office"
+    department: "office",
+    title: "HR Assistant"
   },
   {
     name: "Tom Fermentation Worker",
     email: "tom@plumino.com",
     password: "tom123",
     role: "operator",
-    department: "fermentation"
+    department: "fermentation",
+    title: "Fermentation Technician"
   },
   {
     name: "Emma Packaging Supervisor",
     email: "emma@plumino.com",
     password: "emma123",
     role: "supervisor",
-    department: "packaging"
+    department: "packaging",
+    title: "Packaging Supervisor"
   }
 ];
 

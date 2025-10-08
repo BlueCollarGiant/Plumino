@@ -1,19 +1,23 @@
 const Employee = require('../models/employeeModel');
 const Joi = require('joi');
 const bcrypt = require('bcryptjs');
+const { sseManager } = require('../services/sseManager');
+const { autoLogoutManager } = require('../services/autoLogoutManager');
 
 const employeeSchema = Joi.object({
   name: Joi.string().min(2).required(),
   email: Joi.string().email().required(),
   password: Joi.string().min(6).required(),
   role: Joi.string().valid('admin', 'hr', 'supervisor', 'operator').required(),
-  department: Joi.string().min(2).required()
+  department: Joi.string().min(2).required(),
+  title: Joi.string().min(1).optional().allow(''),
+  supervisorId: Joi.string().optional().allow(null, '')
 });
 
 // Controller: get all employees
 const getEmployee = async (req, res) => {
   try {
-    const employees = await Employee.find().select('-password');
+    const employees = await Employee.find().select('-password').populate('supervisorId', 'name email');
     console.log(`Found ${employees.length} employees`);
     res.json(employees);
   } catch (error) {
@@ -37,15 +41,28 @@ const createEmployee = async (req, res) => {
       return res.status(400).json({ message: 'Employee with this email already exists' });
     }
 
+    // Validate supervisor assignment if provided
+    if (value.supervisorId) {
+      const supervisor = await Employee.findById(value.supervisorId);
+      if (!supervisor) {
+        return res.status(400).json({ message: 'Supervisor not found' });
+      }
+      
+      // Ensure supervisor is in the same department
+      if (supervisor.department !== value.department) {
+        return res.status(400).json({ message: 'Supervisor must be in the same department' });
+      }
+    }
+
     // Create new employee (password will be hashed by pre-save hook)
     const employee = new Employee(value);
     const saved = await employee.save();
     
-    // Return employee without password
-    const { password, ...employeeData } = saved.toObject();
-    console.log('Created new employee:', employeeData.email);
+    // Return employee without password and populate supervisor
+    const populated = await Employee.findById(saved._id).select('-password').populate('supervisorId', 'name email');
+    console.log('Created new employee:', populated.email);
     
-    res.status(201).json(employeeData);
+    res.status(201).json(populated);
   } catch (error) {
     console.error('Error creating employee:', error);
     res.status(400).json({ message: error.message });
@@ -105,7 +122,9 @@ const updateEmployee = async (req, res) => {
       name: Joi.string().min(2).required(),
       email: Joi.string().email().required(),
       role: Joi.string().valid('admin', 'hr', 'supervisor', 'operator').required(),
-      department: Joi.string().min(2).required()
+      department: Joi.string().min(2).required(),
+      title: Joi.string().min(1).optional().allow(''),
+      supervisorId: Joi.string().optional().allow(null, '')
     });
 
     // Validate request body
@@ -128,14 +147,66 @@ const updateEmployee = async (req, res) => {
       }
     }
 
+    // Validate supervisor assignment if provided
+    if (value.supervisorId) {
+      // Employee cannot supervise themselves
+      if (value.supervisorId === id) {
+        return res.status(400).json({ message: 'Employee cannot supervise themselves' });
+      }
+
+      const supervisor = await Employee.findById(value.supervisorId);
+      if (!supervisor) {
+        return res.status(400).json({ message: 'Supervisor not found' });
+      }
+      
+      // Ensure supervisor is in the same department
+      if (supervisor.department !== value.department) {
+        return res.status(400).json({ message: 'Supervisor must be in the same department' });
+      }
+    }
+
+    // Track changes for real-time notifications
+    const roleChanged = existingEmployee.role !== value.role;
+    const departmentChanged = existingEmployee.department !== value.department;
+
     // Update employee
     const updatedEmployee = await Employee.findByIdAndUpdate(
       id,
       value,
       { new: true }
-    ).select('-password');
+    ).select('-password').populate('supervisorId', 'name email');
 
     console.log('Updated employee:', updatedEmployee.email);
+    
+    // Handle role/department changes with 24-hour auto-logout tracking
+    if (roleChanged || departmentChanged) {
+      // Track role change for 24-hour auto-logout system
+      await autoLogoutManager.trackRoleChange(
+        id,
+        existingEmployee.role,
+        updatedEmployee.role,
+        departmentChanged ? existingEmployee.department : null,
+        departmentChanged ? updatedEmployee.department : null
+      );
+
+      // Send real-time notifications
+      if (roleChanged) {
+        sseManager.notifyRoleChange(id, {
+          name: updatedEmployee.name,
+          oldRole: existingEmployee.role,
+          newRole: updatedEmployee.role
+        });
+      }
+      
+      if (departmentChanged) {
+        sseManager.notifyDepartmentChange(id, {
+          name: updatedEmployee.name,
+          oldDepartment: existingEmployee.department,
+          newDepartment: updatedEmployee.department
+        });
+      }
+    }
+
     res.status(200).json(updatedEmployee);
   } catch (error) {
     console.error('Error updating employee:', error);

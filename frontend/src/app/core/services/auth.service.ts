@@ -40,12 +40,36 @@ export class AuthService {
 
   login(credentials: LoginRequest) {
     return this.http.post<LoginResponse>('http://localhost:5000/api/auth/login', credentials).pipe(
-      tap(response => this.persistSession(response)),
+      tap(response => {
+        this.persistSession(response);
+        // Start SSE notifications after successful login
+        import('./notification.service').then(({ NotificationService }) => {
+          const notificationService = inject(NotificationService);
+          notificationService.connect();
+        });
+      }),
       map(response => response.employee)
     );
   }
 
   logout(): void {
+    // Call backend logout endpoint first if we have a token
+    const currentAuth = this.authState();
+    if (currentAuth?.token) {
+      this.http.post('http://localhost:5000/api/auth/logout', {}, {
+        headers: { Authorization: `Bearer ${currentAuth.token}` }
+      }).subscribe({
+        next: () => console.log('✅ Backend logout successful'),
+        error: (error) => console.warn('Backend logout failed:', error)
+      });
+    }
+
+    // Stop SSE notifications before logout
+    import('./notification.service').then(({ NotificationService }) => {
+      const notificationService = inject(NotificationService);
+      notificationService.disconnect();
+    });
+
     this.clearSession();
   }
 
