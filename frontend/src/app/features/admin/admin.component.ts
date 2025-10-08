@@ -38,48 +38,7 @@ import { FormBuilder, ReactiveFormsModule, Validators, FormControl } from '@angu
         </div>
       </header>
 
-      <section class="pov">
-        <!-- Quick Actions Section -->
-        <div class="quick-actions-section">
-          <div class="card-header">
-            <h3 class="card-title">
-              <span class="title-icon">QA</span>
-              Quick Actions
-            </h3>
-            <div class="header-accent"></div>
-          </div>
-          <div class="actions-grid">
-            <button class="action-card" (click)="addUser()">
-              <div class="action-icon add-user-icon">ADD</div>
-              <div class="action-content">
-                <h4>Add New User</h4>
-                <p>Create a new user account</p>
-              </div>
-            </button>
-            <button class="action-card" (click)="manageRoles()">
-              <div class="action-icon roles-icon">ROL</div>
-              <div class="action-content">
-                <h4>Manage Roles</h4>
-                <p>Configure user permissions</p>
-              </div>
-            </button>
-            <button class="action-card" (click)="viewReports()">
-              <div class="action-icon reports-icon">RPT</div>
-              <div class="action-content">
-                <h4>View Reports</h4>
-                <p>System analytics & insights</p>
-              </div>
-            </button>
-            <button class="action-card" (click)="systemSettings()">
-              <div class="action-icon settings-icon">SET</div>
-              <div class="action-content">
-                <h4>System Settings</h4>
-                <p>Configure application settings</p>
-              </div>
-            </button>
-          </div>
-        </div>
-      </section>
+      <section class="pov"></section>
     </div>
   `,
   styles: [
@@ -318,67 +277,6 @@ import { FormBuilder, ReactiveFormsModule, Validators, FormControl } from '@angu
         margin: 0 auto;
       }
 
-      /* Card Styles */
-      .quick-actions-section {
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 1.5rem;
-        padding: 2rem;
-        transition: all 0.4s ease;
-        position: relative;
-        overflow: hidden;
-      }
-
-      .quick-actions-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
-        transition: left 0.5s;
-      }
-
-      .quick-actions-section:hover::before {
-        left: 100%;
-      }
-
-      .card-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 1.5rem;
-      }
-
-      .card-title {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        font-size: 1.4rem;
-        font-weight: 700;
-        margin: 0;
-        color: white;
-      }
-
-      .title-icon {
-        font-size: 0.8rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #d97706, #b45309);
-        color: white;
-        padding: 0.3rem 0.6rem;
-        border-radius: 6px;
-        letter-spacing: 0.5px;
-      }
-
-      .header-accent {
-        width: 40px;
-        height: 3px;
-        background: linear-gradient(135deg, #d97706, #b45309);
-        border-radius: 2px;
-      }
-
       /* Statistics Grid */
       .stats-grid {
         display: grid;
@@ -533,60 +431,6 @@ import { FormBuilder, ReactiveFormsModule, Validators, FormControl } from '@angu
         font-weight: 800;
         color: white;
         margin-top: 0.5rem;
-      }
-
-      /* Quick Actions Grid */
-      .actions-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
-      }
-
-      .action-card {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 1rem;
-        padding: 1.5rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-align: left;
-      }
-
-      .action-card:hover {
-        background: rgba(255, 255, 255, 0.08);
-        transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-      }
-
-      .action-icon {
-        font-size: 0.9rem;
-        font-weight: 800;
-        color: white;
-        padding: 0.75rem;
-        border-radius: 8px;
-        letter-spacing: 0.5px;
-        flex-shrink: 0;
-      }
-
-      .add-user-icon { background: linear-gradient(135deg, #22c55e, #16a34a); }
-      .roles-icon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-      .reports-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
-      .settings-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
-
-      .action-content h4 {
-        margin: 0 0 0.25rem 0;
-        color: white;
-        font-size: 1.1rem;
-        font-weight: 600;
-      }
-
-      .action-content p {
-        margin: 0;
-        color: #cbd5e1;
-        font-size: 0.9rem;
       }
 
       /* Button Styles */
@@ -656,10 +500,6 @@ import { FormBuilder, ReactiveFormsModule, Validators, FormControl } from '@angu
           grid-template-columns: 1fr;
         }
 
-        .actions-grid {
-          grid-template-columns: 1fr;
-        }
-
         .users-grid {
           grid-template-columns: 1fr;
         }
@@ -670,21 +510,5 @@ import { FormBuilder, ReactiveFormsModule, Validators, FormControl } from '@angu
 export class AdminComponent implements OnInit {
   ngOnInit() {
     // Initialize any data loading here
-  }
-
-  addUser() {
-    console.log('Add user clicked');
-  }
-
-  manageRoles() {
-    console.log('Manage roles clicked');
-  }
-
-  viewReports() {
-    console.log('View reports clicked');
-  }
-
-  systemSettings() {
-    console.log('System settings clicked');
   }
 }
