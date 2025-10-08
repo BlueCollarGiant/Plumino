@@ -221,7 +221,7 @@
   color: rgba(148, 163, 184, 0.65);
 }
 
-.admin-dashboard-button {
+.role-dashboard-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -236,8 +236,8 @@
   transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
 
-.admin-dashboard-button:hover,
-.admin-dashboard-button:focus-visible {
+.role-dashboard-button:hover,
+.role-dashboard-button:focus-visible {
   border-color: rgba(74, 222, 128, 0.55);
   background: rgba(22, 101, 52, 0.45);
   color: #f0fdf4;

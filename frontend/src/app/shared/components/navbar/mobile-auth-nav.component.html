@@ -1,5 +1,5 @@
-<div class="mobile-nav-auth" [class.authenticated]="auth.isAuthenticated()">
-  <ng-container *ngIf="!auth.isAuthenticated(); else authenticatedTemplate">
+﻿<div class="mobile-nav-auth" [class.authenticated]="auth.isAuthenticated()">
+  @if (!auth.isAuthenticated()) {
     <form [formGroup]="form" (ngSubmit)="submit()" class="auth-form" novalidate>
       <header class="form-header">
         <h3>Employee Login</h3>
@@ -19,10 +19,16 @@
           placeholder="you@company.com"
           (keydown.enter)="submit()"
         />
-        <div class="field-error" *ngIf="form.controls.email.errors && form.controls.email.touched">
-          <span *ngIf="form.controls.email.errors['required']">Email is required.</span>
-          <span *ngIf="form.controls.email.errors['email']">Enter a valid email address.</span>
-        </div>
+        @if (form.controls.email.errors && form.controls.email.touched) {
+          <div class="field-error">
+            @if (form.controls.email.errors['required']) {
+              <span>Email is required.</span>
+            }
+            @if (form.controls.email.errors['email']) {
+              <span>Enter a valid email address.</span>
+            }
+          </div>
+        }
       </div>
 
       <div
@@ -35,7 +41,7 @@
           [type]="showPassword() ? 'text' : 'password'"
           formControlName="password"
           autocomplete="current-password"
-          placeholder="••••••••"
+          placeholder="********"
           autocapitalize="off"
           autocorrect="off"
         />
@@ -50,26 +56,31 @@
             {{ showPassword() ? 'Hide' : 'Show' }} password
           </span>
         </button>
-        <div class="field-error" *ngIf="form.controls.password.errors && form.controls.password.touched">
-          <span>Password is required.</span>
-        </div>
+        @if (form.controls.password.errors && form.controls.password.touched) {
+          <div class="field-error">
+            <span>Password is required.</span>
+          </div>
+        }
       </div>
 
-      <div class="form-error" *ngIf="errorMessage()">
-        {{ errorMessage() }}
-      </div>
+      @if (errorMessage()) {
+        <div class="form-error">
+          {{ errorMessage() }}
+        </div>
+      }
 
       <button type="submit" class="login-button" [disabled]="loading()">
-        <span *ngIf="!loading()">Login</span>
-        <span *ngIf="loading()" class="loading-indicator">
-          <span class="spinner"></span>
-          Connecting…
-        </span>
+        @if (!loading()) {
+          <span>Login</span>
+        } @else {
+          <span class="loading-indicator">
+            <span class="spinner"></span>
+            Connecting...
+          </span>
+        }
       </button>
     </form>
-  </ng-container>
-
-  <ng-template #authenticatedTemplate>
+  } @else {
     <section class="auth-success">
       <div class="employee-header">
         <h3>{{ employeeName() }}</h3>
@@ -81,21 +92,25 @@
 
       <p class="employee-details">
         <span>{{ employeeRole() }}</span>
-        <span class="separator">•</span>
+        <span class="separator">&bull;</span>
         <span>{{ employeeDepartment() }}</span>
       </p>
 
-      <a
-        *ngIf="isAdmin()"
-        routerLink="/admin"
-        class="admin-dashboard-button"
-      >
-        Go to Admin Dashboard
-      </a>
+      @if (isAdmin()) {
+        <a routerLink="/admin" class="role-dashboard-button">
+          Go to Admin Dashboard
+        </a>
+      }
+
+      @if (isHr()) {
+        <a routerLink="/hr" class="role-dashboard-button">
+          Go to HR Dashboard
+        </a>
+      }
 
       <button type="button" class="logout-button" (click)="logout()">
         Logout
       </button>
     </section>
-  </ng-template>
+  }
 </div>

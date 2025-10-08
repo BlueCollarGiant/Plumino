@@ -25,6 +25,7 @@ export class MobileAuthNavComponent {
   protected readonly employeeRole = computed(() => this.auth.employee()?.role ?? '');
   protected readonly employeeDepartment = computed(() => this.auth.employee()?.department ?? '');
   protected readonly isAdmin = computed(() => this.auth.employee()?.role === 'admin');
+  protected readonly isHr = computed(() => this.auth.employee()?.role === 'hr');
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
