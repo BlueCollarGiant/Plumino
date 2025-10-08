@@ -46,11 +46,8 @@ export class App implements OnInit, OnDestroy {
   ngOnInit() {
     console.log('App component initializing...');
 
-    // Initialize SSE notifications if user is authenticated
-    if (this.authService.isAuthenticated()) {
-      console.log('User is authenticated, connecting to SSE...');
-      this.notificationService.connect();
-    }
+    // SSE connection is now handled automatically by AuthService auth state effect
+    // No need to manually connect here
 
     this.healthSubscription = this.healthService.status$.subscribe(
       status => {

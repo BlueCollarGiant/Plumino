@@ -19,12 +19,13 @@ export class NotificationService {
   private readonly ngZone = inject(NgZone);
 
   private eventSource: EventSource | null = null;
+  private xhr: XMLHttpRequest | null = null;
   private readonly isConnected = signal(false);
 
   readonly connected = this.isConnected.asReadonly();
 
   connect(): void {
-    if (this.eventSource || !this.authService.isAuthenticated()) {
+    if (this.xhr || !this.authService.isAuthenticated()) {
       return;
     }
 
@@ -42,29 +43,30 @@ export class NotificationService {
 
   private createAuthenticatedEventSource(token: string): void {
     // Since EventSource doesn't support custom headers, we need to create our own
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', 'http://localhost:5000/api/sse/notifications', true);
-    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-    xhr.setRequestHeader('Accept', 'text/event-stream');
-    xhr.setRequestHeader('Cache-Control', 'no-cache');
+    this.xhr = new XMLHttpRequest();
+    this.xhr.open('GET', 'http://localhost:5000/api/sse/notifications', true);
+    this.xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    this.xhr.setRequestHeader('Accept', 'text/event-stream');
+    this.xhr.setRequestHeader('Cache-Control', 'no-cache');
 
     let buffer = '';
 
-    xhr.onprogress = () => {
-      const newData = xhr.responseText.substring(buffer.length);
-      buffer = xhr.responseText;
+    this.xhr.onprogress = () => {
+      if (!this.xhr) return;
+      const newData = this.xhr.responseText.substring(buffer.length);
+      buffer = this.xhr.responseText;
 
       this.processSSEData(newData);
     };
 
-    xhr.onload = () => {
+    this.xhr.onload = () => {
       this.ngZone.run(() => {
         this.isConnected.set(false);
         console.log('SSE connection closed');
       });
     };
 
-    xhr.onerror = () => {
+    this.xhr.onerror = () => {
       this.ngZone.run(() => {
         console.error('SSE connection error');
         this.isConnected.set(false);
@@ -73,7 +75,7 @@ export class NotificationService {
       });
     };
 
-    xhr.send();
+    this.xhr.send();
     this.isConnected.set(true);
   }
 
@@ -128,6 +130,13 @@ export class NotificationService {
   }
 
   disconnect(): void {
+    if (this.xhr) {
+      this.xhr.abort();
+      this.xhr = null;
+      this.isConnected.set(false);
+      console.log('SSE connection disconnected');
+    }
+
     if (this.eventSource) {
       this.eventSource.close();
       this.eventSource = null;
@@ -136,19 +145,23 @@ export class NotificationService {
   }
 
   private handleRoleChange(notification: SSENotification): void {
-    // Show persistent toast notification
-    this.toastService.show(notification.message, 'info', 0); // 0 = persistent
+    console.log('🔄 Role change detected:', notification);
 
-    // Add logout button to the notification
-    this.showLogoutPrompt('Your role has been updated!');
+    // Show informational notification
+    this.toastService.show(notification.message, 'info', 0); // persistent so they don't miss it
+
+    // Give them a gentle prompt to logout when ready
+    this.showLogoutPrompt('Your role has been updated! You can continue working, but please log out and back in when convenient to apply your new permissions.');
   }
 
   private handleDepartmentChange(notification: SSENotification): void {
-    // Show persistent toast notification
-    this.toastService.show(notification.message, 'info', 0); // 0 = persistent
+    console.log('🏢 Department change detected:', notification);
 
-    // Add logout button to the notification
-    this.showLogoutPrompt('Your department has been changed!');
+    // Show informational notification
+    this.toastService.show(notification.message, 'info', 0); // persistent so they don't miss it
+
+    // Give them a gentle prompt to logout when ready
+    this.showLogoutPrompt('Your department has been changed! You can continue working, but please log out and back in when convenient to apply your new permissions.');
   }
 
   private handleForceLogoutWarning(notification: SSENotification): void {
@@ -184,15 +197,22 @@ export class NotificationService {
   }
 
   private showLogoutPrompt(title: string): void {
-    // Create a custom notification with logout button
+    // Create a friendly notification with logout option
     setTimeout(() => {
       const userWantsToLogout = confirm(
-        `${title}\n\nWould you like to log out now to apply your changes?\n\nClick OK to log out now, or Cancel to continue working.`
+        `${title}\n\nWould you like to log out now to get your updated permissions?\n\nClick OK to log out now, or Cancel to continue working and log out later.`
       );
 
       if (userWantsToLogout) {
         this.authService.logout();
         this.router.navigate(['/']);
+      } else {
+        // User chose to continue working - show a reminder toast
+        this.toastService.show(
+          'Remember to log out and back in when you\'re ready to apply your permission changes.',
+          'info',
+          10000 // 10 second reminder
+        );
       }
     }, 2000); // Show after the toast has been visible for a moment
   }

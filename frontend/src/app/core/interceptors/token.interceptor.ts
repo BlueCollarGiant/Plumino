@@ -21,11 +21,31 @@ export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
 
     return next(authReq).pipe(
       catchError(error => {
-        // Handle role change detection
+        // Handle stale token (role/department changed)
+        if (error.status === 401 && error.error?.requireReauth) {
+          console.log('🔄 Token invalidated due to role/department change');
+          toastService.show(
+            'Your permissions have changed. Logging you out to apply updates...',
+            'info',
+            3000
+          );
+
+          // Auto-logout and redirect after a brief delay
+          setTimeout(() => {
+            authService.logout();
+            router.navigate(['/']);
+          }, 1000);
+
+          return throwError(() => error);
+        }
+
+        // Handle role change detection (legacy)
         if (error.status === 401 && error.error?.roleChanged) {
           // Show user-friendly toast notification
-          toastService.showRoleUpdate(
-            '🎉 Great news! Your role has been updated and you now have new permissions available. You\'ll be logged out in a moment so you can log back in with your enhanced access.'
+          toastService.show(
+            '🎉 Great news! Your role has been updated and you now have new permissions available. You\'ll be logged out in a moment so you can log back in with your enhanced access.',
+            'info',
+            0
           );
 
           // Auto-logout and redirect after a delay
