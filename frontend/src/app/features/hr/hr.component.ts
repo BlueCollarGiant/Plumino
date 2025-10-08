@@ -1,22 +1,26 @@
-// Imports
-import { CommonModule, TitleCasePipe } from '@angular/common';
+﻿import { CommonModule, TitleCasePipe } from '@angular/common';
 import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
 import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services/employee.service';
 
-
+interface HrStats {
+  readonly total: number;
+  readonly active: number;
+  readonly inactive: number;
+  readonly uniqueDepartments: number;
+  readonly hrCoverage: number;
+}
 
 @Component({
-  selector: 'app-admin',
+  selector: 'app-hr',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TitleCasePipe],
+  imports: [CommonModule, TitleCasePipe, ReactiveFormsModule],
   template: `
-    <div class="admin-dashboard">
+    <div class="hr-dashboard">
       <div class="background-container">
         <div class="floating-shapes">
           <div class="shape shape-1"></div>
@@ -32,36 +36,34 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
         <div class="header-content">
           <div class="title-section">
             <div class="icon-wrapper">
-              <div class="dashboard-icon">ADM</div>
+              <div class="dashboard-icon">HR</div>
               <div class="icon-glow"></div>
             </div>
             <div class="title-text">
-              <h1>Admin Dashboard</h1>
-              <p>System administration and user management</p>
+              <h1>HR Dashboard</h1>
+              <p>People management and organizational development</p>
             </div>
           </div>
         </div>
       </header>
 
-      <section class="pov" [class.modal-open]="isModalOpen()">
+      <section class="pov" [class.modal-open]="isModalOpen() || isEmployeeDetailsModalOpen()">
         <div class="dashboard-toolbar">
           <div class="toolbar-content">
-            <span class="toolbar-eyebrow">Access Control</span>
+            <span class="toolbar-eyebrow">People Management</span>
             <h2 class="toolbar-title">Team Overview</h2>
             <p class="toolbar-description">
-              Monitor organization-wide access and manage employee lifecycle across every role.
+              Monitor team composition and manage employee information across departments.
             </p>
           </div>
-          @if (isAdmin()) {
-            <button
-              type="button"
-              class="btn-primary add-button"
-              (click)="openAddEmployeeModal()"
-            >
-              <span class="btn-icon">+</span>
-              Add Employee
-            </button>
-          }
+          <button
+            type="button"
+            class="btn-primary add-button"
+            (click)="openAddEmployeeModal()"
+          >
+            <span class="btn-icon">+</span>
+            Add Employee
+          </button>
         </div>
 
         <div class="stats-grid">
@@ -111,7 +113,7 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
           @if (loadError()) {
             <div class="error-banner">
               <span>{{ loadError() }}</span>
-              <button type="button" class="btn-secondary retry-button" (click)="reloadEmployees()">
+              <button type="button" class="btn-secondary retry-button" (click)="reload()">
                 Retry
               </button>
             </div>
@@ -198,7 +200,7 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
             @if (selectedEmployee()) {
               @if (!isEmployeeEditing(selectedEmployee()!._id)) {
                 <div class="employee-details-content">
-                  <div class="employee-details-grid">
+                  <div class="detail-grid">
                     <div class="detail-section">
                       <label class="detail-label">Employee ID</label>
                       <span class="detail-value">{{ selectedEmployee()!._id }}</span>
@@ -208,7 +210,7 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
                       <span class="detail-value">{{ selectedEmployee()!.name }}</span>
                     </div>
                     <div class="detail-section">
-                      <label class="detail-label">Email Address</label>
+                      <label class="detail-label">Email</label>
                       <span class="detail-value">{{ selectedEmployee()!.email }}</span>
                     </div>
                     <div class="detail-section">
@@ -229,8 +231,8 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
                     </div>
                   </div>
 
-                  <div class="employee-actions">
-                    @if (isAdmin()) {
+                  @if (canEditEmployee(selectedEmployee()!)) {
+                    <div class="employee-actions">
                       <button
                         type="button"
                         class="btn-primary action-btn"
@@ -238,25 +240,12 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
                       >
                         Edit Employee
                       </button>
-                    }
-                    <button
-                      type="button"
-                      class="btn-secondary action-btn"
-                      [disabled]="removeInFlight() === selectedEmployee()!._id"
-                      (click)="confirmDeactivateEmployee(selectedEmployee()!)"
-                    >
-                      @if (removeInFlight() === selectedEmployee()!._id) {
-                        <span class="inline-spinner" aria-hidden="true"></span>
-                      }
-                      {{ (selectedEmployee()!.isActive ?? true) ? 'Deactivate Employee' : 'Remove Employee' }}
-                    </button>
-                  </div>
+                    </div>
+                  }
                 </div>
-              }
-
-              @if (isEmployeeEditing(selectedEmployee()!._id)) {
-                <form [formGroup]="editEmployeeForm" (ngSubmit)="saveEmployeeChanges(selectedEmployee()!)" class="edit-employee-form">
-                  <div class="employee-details-grid">
+              } @else {
+                <form [formGroup]="editEmployeeForm" (ngSubmit)="saveEmployeeChanges(selectedEmployee()!)" class="employee-edit-form">
+                  <div class="detail-grid">
                     <div class="detail-section">
                       <label class="detail-label">Employee ID</label>
                       <span class="detail-value readonly">{{ selectedEmployee()!._id }}</span>
@@ -277,7 +266,7 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
                       }
                     </div>
                     <div class="detail-section">
-                      <label class="detail-label">Email Address</label>
+                      <label class="detail-label">Email</label>
                       <input
                         type="email"
                         formControlName="email"
@@ -302,7 +291,6 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
                         <option value="fermentation">Fermentation</option>
                         <option value="extraction">Extraction</option>
                         <option value="packaging">Packaging</option>
-                        <option value="office">Office</option>
                       </select>
                       @if (
                         editEmployeeForm.controls.department.invalid &&
@@ -320,7 +308,6 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
                       >
                         <option value="operator">Operator</option>
                         <option value="supervisor">Supervisor</option>
-                        <option value="hr">HR</option>
                         <option value="admin">Admin</option>
                       </select>
                       @if (
@@ -372,6 +359,11 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
             <header class="modal-header">
               <h2>Add Employee</h2>
               <p>Provision a new team member and assign their access level.</p>
+              <button type="button" class="modal-close-btn" (click)="closeAddEmployeeModal()">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/>
+                </svg>
+              </button>
             </header>
 
             <form [formGroup]="addEmployeeForm" (ngSubmit)="submitAddEmployee()" class="modal-form">
@@ -403,7 +395,7 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
 
               <label>
                 <span>Password</span>
-                <input type="password" formControlName="password" placeholder="Minimum 8 characters" />
+                <input type="password" formControlName="password" placeholder="Temporary password" />
                 @if (
                   addEmployeeForm.controls.password.invalid &&
                   (addEmployeeForm.controls.password.dirty || addEmployeeForm.controls.password.touched)
@@ -417,36 +409,27 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
               <label>
                 <span>Role</span>
                 <select formControlName="role">
-                  <option value="" disabled>Select role</option>
-                  <option value="admin">Admin</option>
-                  <option value="hr">HR</option>
-                  <option value="supervisor">Supervisor</option>
                   <option value="operator">Operator</option>
+                  <option value="supervisor">Supervisor</option>
                 </select>
                 @if (
                   addEmployeeForm.controls.role.invalid &&
                   (addEmployeeForm.controls.role.dirty || addEmployeeForm.controls.role.touched)
                 ) {
                   <span class="form-error">
-                    Please assign a role.
+                    Role is required.
                   </span>
                 }
               </label>
 
               <label>
                 <span>Department</span>
-                @if (departmentOptions().length) {
-                  <select formControlName="department">
-                    <option value="" disabled>Select department</option>
-                    @for (department of departmentOptions(); track department) {
-                      <option [value]="department">
-                        {{ department }}
-                      </option>
-                    }
-                  </select>
-                } @else {
-                  <input type="text" formControlName="department" placeholder="Department name" />
-                }
+                <select formControlName="department">
+                  <option value="">Select Department</option>
+                  <option value="fermentation">Fermentation</option>
+                  <option value="extraction">Extraction</option>
+                  <option value="packaging">Packaging</option>
+                </select>
                 @if (
                   addEmployeeForm.controls.department.invalid &&
                   (addEmployeeForm.controls.department.dirty || addEmployeeForm.controls.department.touched)
@@ -457,15 +440,15 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
                 }
               </label>
 
-              <div class="modal-actions">
-                <button type="button" class="btn-secondary" (click)="closeAddEmployeeModal()">
-                  Cancel
-                </button>
-                <button type="submit" class="btn-primary" [disabled]="isSaving()">
+              <div class="form-actions">
+                <button type="submit" class="btn-primary" [disabled]="addEmployeeForm.invalid || isSaving()">
                   @if (isSaving()) {
                     <span class="inline-spinner" aria-hidden="true"></span>
                   }
-                  Save Employee
+                  Add Employee
+                </button>
+                <button type="button" class="btn-secondary" (click)="closeAddEmployeeModal()">
+                  Cancel
                 </button>
               </div>
             </form>
@@ -476,19 +459,14 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
   `,
   styles: [
     `
-      /* ======================================================
-         Component: Admin Dashboard
-         Purpose: System administration and employee management interface
-         Linked TS File: admin.component.ts
-         Notes: Responsive design with floating background animations
-         ====================================================== */
+
 
       /* Base Layout ------------------------------------------ */
       * {
         box-sizing: border-box;
       }
 
-      .admin-dashboard {
+      .hr-dashboard {
         min-height: 100vh;
         position: relative;
         overflow-x: hidden;
@@ -516,7 +494,7 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
       .shape {
         position: absolute;
         border-radius: 50%;
-        background: linear-gradient(45deg, rgba(139, 69, 19, 0.1), rgba(184, 134, 11, 0.1));
+        background: linear-gradient(45deg, rgba(14, 165, 233, 0.1), rgba(56, 189, 248, 0.1));
         backdrop-filter: blur(1px);
         animation: float 20s infinite linear;
       }
@@ -587,8 +565,8 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
         width: 100%;
         height: 100%;
         background:
-          radial-gradient(circle at 20% 30%, rgba(139, 69, 19, 0.15) 0%, transparent 50%),
-          radial-gradient(circle at 80% 70%, rgba(184, 134, 11, 0.1) 0%, transparent 50%),
+          radial-gradient(circle at 20% 30%, rgba(14, 165, 233, 0.15) 0%, transparent 50%),
+          radial-gradient(circle at 80% 70%, rgba(56, 189, 248, 0.1) 0%, transparent 50%),
           linear-gradient(135deg, #0a0f1c 0%, #1e293b 100%);
       }
 
@@ -623,7 +601,7 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
       .dashboard-icon {
         font-size: 1.8rem;
         font-weight: 800;
-        color: #d97706;
+        color: #0ea5e9;
         position: relative;
         z-index: 1;
         letter-spacing: 1px;
@@ -636,7 +614,7 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
         transform: translate(-50%, -50%);
         width: 60px;
         height: 60px;
-        background: radial-gradient(circle, rgba(217, 119, 6, 0.4) 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(14, 165, 233, 0.4) 0%, transparent 70%);
         border-radius: 50%;
         filter: blur(15px);
         animation: glow 3s ease-in-out infinite alternate;
@@ -657,7 +635,7 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
         font-size: 2.5rem;
         font-weight: 800;
         margin: 0 0 0.5rem 0;
-        background: linear-gradient(135deg, #ffffff 0%, #d97706 100%);
+        background: linear-gradient(135deg, #ffffff 0%, #0ea5e9 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -777,15 +755,15 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
       }
 
       .btn-primary {
-        background: linear-gradient(135deg, #d97706, #b45309);
+        background: linear-gradient(135deg, #0ea5e9, #0284c7);
         color: white;
-        box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
+        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
       }
 
       .btn-primary:hover:not(:disabled) {
-        background: linear-gradient(135deg, #b45309, #92400e);
+        background: linear-gradient(135deg, #0284c7, #0369a1);
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(217, 119, 6, 0.4);
+        box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
       }
 
       .btn-secondary {
@@ -827,7 +805,7 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
         letter-spacing: 0.14em;
         text-transform: uppercase;
         font-weight: 600;
-        color: #fbbf24;
+        color: #38bdf8;
       }
 
       .toolbar-title {
@@ -904,7 +882,7 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
         width: 24px;
         height: 24px;
         border: 3px solid rgba(255, 255, 255, 0.2);
-        border-top-color: #fbbf24;
+        border-top-color: #38bdf8;
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
@@ -952,8 +930,8 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
       }
 
       .role-card.accent-hr {
-        border-color: rgba(129, 140, 248, 0.45);
-        box-shadow: 0 12px 25px rgba(129, 140, 248, 0.15);
+        border-color: rgba(168, 85, 247, 0.45);
+        box-shadow: 0 12px 25px rgba(168, 85, 247, 0.15);
       }
 
       .role-card.accent-supervisor {
@@ -1094,17 +1072,12 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
       }
 
       /* Employee Details & Forms ---------------------------- */
-      .employee-details-grid {
+      .detail-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 1rem;
         margin-top: 1rem;
         margin-bottom: 1.5rem;
-      }
-
-      .edit-employee-form .employee-details-grid {
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 0.75rem;
       }
 
       .detail-section {
@@ -1161,7 +1134,7 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
         color: #e2e8f0;
       }
 
-      .edit-employee-form {
+      .employee-edit-form {
         width: 100%;
       }
 
@@ -1283,8 +1256,8 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
       .modal-form input:focus,
       .modal-form select:focus {
         outline: none;
-        border-color: rgba(217, 119, 6, 0.75);
-        box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.25);
+        border-color: rgba(14, 165, 233, 0.75);
+        box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.25);
       }
 
       .form-error {
@@ -1292,7 +1265,7 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
         color: #fca5a5;
       }
 
-      .modal-actions {
+      .form-actions {
         display: flex;
         align-items: center;
         justify-content: flex-end;
@@ -1342,47 +1315,31 @@ import { CreateEmployeeRequest, Employee, EmployeeService } from '../../services
           align-items: flex-start;
         }
 
-        .employee-details-grid {
+        .detail-grid {
           grid-template-columns: 1fr;
-        }
-
-        .edit-employee-form .employee-details-grid {
-          grid-template-columns: 1fr;
-          gap: 1rem;
         }
       }
 
       @media (max-width: 1200px) {
-        .employee-details-grid {
+        .detail-grid {
           grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        }
-
-        .edit-employee-form .employee-details-grid {
-          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
         }
       }
     `
   ]
 })
-export class AdminComponent {
-  // Signals & State
-  private readonly fb = inject(FormBuilder);
+export class HrComponent {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly employeeService = inject(EmployeeService);
   private readonly authService = inject(AuthService);
-  private readonly router = inject(Router);
-  private readonly destroyRef = inject(DestroyRef);
+  private readonly fb = inject(FormBuilder);
 
-  // Role configuration for UI grouping
+  // Role configuration for UI grouping (HR can see HR section but not edit it, cannot see admin)
   protected readonly roleSegments = [
-    {
-      role: 'admin' as Employee['role'],
-      label: 'Admin Team',
-      description: 'Platform governance and configuration oversight.'
-    },
     {
       role: 'hr' as Employee['role'],
       label: 'HR Team',
-      description: 'Talent management, onboarding, and compliance.'
+      description: 'People management, onboarding, and compliance.'
     },
     {
       role: 'supervisor' as Employee['role'],
@@ -1396,24 +1353,19 @@ export class AdminComponent {
     }
   ] as const;
 
-  // Authentication & Authorization State
-  protected readonly currentEmployee = computed(() => this.authService.employee());
-  protected readonly isAdmin = computed(() => this.currentEmployee()?.role === 'admin');
-
-  // Employee Data State
-  protected readonly employees = signal<Employee[]>([]);
   protected readonly isLoading = signal(false);
   protected readonly loadError = signal<string | null>(null);
-  protected readonly mutationError = signal<string | null>(null);
-  protected readonly removeInFlight = signal<string | null>(null);
+  protected readonly employees = signal<Employee[]>([]);
+  protected readonly currentEmployee = this.authService.employee;
 
-  // Modal & UI State
-  protected readonly isModalOpen = signal(false);
-  protected readonly isSaving = signal(false);
-  protected readonly editingEmployee = signal<string | null>(null);
-  protected readonly editingSaving = signal(false);
+  // Additional signals for POV functionality
+  protected readonly mutationError = signal<string | null>(null);
   protected readonly selectedEmployee = signal<Employee | null>(null);
   protected readonly isEmployeeDetailsModalOpen = signal(false);
+  protected readonly editingEmployee = signal<string | null>(null);
+  protected readonly editingSaving = signal(false);
+  protected readonly isModalOpen = signal(false);
+  protected readonly isSaving = signal(false);
 
   // Forms
   protected readonly addEmployeeForm = this.fb.nonNullable.group({
@@ -1431,21 +1383,30 @@ export class AdminComponent {
     department: ['', Validators.required]
   });
 
-  // Helpers / Computed Logic
-  // Extract unique departments from employee list for form dropdown
-  protected readonly departmentOptions = computed(() => {
+  protected readonly stats = computed<HrStats>(() => {
+    const list = this.employees();
+    const total = list.length;
+    const active = list.filter(employee => employee.isActive ?? true).length;
+    const inactive = total - active;
     const departments = new Set(
-      this.employees()
-        .map(employee => employee.department)
-        .filter((department): department is string => !!department)
+      list
+        .map(employee => employee.department ?? '')
+        .filter((department): department is string => department.trim().length > 0)
     );
+    const hrCoverage = list.filter(employee => (employee.role ?? '').toLowerCase() === 'hr').length;
 
-    return Array.from(departments).sort((a, b) => a.localeCompare(b));
+    return {
+      total,
+      active,
+      inactive,
+      uniqueDepartments: departments.size,
+      hrCoverage
+    };
   });
 
-  // Calculate dashboard statistics from employee data
+  // Dashboard stats for POV section (HR view - excludes admin employees)
   protected readonly dashboardStats = computed(() => {
-    const roster = this.employees();
+    const roster = this.employees().filter(employee => employee.role !== 'admin');
     const active = roster.filter(employee => employee.isActive ?? true).length;
     const departments = new Set(roster.map(employee => employee.department).filter(Boolean)).size;
     const hrCount = roster.filter(employee => employee.role === 'hr').length;
@@ -1458,7 +1419,7 @@ export class AdminComponent {
     };
   });
 
-  // Group employees by role for dashboard display
+  // Group employees by role for dashboard display (excluding HR role)
   protected readonly groupedEmployees = computed(() =>
     this.roleSegments.map(segment => ({
       ...segment,
@@ -1466,27 +1427,29 @@ export class AdminComponent {
     }))
   );
 
-  // Lifecycle / Init Logic
-  // Initialize component and enforce admin-only access
-  private readonly bootstrapEffect = effect(
-    () => {
-      if (!this.isAdmin()) {
-        this.router.navigate(['/']);
-        return;
-      }
+  protected readonly hasEmployees = computed(() => this.employees().length > 0);
 
-      this.loadEmployees();
-    },
-    { allowSignalWrites: true }
-  );
+  constructor() {
+    effect(
+      () => {
+        const employee = this.authService.employee();
+        if (employee?.role === 'hr') {
+          this.loadEmployees();
+        }
+      },
+      { allowSignalWrites: true }
+    );
+  }
 
-  // Core Methods
-  // Reload employee data from server
-  protected reloadEmployees(): void {
+  protected reload(): void {
     this.loadEmployees();
   }
 
-  // Event Handlers / UI Actions
+  // Check if HR can edit this employee (HR cannot edit HR or admin employees)
+  protected canEditEmployee(employee: Employee): boolean {
+    return employee.role !== 'hr' && employee.role !== 'admin';
+  }
+
   // Open employee details modal with selected employee
   protected openEmployeeDetailsModal(employee: Employee): void {
     this.selectedEmployee.set(employee);
@@ -1508,7 +1471,7 @@ export class AdminComponent {
 
   // Start editing employee - populate form with current data
   protected startEditingEmployee(employee: Employee): void {
-    if (!this.isAdmin()) return;
+    if (!this.canEditEmployee(employee)) return;
 
     this.editingEmployee.set(employee._id);
     this.mutationError.set(null);
@@ -1530,7 +1493,7 @@ export class AdminComponent {
 
   // Save changes to employee data
   protected saveEmployeeChanges(employee: Employee): void {
-    if (!this.isAdmin() || !this.editEmployeeForm.valid) return;
+    if (!this.canEditEmployee(employee) || !this.editEmployeeForm.valid) return;
 
     this.editingSaving.set(true);
     this.mutationError.set(null);
@@ -1561,7 +1524,6 @@ export class AdminComponent {
       });
   }
 
-  // Helpers / Computed Logic
   // Get supervisors available for a specific employee based on department
   protected getSupervisorsForEmployee(employee: Employee): Employee[] {
     const employees = this.employees();
@@ -1621,30 +1583,19 @@ export class AdminComponent {
     }
   }
 
-  // Event Handlers / UI Actions (continued)
-  // Open add employee modal
+  // Add Employee Modal Methods
   protected openAddEmployeeModal(): void {
-    if (!this.isAdmin()) {
-      return;
-    }
-
     this.mutationError.set(null);
     this.isModalOpen.set(true);
     this.resetAddEmployeeForm();
   }
 
-  // Close add employee modal
   protected closeAddEmployeeModal(): void {
     this.isModalOpen.set(false);
     this.resetAddEmployeeForm();
   }
 
-  // Submit new employee form
   protected submitAddEmployee(): void {
-    if (!this.isAdmin()) {
-      return;
-    }
-
     if (this.addEmployeeForm.invalid || this.isSaving()) {
       this.addEmployeeForm.markAllAsTouched();
       return;
@@ -1653,59 +1604,43 @@ export class AdminComponent {
     this.isSaving.set(true);
     this.mutationError.set(null);
 
-    const payload = this.addEmployeeForm.getRawValue() as CreateEmployeeRequest;
+    const formValue = this.addEmployeeForm.value;
+    const newEmployee: CreateEmployeeRequest = {
+      name: formValue.name!,
+      email: formValue.email!,
+      password: formValue.password!,
+      role: formValue.role!,
+      department: formValue.department!
+    };
 
-    this.employeeService
-      .addEmployee(payload)
-      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.isSaving.set(false)))
+    this.employeeService.addEmployee(newEmployee)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isSaving.set(false))
+      )
       .subscribe({
         next: () => {
           this.closeAddEmployeeModal();
-          this.loadEmployees();
+          this.loadEmployees(); // Refresh the list
         },
-        error: error => {
+        error: (error: any) => {
           console.error('Failed to create employee', error);
-          this.mutationError.set('Failed to add employee. Please review the form and try again.');
+          this.mutationError.set('Failed to create employee. Please try again.');
         }
       });
   }
 
-  // Confirm and execute employee deactivation or removal
-  protected confirmDeactivateEmployee(employee: Employee): void {
-    if (!this.isAdmin()) {
-      return;
-    }
-
-    const prompt = (employee.isActive ?? true)
-      ? `Deactivate ${employee.name}? This will temporarily revoke access.`
-      : `Remove ${employee.name}? This will permanently delete their account.`;
-
-    if (!confirm(prompt)) {
-      return;
-    }
-
-    this.removeInFlight.set(employee._id);
+  private resetAddEmployeeForm(): void {
+    this.addEmployeeForm.reset({
+      name: '',
+      email: '',
+      password: '',
+      role: 'operator',
+      department: ''
+    });
     this.mutationError.set(null);
-
-    const mode: 'delete' | 'deactivate' = (employee.isActive ?? true) ? 'deactivate' : 'delete';
-
-    this.employeeService
-      .removeEmployee(employee._id, mode)
-      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.removeInFlight.set(null)))
-      .subscribe({
-        next: () => {
-          this.closeEmployeeDetailsModal();
-          this.loadEmployees();
-        },
-        error: error => {
-          console.error('Failed to update employee status', error);
-          this.mutationError.set(`Unable to update ${employee.name}. Please retry.`);
-        }
-      });
   }
 
-  // External Service Calls
-  // Fetch employee data from API
   private loadEmployees(): void {
     this.isLoading.set(true);
     this.loadError.set(null);
@@ -1715,26 +1650,10 @@ export class AdminComponent {
       .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.isLoading.set(false)))
       .subscribe({
         next: employees => this.employees.set(Array.isArray(employees) ? employees : []),
-        error: error => {
-          console.error('Failed to load employees', error);
-          this.loadError.set('Unable to load employees. Please try again.');
+        error: () => {
+          this.loadError.set('Unable to load employee roster. Please try again.');
           this.employees.set([]);
         }
       });
-  }
-
-  // Helpers / Computed Logic (continued)
-  // Reset add employee form to default state
-  private resetAddEmployeeForm(): void {
-    this.addEmployeeForm.reset({
-      name: '',
-      email: '',
-      password: '',
-      role: 'operator',
-      department: ''
-    });
-
-    this.addEmployeeForm.markAsPristine();
-    this.addEmployeeForm.markAsUntouched();
   }
 }

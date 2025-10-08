@@ -25,6 +25,10 @@ const employeeSchema = new mongoose.Schema({
     type: String,
     enum: ['fermentation', 'extraction', 'packaging', 'office'],
     required: true
+  },
+  isActive: {
+    type: Boolean,
+    default: true
   }
 }, { timestamps: true });
 
