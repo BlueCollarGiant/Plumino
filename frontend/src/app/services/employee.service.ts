@@ -8,6 +8,12 @@ export interface Employee {
   readonly email: string;
   readonly department: string;
   readonly role: 'admin' | 'hr' | 'supervisor' | 'operator';
+  readonly title?: string;
+  readonly supervisorId?: {
+    _id: string;
+    name: string;
+    email: string;
+  } | string | null;
   readonly isActive?: boolean;
 }
 
@@ -17,6 +23,8 @@ export interface CreateEmployeeRequest {
   readonly password: string;
   readonly role: Employee['role'];
   readonly department: string;
+  readonly title?: string;
+  readonly supervisorId?: string | null;
 }
 
 export interface UpdateEmployeeRequest {
@@ -24,6 +32,8 @@ export interface UpdateEmployeeRequest {
   readonly email: string;
   readonly role: Employee['role'];
   readonly department: string;
+  readonly title?: string;
+  readonly supervisorId?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })

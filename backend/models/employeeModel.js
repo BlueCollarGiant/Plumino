@@ -26,6 +26,16 @@ const employeeSchema = new mongoose.Schema({
     enum: ['fermentation', 'extraction', 'packaging', 'office'],
     required: true
   },
+  title: {
+    type: String,
+    required: false,
+    default: ''
+  },
+  supervisorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Employee',
+    default: null
+  },
   isActive: {
     type: Boolean,
     default: true

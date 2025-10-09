@@ -218,6 +218,10 @@ interface HrStats {
                       <span class="detail-value">{{ selectedEmployee()!.department || 'Not assigned' }}</span>
                     </div>
                     <div class="detail-section">
+                      <label class="detail-label">Title</label>
+                      <span class="detail-value">{{ selectedEmployee()!.title || 'Not assigned' }}</span>
+                    </div>
+                    <div class="detail-section">
                       <label class="detail-label">Role</label>
                       <span class="detail-value">{{ selectedEmployee()!.role | titlecase }}</span>
                     </div>
@@ -300,6 +304,21 @@ interface HrStats {
                       }
                     </div>
                     <div class="detail-section">
+                      <label class="detail-label">Title</label>
+                      <input
+                        type="text"
+                        formControlName="title"
+                        class="detail-input"
+                        [class.error]="editEmployeeForm.controls.title.invalid && (editEmployeeForm.controls.title.dirty || editEmployeeForm.controls.title.touched)"
+                      />
+                      @if (
+                        editEmployeeForm.controls.title.invalid &&
+                        (editEmployeeForm.controls.title.dirty || editEmployeeForm.controls.title.touched)
+                      ) {
+                        <span class="error-text">Title must be under 100 characters</span>
+                      }
+                    </div>
+                    <div class="detail-section">
                       <label class="detail-label">Role</label>
                       <select
                         formControlName="role"
@@ -316,6 +335,18 @@ interface HrStats {
                       ) {
                         <span class="error-text">Role is required</span>
                       }
+                    </div>
+                    <div class="detail-section">
+                      <label class="detail-label">Supervisor</label>
+                      <select
+                        formControlName="supervisorId"
+                        class="detail-input"
+                      >
+                        <option value="">No supervisor</option>
+                        @for (supervisor of getSupervisorsForEmployee(selectedEmployee()!); track supervisor._id) {
+                          <option [value]="supervisor._id">{{ supervisor.name }}</option>
+                        }
+                      </select>
                     </div>
                     <div class="detail-section">
                       <label class="detail-label">Account Status</label>
@@ -438,6 +469,29 @@ interface HrStats {
                     Department is required.
                   </span>
                 }
+              </label>
+
+              <label>
+                <span>Title (optional)</span>
+                <input type="text" formControlName="title" placeholder="Job title" />
+                @if (
+                  addEmployeeForm.controls.title.invalid &&
+                  (addEmployeeForm.controls.title.dirty || addEmployeeForm.controls.title.touched)
+                ) {
+                  <span class="form-error">
+                    Title must be under 100 characters.
+                  </span>
+                }
+              </label>
+
+              <label>
+                <span>Supervisor (optional)</span>
+                <select formControlName="supervisorId">
+                  <option value="">No supervisor</option>
+                  @for (supervisor of getAvailableSupervisors(); track supervisor._id) {
+                    <option [value]="supervisor._id">{{ supervisor.name }}</option>
+                  }
+                </select>
               </label>
 
               <div class="form-actions">
@@ -1373,14 +1427,18 @@ export class HrComponent {
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
     role: ['operator' as Employee['role'], Validators.required],
-    department: ['', Validators.required]
+    department: ['', Validators.required],
+    title: ['', [Validators.maxLength(100)]],
+    supervisorId: ['']
   });
 
   protected readonly editEmployeeForm = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
     email: ['', [Validators.required, Validators.email]],
     role: ['operator' as Employee['role'], Validators.required],
-    department: ['', Validators.required]
+    department: ['', Validators.required],
+    title: ['', [Validators.maxLength(100)]],
+    supervisorId: ['']
   });
 
   protected readonly stats = computed<HrStats>(() => {
@@ -1480,7 +1538,9 @@ export class HrComponent {
       name: employee.name,
       email: employee.email,
       role: employee.role,
-      department: employee.department || ''
+      department: employee.department || '',
+      title: employee.title || '',
+      supervisorId: typeof employee.supervisorId === 'object' && employee.supervisorId ? employee.supervisorId._id : (employee.supervisorId as string) || ''
     });
   }
 
@@ -1503,7 +1563,9 @@ export class HrComponent {
       name: formValue.name!,
       email: formValue.email!,
       role: formValue.role!,
-      department: formValue.department!
+      department: formValue.department!,
+      title: formValue.title || undefined,
+      supervisorId: formValue.supervisorId || null
     };
 
     this.employeeService.updateEmployee(employee._id, updateData)
@@ -1550,6 +1612,18 @@ export class HrComponent {
     return hrPeople;
   }
 
+  // Get available supervisors for dropdown selection
+  protected getAvailableSupervisors(): Employee[] {
+    const employees = this.employees();
+
+    const supervisors = employees.filter(emp =>
+      emp.role === 'supervisor' &&
+      (emp.isActive ?? true)
+    );
+
+    return supervisors;
+  }
+
   // Generate hierarchical display text for who an employee reports to
   protected getSupervisorDisplayText(employee: Employee): string {
     if (employee.role === 'admin') {
@@ -1558,6 +1632,18 @@ export class HrComponent {
 
     if (employee.role === 'hr') {
       return 'Reports to executive team';
+    }
+
+    // Check if employee has a direct supervisor assigned
+    if (employee.supervisorId) {
+      if (typeof employee.supervisorId === 'object' && employee.supervisorId.name) {
+        return employee.supervisorId.name;
+      } else {
+        // If supervisorId is just a string, find the supervisor in the employees list
+        const employees = this.employees();
+        const supervisor = employees.find(emp => emp._id === employee.supervisorId);
+        return supervisor ? supervisor.name : 'Supervisor not found';
+      }
     }
 
     if (employee.role === 'supervisor') {
@@ -1610,7 +1696,9 @@ export class HrComponent {
       email: formValue.email!,
       password: formValue.password!,
       role: formValue.role!,
-      department: formValue.department!
+      department: formValue.department!,
+      title: formValue.title || undefined,
+      supervisorId: formValue.supervisorId || null
     };
 
     this.employeeService.addEmployee(newEmployee)
@@ -1636,7 +1724,9 @@ export class HrComponent {
       email: '',
       password: '',
       role: 'operator',
-      department: ''
+      department: '',
+      title: '',
+      supervisorId: ''
     });
     this.mutationError.set(null);
   }

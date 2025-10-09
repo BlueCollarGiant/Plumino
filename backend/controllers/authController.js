@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const Employee = require('../models/employeeModel');
 const bcrypt = require('bcryptjs');
+const { autoLogoutManager } = require('../services/autoLogoutManager');
 
 // Helper to create JWT
 const generateToken = (employee) => {
@@ -44,6 +45,9 @@ const loginEmployee = async (req, res) => {
     const isMatch = await employee.matchPassword(password);
     if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
+    // Mark user as logged out since any pending role changes
+    await autoLogoutManager.markUserLoggedOut(employee._id);
+
     const token = generateToken(employee);
     res.json({
       message: 'Login successful',
@@ -55,4 +59,40 @@ const loginEmployee = async (req, res) => {
   }
 };
 
-module.exports = { registerEmployee, loginEmployee };
+// GET current user info (for role change detection)
+const getCurrentUser = async (req, res) => {
+  try {
+    // Get fresh user data from database
+    const employee = await Employee.findById(req.user.id).select('-password');
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+
+    res.json({
+      id: employee._id,
+      name: employee.name,
+      email: employee.email,
+      role: employee.role,
+      department: employee.department,
+      title: employee.title,
+      isActive: employee.isActive
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// LOGOUT user (track for auto-logout system)
+const logoutEmployee = async (req, res) => {
+  try {
+    // Mark user as logged out since any pending role changes
+    await autoLogoutManager.markUserLoggedOut(req.user.id);
+    
+    res.json({ message: 'Logout successful' });
+  } catch (err) {
+    console.error('Logout error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports = { registerEmployee, loginEmployee, getCurrentUser, logoutEmployee };

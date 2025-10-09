@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal, effect, Injector } from '@angular/core';
 import { map, tap } from 'rxjs';
 
 export interface LoginRequest {
@@ -28,6 +28,7 @@ const AUTH_STORAGE_KEY = 'plumino.auth';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
+  private readonly injector = inject(Injector);
   private readonly authState = signal<AuthState>({ token: null, employee: null });
 
   readonly token = computed(() => this.authState().token);
@@ -36,16 +37,67 @@ export class AuthService {
 
   constructor() {
     this.restoreSession();
+
+    // Set up auth state effect for SSE management
+    effect(() => {
+      const isAuth = this.isAuthenticated();
+      // Use injector to avoid circular dependency issues
+      if (isAuth) {
+        this.connectNotifications();
+      } else {
+        this.disconnectNotifications();
+      }
+    });
+  }
+
+  private async connectNotifications(): Promise<void> {
+    try {
+      const { NotificationService } = await import('./notification.service');
+      const notificationService = this.injector.get(NotificationService);
+      notificationService.connect();
+    } catch (error) {
+      console.warn('Failed to connect notifications:', error);
+    }
+  }
+
+  private async disconnectNotifications(): Promise<void> {
+    try {
+      const { NotificationService } = await import('./notification.service');
+      const notificationService = this.injector.get(NotificationService);
+      notificationService.disconnect();
+    } catch (error) {
+      console.warn('Failed to disconnect notifications:', error);
+    }
   }
 
   login(credentials: LoginRequest) {
     return this.http.post<LoginResponse>('http://localhost:5000/api/auth/login', credentials).pipe(
-      tap(response => this.persistSession(response)),
+      tap(response => {
+        this.persistSession(response);
+        // SSE connection will be handled automatically by the auth state effect
+
+        // Force page refresh to ensure clean state with new permissions
+        setTimeout(() => {
+          window.location.reload();
+        }, 100); // Small delay to ensure session is persisted first
+      }),
       map(response => response.employee)
     );
   }
 
   logout(): void {
+    // Call backend logout endpoint first if we have a token
+    const currentAuth = this.authState();
+    if (currentAuth?.token) {
+      this.http.post('http://localhost:5000/api/auth/logout', {}, {
+        headers: { Authorization: `Bearer ${currentAuth.token}` }
+      }).subscribe({
+        next: () => console.log('✅ Backend logout successful'),
+        error: (error) => console.warn('Backend logout failed:', error)
+      });
+    }
+
+    // SSE disconnection will be handled automatically by the auth state effect
     this.clearSession();
   }
 

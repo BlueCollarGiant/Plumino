@@ -28,7 +28,7 @@ export const routes: Routes = [
   {
     path: 'hr',
     canActivate: [authGuard, roleGuard],
-    data: { roles: ['hr'] },
+    data: { roles: ['hr', 'admin'] },
     loadComponent: () => import('./features/hr/hr.component').then(m => m.HrComponent)
   },
   {

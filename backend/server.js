@@ -6,11 +6,16 @@ const bodyParser = require('body-parser');
 
 const authRoutes = require('./routes/auth'); // login/register
 const apiRoutes = require('./routes/api'); // employee management
+const notificationRoutes = require('./routes/notifications'); // SSE notifications
 const fermentationRoutes = require('./routes/fermentation');
 const extractionRoutes = require('./routes/extraction');
 const packagingRoutes = require('./routes/packaging');
 
-const { authMiddleware } = require('./middleware/auth'); // make sure this exists!
+// Initialize services
+const { sseManager } = require('./services/sseManager');
+const { autoLogoutManager } = require('./services/autoLogoutManager');
+
+const { authMiddleware } = require('./middleware/auth'); // global auth middleware
 
 const app = express();
 
@@ -74,6 +79,7 @@ app.use('/api/auth', authRoutes);
 
 // Protected routes (all require authentication)
 app.use('/api', authMiddleware, apiRoutes);
+app.use('/api/sse', notificationRoutes); // SSE notifications
 app.use('/api', authMiddleware, fermentationRoutes);
 app.use('/api', authMiddleware, extractionRoutes);
 app.use('/api', authMiddleware, packagingRoutes);
