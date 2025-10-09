@@ -1,16 +1,10 @@
 const Joi = require('joi');
 const Fermentation = require('../models/fermentationModel');
-  try {
-    // Automatically set status and creator for all roles
-    value.status = 'pending';
-    value.createdBy = req.user._id;
+const Employee = require('../models/employeeModel');
 
-    const fermentation = new Fermentation(value);
-    const saved = await fermentation.save();
-    res.status(201).json(saved);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }gex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const PRIVILEGED_ROLES = new Set(['supervisor', 'hr', 'admin']);
+
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const buildFermentationFilters = (query = {}) => {
   const { date, plant, product, campaign, stage } = query;
@@ -33,24 +27,13 @@ const buildFermentationFilters = (query = {}) => {
   if (stage) {
     const normalizedStage = String(stage).trim();
     if (normalizedStage) {
-      filters.stage = new RegExp(`^${escapeRegex(normalizedStage)}$`, "i");
+      filters.stage = new RegExp(`^${escapeRegex(normalizedStage)}$`, 'i');
     }
   }
 
   return filters;
 };
 
-const getFermentationsFiltered = async (req, res) => {
-  try {
-    const filters = buildFermentationFilters(req.query);
-    const fermentations = await Fermentation.find(filters);
-    res.json(fermentations);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// Validation schema
 const fermentationSchema = Joi.object({
   date: Joi.date().required(),
   plant: Joi.string().required(),
@@ -63,42 +46,184 @@ const fermentationSchema = Joi.object({
   receivedAmount: Joi.number().min(0).required()
 });
 
-// GET all
+const applyRoleFilters = (role, userId, baseFilters = {}) => {
+  if (role === 'operator') {
+    return { ...baseFilters, createdBy: userId };
+  }
+  return baseFilters;
+};
+
+const resolveCreatorInfo = async (createdBy) => {
+  if (!createdBy) return null;
+
+  if (typeof createdBy === 'object' && createdBy !== null) {
+    const id = createdBy._id ? createdBy._id.toString() : createdBy.toString?.();
+    if (createdBy.role) {
+      return { id, role: createdBy.role };
+    }
+  }
+
+  const creator = await Employee.findById(createdBy).select('_id role');
+  if (!creator) return null;
+  return { id: creator._id.toString(), role: creator.role };
+};
+
+const ensureModifyPermission = async (record, user, actionLabel) => {
+  const userId = String(user.id);
+  const creatorId = record.createdBy ? record.createdBy.toString() : null;
+
+  if (user.role === 'operator') {
+    if (!creatorId || creatorId !== userId) {
+      return { allowed: false, status: 403, message: 'You can only modify your own records while pending.' };
+    }
+    if (record.status !== 'pending') {
+      return { allowed: false, status: 403, message: `Cannot ${actionLabel} records that are already approved.` };
+    }
+    return { allowed: true };
+  }
+
+  if (!PRIVILEGED_ROLES.has(user.role)) {
+    return { allowed: false, status: 403, message: 'Access denied: insufficient permissions.' };
+  }
+
+  if (!creatorId) {
+    return { allowed: false, status: 400, message: 'Record does not have a creator associated.' };
+  }
+
+  if (creatorId === userId) {
+    return { allowed: true };
+  }
+
+  const creatorInfo = await resolveCreatorInfo(record.createdBy);
+  if (!creatorInfo) {
+    return { allowed: false, status: 404, message: 'Creator not found for this record.' };
+  }
+
+  if (creatorInfo.role !== 'operator') {
+    return {
+      allowed: false,
+      status: 403,
+      message: `Cannot ${actionLabel} records submitted by ${creatorInfo.role} personnel.`
+    };
+  }
+
+  return { allowed: true };
+};
+
+const ensureApprovePermission = async (record, user) => {
+  if (!PRIVILEGED_ROLES.has(user.role)) {
+    return { allowed: false, status: 403, message: 'Only supervisors, HR, or admins can approve records.' };
+  }
+
+  const creatorInfo = await resolveCreatorInfo(record.createdBy);
+  if (!creatorInfo) {
+    return { allowed: false, status: 404, message: 'Creator not found for this record.' };
+  }
+
+  if (creatorInfo.role !== 'operator') {
+    return {
+      allowed: false,
+      status: 403,
+      message: 'Only records submitted by operators can be approved.'
+    };
+  }
+
+  return { allowed: true };
+};
+
+const toPlainObject = (document) => {
+  if (!document) return null;
+  if (typeof document.toObject === 'function') {
+    return document.toObject();
+  }
+  return { ...document };
+};
+
+const normalizeFermentation = (record) => {
+  if (!record) return null;
+  const plain = toPlainObject(record);
+  const normalized = { ...plain };
+
+  if (plain._id) {
+    normalized._id = plain._id.toString();
+  }
+
+  const creator = plain.createdBy;
+  if (creator && typeof creator === 'object' && creator !== null) {
+    const creatorId = creator._id ? creator._id.toString() : creator.toString?.();
+    normalized.createdBy = creatorId || null;
+    normalized.createdByRole = creator.role || null;
+    normalized.createdByName = creator.name || null;
+  } else if (creator) {
+    normalized.createdBy = creator.toString();
+    normalized.createdByRole = null;
+    normalized.createdByName = null;
+  } else {
+    normalized.createdBy = null;
+    normalized.createdByRole = null;
+    normalized.createdByName = null;
+  }
+
+  return normalized;
+};
+
 const getFermentations = async (req, res) => {
   try {
-    const fermentations = await Fermentation.find({});
-    res.json(fermentations);
+    const filters = applyRoleFilters(req.user.role, req.user.id);
+    const fermentations = await Fermentation.find(filters)
+      .populate('createdBy', 'role name')
+      .lean();
+    res.json(fermentations.map(normalizeFermentation));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// GET by ID
+const getFermentationsFiltered = async (req, res) => {
+  try {
+    const baseFilters = buildFermentationFilters(req.query);
+    const filters = applyRoleFilters(req.user.role, req.user.id, baseFilters);
+    const fermentations = await Fermentation.find(filters)
+      .populate('createdBy', 'role name')
+      .lean();
+    res.json(fermentations.map(normalizeFermentation));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 const getFermentationById = async (req, res) => {
   try {
-    const fermentation = await Fermentation.findById(req.params.id);
+    const fermentation = await Fermentation.findById(req.params.id).populate('createdBy', 'role name');
     if (!fermentation) return res.status(404).json({ message: 'Not found' });
-    res.json(fermentation);
+
+    const userId = String(req.user.id);
+    const creator = fermentation.createdBy;
+    const creatorId = creator
+      ? creator._id
+        ? creator._id.toString()
+        : creator.toString?.()
+      : null;
+    if (req.user.role === 'operator' && creatorId !== userId) {
+      return res.status(403).json({ message: 'You can only view your own records.' });
+    }
+
+    res.json(normalizeFermentation(fermentation));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// POST new
 const createFermentation = async (req, res) => {
   const { error, value } = fermentationSchema.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
 
   try {
-    // Role-based creation logic
-if (req.user.role === 'operator') {
-  value.approved = false; // Operators’ entries need approval
-} else {
-  value.approved = true; // Supervisors/Admins auto-approved
-}
-
-value.createdBy = req.user.id; // Track who made it
-    const fermentation = new Fermentation(value);
+    const fermentation = new Fermentation({
+      ...value,
+      status: 'pending',
+      createdBy: req.user.id
+    });
     const saved = await fermentation.save();
     res.status(201).json(saved);
   } catch (err) {
@@ -106,7 +231,6 @@ value.createdBy = req.user.id; // Track who made it
   }
 };
 
-// PUT update
 const updateFermentation = async (req, res) => {
   const { error, value } = fermentationSchema.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
@@ -115,14 +239,9 @@ const updateFermentation = async (req, res) => {
     const fermentation = await Fermentation.findById(req.params.id);
     if (!fermentation) return res.status(404).json({ message: 'Not found' });
 
-    // Operators: can only edit their own pending entries
-    if (req.user.role === 'operator') {
-      if (String(fermentation.createdBy) !== req.user._id) {
-        return res.status(403).json({ message: 'Not authorized to edit this record' });
-      }
-      if (fermentation.status === 'approved') {
-        return res.status(403).json({ message: 'Cannot edit approved records' });
-      }
+    const permission = await ensureModifyPermission(fermentation, req.user, 'edit');
+    if (!permission.allowed) {
+      return res.status(permission.status).json({ message: permission.message });
     }
 
     Object.assign(fermentation, value);
@@ -138,32 +257,34 @@ const approveFermentation = async (req, res) => {
     const fermentation = await Fermentation.findById(req.params.id);
     if (!fermentation) return res.status(404).json({ message: 'Record not found' });
 
+    if (fermentation.status === 'approved') {
+      return res.status(200).json({ message: 'Record already approved.', fermentation });
+    }
+
+    const permission = await ensureApprovePermission(fermentation, req.user);
+    if (!permission.allowed) {
+      return res.status(permission.status).json({ message: permission.message });
+    }
+
     fermentation.status = 'approved';
     await fermentation.save();
-
     res.json({ message: 'Fermentation record approved successfully', fermentation });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// DELETE
 const deleteFermentation = async (req, res) => {
   try {
     const fermentation = await Fermentation.findById(req.params.id);
     if (!fermentation) return res.status(404).json({ message: 'Not found' });
 
-    // Operators: can only delete their own pending entries
-    if (req.user.role === 'operator') {
-      if (String(fermentation.createdBy) !== req.user._id) {
-        return res.status(403).json({ message: 'Not authorized to delete this record' });
-      }
-      if (fermentation.status === 'approved') {
-        return res.status(403).json({ message: 'Cannot delete approved records' });
-      }
+    const permission = await ensureModifyPermission(fermentation, req.user, 'delete');
+    if (!permission.allowed) {
+      return res.status(permission.status).json({ message: permission.message });
     }
 
-    await Fermentation.findByIdAndDelete(req.params.id);
+    await fermentation.deleteOne();
     res.json({ message: 'Deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -179,7 +300,3 @@ module.exports = {
   deleteFermentation,
   approveFermentation
 };
-
-
-
-

@@ -11,27 +11,15 @@ const {
   approveFermentation
 } = require('../controllers/fermentationController');
 
-const { authMiddleware } = require('../middleware/auth');
-const roleAuth = require('../middleware/roleAuth');
+const { authMiddleware, roleAuth } = require('../middleware/auth');
 const { departmentAuth } = require('../middleware/departmentAuth');
 
-// GET all (frontend only sees approved ones) - fermentation dept only
+// Listing and detail routes
 router.get('/fermentation', authMiddleware, departmentAuth('fermentation'), getFermentations);
-
-// GET filtered fermentations (employees see only approved) - fermentation dept only
-router.get(
-    '/fermentation/filter',
-    authMiddleware,
-    departmentAuth('fermentation'),
-    getFermentationsFiltered
-  );
-  
-
-// GET by ID - fermentation dept only
+router.get('/fermentation/filter', authMiddleware, departmentAuth('fermentation'), getFermentationsFiltered);
 router.get('/fermentation/:id', authMiddleware, departmentAuth('fermentation'), getFermentationById);
 
-// CREATE - operators/supervisors/hr/admins can create in fermentation dept
-// Operators' entries will automatically set approved=false (in controller)
+// Create / Update / Delete
 router.post(
   '/fermentation',
   authMiddleware,
@@ -40,7 +28,6 @@ router.post(
   createFermentation
 );
 
-// UPDATE - operators can edit their unapproved entries; supervisors/hr/admins can edit all
 router.put(
   '/fermentation/:id',
   authMiddleware,
@@ -49,7 +36,6 @@ router.put(
   updateFermentation
 );
 
-// DELETE - operators can delete their own pending records; supervisors/hr/admins can delete any
 router.delete(
   '/fermentation/:id',
   authMiddleware,
@@ -58,60 +44,12 @@ router.delete(
   deleteFermentation
 );
 
-// APPROVE - supervisors, hr or admins only in fermentation dept
+// Approval
 router.put(
   '/fermentation/:id/approve',
   authMiddleware,
   departmentAuth('fermentation'),
   roleAuth('supervisor', 'hr', 'admin'),
-  approveFermentation
-);
-
-module.exports = router;
-router.get('/fermentation', authMiddleware, departmentAuth('fermentation'), getFermentations);
-
-// GET filtered fermentations (employees see only approved) - fermentation dept only
-router.get(
-    '/fermentation/filter',
-    authMiddleware,
-    departmentAuth('fermentation'),
-    getFermentationsFiltered
-  );
-  
-
-// GET by ID - fermentation dept only
-router.get('/fermentation/:id', authMiddleware, departmentAuth('fermentation'), getFermentationById);
-
-// CREATE - operators/supervisors/admins can create
-// Operators’ entries will automatically set approved=false (in controller)
-router.post(
-  '/fermentation',
-  authMiddleware,
-  roleAuth('operator', 'supervisor', 'admin'),
-  createFermentation
-);
-
-// UPDATE - operators can edit their unapproved entries; supervisors/admins can edit all
-router.put(
-  '/fermentation/:id',
-  authMiddleware,
-  roleAuth('operator', 'supervisor', 'admin'),
-  updateFermentation
-);
-
-// DELETE - supervisors or admins only
-router.delete(
-  '/fermentation/:id',
-  authMiddleware,
-  roleAuth('supervisor', 'admin'),
-  deleteFermentation
-);
-
-// APPROVE - supervisors or admins only
-router.patch(
-  '/fermentation/:id/approve',
-  authMiddleware,
-  roleAuth('supervisor', 'admin'),
   approveFermentation
 );
 

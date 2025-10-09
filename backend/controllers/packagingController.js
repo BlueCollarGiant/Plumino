@@ -1,5 +1,9 @@
 const Joi = require('joi');
+const mongoose = require('mongoose');
 const Packaging = require('../models/packagingModel');
+const Employee = require('../models/employeeModel');
+
+const PRIVILEGED_ROLES = new Set(['supervisor', 'hr', 'admin']);
 
 // Utility to build Mongo filters
 const buildPackagingFilters = (query = {}) => {
@@ -71,15 +75,143 @@ const packagingSchema = Joi.object({
   outgoingAmountKg: Joi.number().positive().required(),
 });
 
+const applyRoleFilters = (role, userId, baseFilters = {}) => {
+  if (role === 'operator') {
+    return { ...baseFilters, createdBy: userId };
+  }
+  return baseFilters;
+};
+
+const resolveCreatorInfo = async (createdBy) => {
+  if (!createdBy) return null;
+
+  if (typeof createdBy === 'object' && createdBy !== null) {
+    const id = createdBy._id ? createdBy._id.toString() : createdBy.toString?.();
+    if (createdBy.role) {
+      return { id, role: createdBy.role };
+    }
+  }
+
+  const creator = await Employee.findById(createdBy).select('_id role');
+  if (!creator) return null;
+  return { id: creator._id.toString(), role: creator.role };
+};
+
+const ensureModifyPermission = async (record, user, actionLabel) => {
+  const userId = String(user.id);
+  const creatorId = record.createdBy ? record.createdBy.toString() : null;
+
+  if (user.role === 'operator') {
+    if (!creatorId || creatorId !== userId) {
+      return { allowed: false, status: 403, message: 'You can only modify your own records while pending.' };
+    }
+    if (record.status !== 'pending') {
+      return { allowed: false, status: 403, message: `Cannot ${actionLabel} records that are already approved.` };
+    }
+    return { allowed: true };
+  }
+
+  if (!PRIVILEGED_ROLES.has(user.role)) {
+    return { allowed: false, status: 403, message: 'Access denied: insufficient permissions.' };
+  }
+
+  if (!creatorId) {
+    return { allowed: false, status: 400, message: 'Record does not have a creator associated.' };
+  }
+
+  if (creatorId === userId) {
+    return { allowed: true };
+  }
+
+  const creatorInfo = await resolveCreatorInfo(record.createdBy);
+  if (!creatorInfo) {
+    return { allowed: false, status: 404, message: 'Creator not found for this record.' };
+  }
+
+  if (creatorInfo.role !== 'operator') {
+    return {
+      allowed: false,
+      status: 403,
+      message: `Cannot ${actionLabel} records submitted by ${creatorInfo.role} personnel.`
+    };
+  }
+
+  return { allowed: true };
+};
+
+const ensureApprovePermission = async (record, user) => {
+  if (!PRIVILEGED_ROLES.has(user.role)) {
+    return { allowed: false, status: 403, message: 'Only supervisors, HR, or admins can approve records.' };
+  }
+
+  const creatorInfo = await resolveCreatorInfo(record.createdBy);
+  if (!creatorInfo) {
+    return { allowed: false, status: 404, message: 'Creator not found for this record.' };
+  }
+
+  if (creatorInfo.role !== 'operator') {
+    return {
+      allowed: false,
+      status: 403,
+      message: 'Only records submitted by operators can be approved.'
+    };
+  }
+
+  return { allowed: true };
+};
+
+const toPlainObject = (document) => {
+  if (!document) return null;
+  if (typeof document.toObject === 'function') {
+    return document.toObject();
+  }
+  return { ...document };
+};
+
+const normalizePackaging = (record) => {
+  if (!record) return null;
+  const plain = toPlainObject(record);
+  const normalized = { ...plain };
+
+  if (plain._id) {
+    normalized._id = plain._id.toString();
+  }
+
+  const creator = plain.createdBy;
+  if (creator && typeof creator === 'object' && creator !== null) {
+    const creatorId = creator._id ? creator._id.toString() : creator.toString?.();
+    normalized.createdBy = creatorId || null;
+    normalized.createdByRole = creator.role || null;
+    normalized.createdByName = creator.name || null;
+  } else if (creator) {
+    normalized.createdBy = creator.toString();
+    normalized.createdByRole = null;
+    normalized.createdByName = null;
+  } else {
+    normalized.createdBy = null;
+    normalized.createdByRole = null;
+    normalized.createdByName = null;
+  }
+
+  return normalized;
+};
+
+const toObjectId = (value) => {
+  if (!value) return null;
+  if (value instanceof mongoose.Types.ObjectId) return value;
+  return mongoose.Types.ObjectId.isValid(value) ? new mongoose.Types.ObjectId(value) : null;
+};
+
 // ---------- CRUD + Approval Logic ----------
 
 // GET all
 const getPackagings = async (req, res) => {
   try {
-    // Operators see only approved entries, supervisors/hr/admin see all
-    const query = req.user.role === 'operator' ? { approved: true } : {};
-    const packagings = await Packaging.find(query);
-    res.json(packagings);
+    const filters = applyRoleFilters(req.user.role, req.user.id);
+    const packagings = await Packaging.find(filters)
+      .populate('createdBy', 'role name')
+      .lean();
+    res.json(packagings.map(normalizePackaging));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -87,12 +219,14 @@ const getPackagings = async (req, res) => {
 
 // GET filtered
 const getFilteredPackaging = async (req, res) => {
-  const filters = buildPackagingFilters(req.query);
-  if (req.user.role === 'operator') filters.approved = true;
+  const baseFilters = buildPackagingFilters(req.query);
+  const filters = applyRoleFilters(req.user.role, req.user.id, baseFilters);
 
   try {
-    const packagings = await Packaging.find(filters);
-    res.json(packagings);
+    const packagings = await Packaging.find(filters)
+      .populate('createdBy', 'role name')
+      .lean();
+    res.json(packagings.map(normalizePackaging));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -100,10 +234,17 @@ const getFilteredPackaging = async (req, res) => {
 
 // Aggregations (same logic, but filtered by role)
 const aggregateWithRoleFilter = async (req, pipeline) => {
-  const match = {};
-  if (req.user.role === 'operator') match.approved = true;
-  if (Object.keys(match).length) pipeline.unshift({ $match: match });
-  return Packaging.aggregate(pipeline);
+  const workingPipeline = [...pipeline];
+
+  if (req.user.role === 'operator') {
+    const operatorId = toObjectId(req.user.id);
+    if (!operatorId) {
+      return [];
+    }
+    workingPipeline.unshift({ $match: { createdBy: operatorId } });
+  }
+
+  return Packaging.aggregate(workingPipeline);
 };
 
 const getPackagingByPlant = async (req, res) => {
@@ -169,11 +310,21 @@ const getPackagingByDate = async (req, res) => {
 // GET by ID
 const getPackagingById = async (req, res) => {
   try {
-    const packaging = await Packaging.findById(req.params.id);
+    const packaging = await Packaging.findById(req.params.id).populate('createdBy', 'role name');
     if (!packaging) return res.status(404).json({ message: 'Not found' });
-    if (req.user.role === 'operator' && !packaging.approved)
-      return res.status(403).json({ message: 'Not approved yet' });
-    res.json(packaging);
+
+    const userId = String(req.user.id);
+    const creator = packaging.createdBy;
+    const creatorId = creator
+      ? creator._id
+        ? creator._id.toString()
+        : creator.toString?.()
+      : null;
+    if (req.user.role === 'operator' && creatorId !== userId) {
+      return res.status(403).json({ message: 'You can only view your own records.' });
+    }
+
+    res.json(normalizePackaging(packaging));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -188,10 +339,11 @@ const createPackaging = async (req, res) => {
     const packaging = new Packaging({
       ...value,
       status: 'pending',
-      createdBy: req.user._id,
+      createdBy: req.user.id,
     });
     const saved = await packaging.save();
-    res.status(201).json(saved);
+    await saved.populate('createdBy', 'role name');
+    res.status(201).json(normalizePackaging(saved));
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
@@ -206,19 +358,15 @@ const updatePackaging = async (req, res) => {
     const packaging = await Packaging.findById(req.params.id);
     if (!packaging) return res.status(404).json({ message: 'Not found' });
 
-    // Operators can only edit their own pending entries
-    if (req.user.role === 'operator') {
-      if (!packaging.createdBy || packaging.createdBy.toString() !== req.user._id) {
-        return res.status(403).json({ message: 'You can only edit your own entries' });
-      }
-      if (packaging.status === 'approved') {
-        return res.status(403).json({ message: 'Cannot edit approved entries' });
-      }
+    const permission = await ensureModifyPermission(packaging, req.user, 'edit');
+    if (!permission.allowed) {
+      return res.status(permission.status).json({ message: permission.message });
     }
 
     Object.assign(packaging, value);
     const updated = await packaging.save();
-    res.json(updated);
+    await updated.populate('createdBy', 'role name');
+    res.json(normalizePackaging(updated));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -229,9 +377,21 @@ const approvePackaging = async (req, res) => {
   try {
     const packaging = await Packaging.findById(req.params.id);
     if (!packaging) return res.status(404).json({ message: 'Not found' });
+
+    if (packaging.status === 'approved') {
+      await packaging.populate('createdBy', 'role name');
+      return res.status(200).json({ message: 'Record already approved.', packaging: normalizePackaging(packaging) });
+    }
+
+    const permission = await ensureApprovePermission(packaging, req.user);
+    if (!permission.allowed) {
+      return res.status(permission.status).json({ message: permission.message });
+    }
+
     packaging.status = 'approved';
     await packaging.save();
-    res.json({ message: 'Packaging approved', packaging });
+    await packaging.populate('createdBy', 'role name');
+    res.json({ message: 'Packaging record approved successfully', packaging: normalizePackaging(packaging) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -243,17 +403,12 @@ const deletePackaging = async (req, res) => {
     const packaging = await Packaging.findById(req.params.id);
     if (!packaging) return res.status(404).json({ message: 'Not found' });
 
-    // Operators: can only delete their own pending entries
-    if (req.user.role === 'operator') {
-      if (String(packaging.createdBy) !== req.user._id) {
-        return res.status(403).json({ message: 'Not authorized to delete this record' });
-      }
-      if (packaging.status === 'approved') {
-        return res.status(403).json({ message: 'Cannot delete approved records' });
-      }
+    const permission = await ensureModifyPermission(packaging, req.user, 'delete');
+    if (!permission.allowed) {
+      return res.status(permission.status).json({ message: permission.message });
     }
 
-    await Packaging.findByIdAndDelete(req.params.id);
+    await packaging.deleteOne();
     res.json({ message: 'Deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });

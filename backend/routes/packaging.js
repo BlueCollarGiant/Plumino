@@ -48,12 +48,12 @@ router.put(
   updatePackaging
 );
 
-// DELETE — Supervisor/HR/Admin only in packaging dept
+// DELETE — operators can delete their own pending records; supervisors/hr/admins can delete any
 router.delete(
   '/packaging/:id',
   authMiddleware,
   departmentAuth('packaging'),
-  roleAuth('supervisor', 'hr', 'admin'),
+  roleAuth('operator', 'supervisor', 'hr', 'admin'),
   deletePackaging
 );
 

@@ -1,6 +1,6 @@
 ﻿import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { Observable, shareReplay, tap } from 'rxjs';
+import { Observable, map, shareReplay, tap } from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
 
 export interface PackagingFilters {
@@ -35,6 +35,10 @@ export interface FermentationResponse {
   readonly weightLbs?: number;
   readonly receivedAmount?: number;
   readonly receivedAmountLbs?: number;
+  readonly status?: 'pending' | 'approved';
+  readonly createdBy?: string | null;
+  readonly createdByRole?: 'operator' | 'supervisor' | 'hr' | 'admin' | null;
+  readonly createdByName?: string | null;
 }
 
 export interface FermentationRequest {
@@ -62,6 +66,10 @@ export interface ExtractionResponse {
   readonly weight?: number;
   readonly levelIndicator?: string;
   readonly pH?: number;
+  readonly status?: 'pending' | 'approved';
+  readonly createdBy?: string | null;
+  readonly createdByRole?: 'operator' | 'supervisor' | 'hr' | 'admin' | null;
+  readonly createdByName?: string | null;
 }
 
 export interface ExtractionRequest {
@@ -87,6 +95,10 @@ export interface PackagingResponse {
   readonly packageType: string;
   readonly incomingAmountKg: number;
   readonly outgoingAmountKg: number;
+  readonly status?: 'pending' | 'approved';
+  readonly createdBy?: string | null;
+  readonly createdByRole?: 'operator' | 'supervisor' | 'hr' | 'admin' | null;
+  readonly createdByName?: string | null;
 }
 
 export interface PackagingRequest {
@@ -257,6 +269,15 @@ export class ApiService {
     return request;
   }
 
+  approveFermentation(id: string): Observable<FermentationResponse> {
+    const request = this.http.put<{ fermentation?: FermentationResponse }>(`${this.baseUrl()}/fermentation/${id}/approve`, {}).pipe(
+      tap(() => this.invalidateFermentationCache()),
+      map(response => response?.fermentation ?? (response as unknown as FermentationResponse))
+    );
+
+    return request;
+  }
+
   deleteFermentation(id: string): Observable<void> {
     const request = this.http.delete<void>(`${this.baseUrl()}/fermentation/${id}`).pipe(
       tap(() => this.invalidateFermentationCache())
@@ -307,9 +328,27 @@ export class ApiService {
     return request;
   }
 
+  approveExtraction(id: string): Observable<ExtractionResponse> {
+    const request = this.http.put<{ extraction?: ExtractionResponse }>(`${this.baseUrl()}/extraction/${id}/approve`, {}).pipe(
+      tap(() => this.invalidateExtractionCache()),
+      map(response => response?.extraction ?? (response as unknown as ExtractionResponse))
+    );
+
+    return request;
+  }
+
   deleteExtraction(id: string): Observable<void> {
     const request = this.http.delete<void>(`${this.baseUrl()}/extraction/${id}`).pipe(
       tap(() => this.invalidateExtractionCache())
+    );
+
+    return request;
+  }
+
+  approvePackaging(id: string): Observable<PackagingResponse> {
+    const request = this.http.put<{ packaging?: PackagingResponse }>(`${this.baseUrl()}/packaging/${id}/approve`, {}).pipe(
+      tap(() => this.invalidatePackagingCache()),
+      map(response => response?.packaging ?? (response as unknown as PackagingResponse))
     );
 
     return request;

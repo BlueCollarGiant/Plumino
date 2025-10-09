@@ -5,6 +5,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime } from 'rxjs';
 
 import { ApiService, DataFilters, ExtractionRequest, ExtractionResponse } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 
 type ModalFieldKey =
   | 'date'
@@ -19,7 +20,12 @@ type ModalFieldKey =
   | 'levelIndicator'
   | 'pH';
 
-type ModalRow = Partial<Record<ModalFieldKey, unknown>> & { readonly _id?: string };
+type ModalRow = Partial<Record<ModalFieldKey, unknown>> & {
+  readonly _id?: string;
+  readonly status?: 'pending' | 'approved';
+  readonly createdBy?: string | null;
+  readonly createdByRole?: 'operator' | 'supervisor' | 'hr' | 'admin' | null;
+};
 
 interface ModalField {
   readonly key: ModalFieldKey;
@@ -244,6 +250,7 @@ interface ModalField {
                       <th>Weight (kg)</th>
                       <th>Level Indicator</th>
                       <th>pH</th>
+                      <th>Status</th>
                       <th class="actions-header">Actions</th>
                     </tr>
                   </thead>
@@ -273,10 +280,22 @@ interface ModalField {
                         <td class="amount-cell ph">
                           <span class="amount-value">{{ row.pH | number:'1.0-2' }}</span>
                         </td>
+                        <td class="status-cell">
+                          <span class="status-badge" [ngClass]="resolveStatus(row)">
+                            {{ resolveStatus(row) | titlecase }}
+                          </span>
+                        </td>
                         <td class="actions-cell">
-                          <button type="button" class="edit-button" (click)="openEditModal(row)">
-                            Edit
-                          </button>
+                          @if (canApproveRow(row)) {
+                            <button type="button" class="approve-button" (click)="approveRecord(row)">
+                              Approve
+                            </button>
+                          }
+                          @if (canEditRow(row)) {
+                            <button type="button" class="edit-button" (click)="openEditModal(row)">
+                              Edit
+                            </button>
+                          }
                         </td>
                       </tr>
                     } @empty {
@@ -1129,6 +1148,65 @@ interface ModalField {
         color: #f59e0b;
       }
 
+      .status-cell {
+        text-align: center;
+      }
+
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 90px;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        border: 1px solid transparent;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .status-badge.pending {
+        background: rgba(245, 158, 11, 0.18);
+        color: #fbbf24;
+        border-color: rgba(245, 158, 11, 0.35);
+        box-shadow: 0 0 12px rgba(245, 158, 11, 0.18);
+      }
+
+      .status-badge.approved {
+        background: rgba(34, 197, 94, 0.18);
+        color: #86efac;
+        border-color: rgba(34, 197, 94, 0.35);
+        box-shadow: 0 0 12px rgba(34, 197, 94, 0.18);
+      }
+
+      .actions-cell {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+      }
+
+      .approve-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.45rem 0.9rem;
+        border: 1px solid rgba(34, 197, 94, 0.35);
+        border-radius: 999px;
+        background: rgba(34, 197, 94, 0.12);
+        color: #86efac;
+        cursor: pointer;
+        font-weight: 600;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+      }
+
+      .approve-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(34, 197, 94, 0.2);
+        background: rgba(34, 197, 94, 0.2);
+      }
+
       .edit-button {
         display: flex;
         align-items: center;
@@ -1512,11 +1590,19 @@ interface ModalField {
 export class ExtractionDashboardComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly apiService = inject(ApiService);
+  private readonly authService = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
 
   // Signals for reactive state management
   protected readonly rows = signal<ExtractionResponse[]>([]);
   protected readonly isLoading = signal(false);
+  protected readonly userRole = signal<string>('');
+  protected readonly userId = signal<string>('');
+  protected readonly isOperator = computed(() => this.userRole() === 'operator');
+  protected readonly isSupervisorOrHigher = computed(() => {
+    const role = this.userRole();
+    return role === 'supervisor' || role === 'hr' || role === 'admin';
+  });
   protected readonly editingRow = signal<ModalRow | null>(null);
   protected readonly isMutating = signal(false);
   protected readonly mutationError = signal<string | null>(null);
@@ -1594,8 +1680,20 @@ export class ExtractionDashboardComponent implements OnInit {
   protected readonly hasData = computed(() => this.rows().length > 0);
   protected readonly recordCount = computed(() => this.rows().length);
   protected readonly isModalOpen = computed(() => !!this.editingRow());
-  protected readonly canSubmitEdit = computed(() => !this.isMutating() && this.editForm.valid);
-  protected readonly canDelete = computed(() => !this.isMutating() && !!this.editingRow()?._id);
+  protected readonly canSubmitEdit = computed(() => {
+    const row = this.editingRow();
+    if (!row || !row._id) {
+      return false;
+    }
+    return this.canEditRow(row) && !this.isMutating() && this.editForm.valid;
+  });
+  protected readonly canDelete = computed(() => {
+    const row = this.editingRow();
+    if (!row || !row._id) {
+      return false;
+    }
+    return this.canDeleteRow(row) && !this.isMutating();
+  });
 
   protected readonly modalFields: readonly ModalField[] = [
     { key: 'date', label: 'Date', type: 'date' },
@@ -1647,6 +1745,79 @@ export class ExtractionDashboardComponent implements OnInit {
     } as const;
   });
 
+  protected resolveStatus(row: ExtractionResponse | ModalRow | null | undefined): 'pending' | 'approved' {
+    return row?.status === 'approved' ? 'approved' : 'pending';
+  }
+
+  private resolveCreatorRole(row: ExtractionResponse | ModalRow | null | undefined): 'operator' | 'supervisor' | 'hr' | 'admin' | null {
+    if (!row) {
+      return null;
+    }
+    if (row.createdByRole) {
+      return row.createdByRole;
+    }
+    return row.createdBy ? 'operator' : null;
+  }
+
+  protected canEditRow(row: ExtractionResponse | ModalRow | null | undefined): boolean {
+    if (!row?._id) {
+      return false;
+    }
+
+    const status = this.resolveStatus(row);
+    const creatorRole = this.resolveCreatorRole(row);
+    const currentUserId = this.userId();
+
+    if (this.isOperator()) {
+      return status === 'pending' && !!row.createdBy && row.createdBy === currentUserId;
+    }
+
+    if (this.isSupervisorOrHigher()) {
+      if (creatorRole && creatorRole !== 'operator') {
+        return false;
+      }
+      return true;
+    }
+
+    return false;
+  }
+
+  protected canDeleteRow(row: ExtractionResponse | ModalRow | null | undefined): boolean {
+    if (!row?._id) {
+      return false;
+    }
+
+    const status = this.resolveStatus(row);
+    const creatorRole = this.resolveCreatorRole(row);
+    const currentUserId = this.userId();
+
+    if (this.isOperator()) {
+      return status === 'pending' && !!row.createdBy && row.createdBy === currentUserId;
+    }
+
+    if (this.isSupervisorOrHigher()) {
+      if (creatorRole && creatorRole !== 'operator') {
+        return false;
+      }
+      return true;
+    }
+
+    return false;
+  }
+
+  protected canApproveRow(row: ExtractionResponse | null | undefined): boolean {
+    if (!row?._id || !this.isSupervisorOrHigher()) {
+      return false;
+    }
+
+    if (this.resolveStatus(row) !== 'pending') {
+      return false;
+    }
+
+    const creatorRole = this.resolveCreatorRole(row);
+    return !creatorRole || creatorRole === 'operator';
+  }
+
   // Effects for side effects
   private readonly filterChangesEffect = effect(() => {
     // React to filter form changes with debounced loading
@@ -1672,6 +1843,12 @@ export class ExtractionDashboardComponent implements OnInit {
       console.debug(`Loaded ${count} extraction records`);
     }
   }, { allowSignalWrites: false });
+
+  private readonly syncUserEffect = effect(() => {
+    const employee = this.authService.employee();
+    this.userRole.set(employee?.role ?? '');
+    this.userId.set(employee?.id ?? '');
+  }, { allowSignalWrites: true });
 
   ngOnInit(): void {
     // Initial data load
@@ -1744,6 +1921,10 @@ export class ExtractionDashboardComponent implements OnInit {
   }
 
   protected openEditModal(row: ExtractionResponse): void {
+    if (!this.canEditRow(row)) {
+      return;
+    }
+
     this.mutationError.set(null);
     this.isMutating.set(false);
 
@@ -1774,6 +1955,11 @@ export class ExtractionDashboardComponent implements OnInit {
 
     if (!current?._id) {
       console.warn('Attempted to save extraction without an identifier.');
+      return;
+    }
+
+    if (!this.canEditRow(current)) {
+      this.mutationError.set('You are not allowed to edit this record.');
       return;
     }
 
@@ -1820,6 +2006,11 @@ export class ExtractionDashboardComponent implements OnInit {
       return;
     }
 
+    if (!this.canDeleteRow(current)) {
+      this.mutationError.set('You are not allowed to delete this record.');
+      return;
+    }
+
     this.isMutating.set(true);
     this.mutationError.set(null);
 
@@ -1836,6 +2027,31 @@ export class ExtractionDashboardComponent implements OnInit {
           console.error('Failed to delete extraction record', err);
           this.isMutating.set(false);
           this.mutationError.set('Failed to delete extraction record.');
+        }
+      });
+  }
+
+  protected approveRecord(row: ExtractionResponse): void {
+    if (!row._id) {
+      console.warn('Attempted to approve extraction without an identifier.');
+      return;
+    }
+
+    if (!this.canApproveRow(row)) {
+      return;
+    }
+
+    this.apiService
+      .approveExtraction(row._id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.rows.update((rows) =>
+            rows.map((item) => (item._id === updated._id ? { ...item, ...updated } : item))
+          );
+        },
+        error: (err) => {
+          console.error('Failed to approve extraction record', err);
         }
       });
   }
