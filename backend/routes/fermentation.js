@@ -49,17 +49,17 @@ router.put(
   updateFermentation
 );
 
-// DELETE - supervisors, hr or admins only in fermentation dept
+// DELETE - operators can delete their own pending records; supervisors/hr/admins can delete any
 router.delete(
   '/fermentation/:id',
   authMiddleware,
   departmentAuth('fermentation'),
-  roleAuth('supervisor', 'hr', 'admin'),
+  roleAuth('operator', 'supervisor', 'hr', 'admin'),
   deleteFermentation
 );
 
 // APPROVE - supervisors, hr or admins only in fermentation dept
-router.patch(
+router.put(
   '/fermentation/:id/approve',
   authMiddleware,
   departmentAuth('fermentation'),

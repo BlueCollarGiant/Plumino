@@ -95,8 +95,8 @@ const createExtraction = async (req, res) => {
   try {
     const extraction = new Extraction({
       ...value,
-      createdBy: req.user.id,
-      approved: req.user.role !== 'operator',
+      status: 'pending',
+      createdBy: req.user._id,
     });
     const saved = await extraction.save();
     res.status(201).json(saved);
@@ -114,12 +114,12 @@ const updateExtraction = async (req, res) => {
     const extraction = await Extraction.findById(req.params.id);
     if (!extraction) return res.status(404).json({ message: 'Not found' });
 
-    // Operators can only edit their own unapproved entries
+    // Operators can only edit their own pending entries
     if (req.user.role === 'operator') {
-      if (!extraction.createdBy || extraction.createdBy.toString() !== req.user.id) {
+      if (!extraction.createdBy || extraction.createdBy.toString() !== req.user._id) {
         return res.status(403).json({ message: 'You can only edit your own entries' });
       }
-      if (extraction.approved) {
+      if (extraction.status === 'approved') {
         return res.status(403).json({ message: 'Cannot edit approved entries' });
       }
     }
@@ -138,7 +138,7 @@ const approveExtraction = async (req, res) => {
     const extraction = await Extraction.findById(req.params.id);
     if (!extraction) return res.status(404).json({ message: 'Not found' });
 
-    extraction.approved = true;
+    extraction.status = 'approved';
     await extraction.save();
 
     res.json({ message: 'Extraction approved', extraction });

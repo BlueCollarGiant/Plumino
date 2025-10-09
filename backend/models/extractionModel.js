@@ -12,11 +12,8 @@ const extractionSchema = new mongoose.Schema({
   weight: { type: Number, required: true },        // kg
   levelIndicator: { type: String, required: true },
   pH: { type: Number, required: true },
-  approved: { type: Boolean, default: false }, // Supervisor/Admin approval
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Employee',
-  },
+  status: { type: String, enum: ['pending', 'approved'], default: 'pending' },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee', required: true },
   createdAt: { type: Date, default: Date.now },
 });
 

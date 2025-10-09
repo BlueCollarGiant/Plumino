@@ -1,7 +1,16 @@
 const Joi = require('joi');
 const Fermentation = require('../models/fermentationModel');
+  try {
+    // Automatically set status and creator for all roles
+    value.status = 'pending';
+    value.createdBy = req.user._id;
 
-const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const fermentation = new Fermentation(value);
+    const saved = await fermentation.save();
+    res.status(201).json(saved);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }gex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const buildFermentationFilters = (query = {}) => {
   const { date, plant, product, campaign, stage } = query;
@@ -57,17 +66,7 @@ const fermentationSchema = Joi.object({
 // GET all
 const getFermentations = async (req, res) => {
   try {
-    let filters = {};
-
-    if (req.user.role === 'operator') {
-      filters = { createdBy: req.user.id };
-    } else if (req.user.role === 'supervisor' || req.user.role === 'admin') {
-      filters = {}; // See everything
-    } else {
-      filters = { approved: true }; // For frontend/public visibility
-    }
-
-    const fermentations = await Fermentation.find(filters);
+    const fermentations = await Fermentation.find({});
     res.json(fermentations);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -116,12 +115,12 @@ const updateFermentation = async (req, res) => {
     const fermentation = await Fermentation.findById(req.params.id);
     if (!fermentation) return res.status(404).json({ message: 'Not found' });
 
-    // Operators: can only edit their own unapproved entries
+    // Operators: can only edit their own pending entries
     if (req.user.role === 'operator') {
-      if (String(fermentation.createdBy) !== req.user.id) {
+      if (String(fermentation.createdBy) !== req.user._id) {
         return res.status(403).json({ message: 'Not authorized to edit this record' });
       }
-      if (fermentation.approved) {
+      if (fermentation.status === 'approved') {
         return res.status(403).json({ message: 'Cannot edit approved records' });
       }
     }
@@ -139,7 +138,7 @@ const approveFermentation = async (req, res) => {
     const fermentation = await Fermentation.findById(req.params.id);
     if (!fermentation) return res.status(404).json({ message: 'Record not found' });
 
-    fermentation.approved = true;
+    fermentation.status = 'approved';
     await fermentation.save();
 
     res.json({ message: 'Fermentation record approved successfully', fermentation });
@@ -151,8 +150,20 @@ const approveFermentation = async (req, res) => {
 // DELETE
 const deleteFermentation = async (req, res) => {
   try {
-    const deleted = await Fermentation.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: 'Not found' });
+    const fermentation = await Fermentation.findById(req.params.id);
+    if (!fermentation) return res.status(404).json({ message: 'Not found' });
+
+    // Operators: can only delete their own pending entries
+    if (req.user.role === 'operator') {
+      if (String(fermentation.createdBy) !== req.user._id) {
+        return res.status(403).json({ message: 'Not authorized to delete this record' });
+      }
+      if (fermentation.status === 'approved') {
+        return res.status(403).json({ message: 'Cannot delete approved records' });
+      }
+    }
+
+    await Fermentation.findByIdAndDelete(req.params.id);
     res.json({ message: 'Deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });

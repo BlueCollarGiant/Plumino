@@ -187,8 +187,8 @@ const createPackaging = async (req, res) => {
   try {
     const packaging = new Packaging({
       ...value,
-      createdBy: req.user.id,
-      approved: req.user.role !== 'operator',
+      status: 'pending',
+      createdBy: req.user._id,
     });
     const saved = await packaging.save();
     res.status(201).json(saved);
@@ -206,12 +206,12 @@ const updatePackaging = async (req, res) => {
     const packaging = await Packaging.findById(req.params.id);
     if (!packaging) return res.status(404).json({ message: 'Not found' });
 
-    // Operators can only edit their own unapproved entries
+    // Operators can only edit their own pending entries
     if (req.user.role === 'operator') {
-      if (!packaging.createdBy || packaging.createdBy.toString() !== req.user.id) {
+      if (!packaging.createdBy || packaging.createdBy.toString() !== req.user._id) {
         return res.status(403).json({ message: 'You can only edit your own entries' });
       }
-      if (packaging.approved) {
+      if (packaging.status === 'approved') {
         return res.status(403).json({ message: 'Cannot edit approved entries' });
       }
     }
@@ -229,7 +229,7 @@ const approvePackaging = async (req, res) => {
   try {
     const packaging = await Packaging.findById(req.params.id);
     if (!packaging) return res.status(404).json({ message: 'Not found' });
-    packaging.approved = true;
+    packaging.status = 'approved';
     await packaging.save();
     res.json({ message: 'Packaging approved', packaging });
   } catch (err) {
@@ -240,8 +240,20 @@ const approvePackaging = async (req, res) => {
 // DELETE
 const deletePackaging = async (req, res) => {
   try {
-    const deleted = await Packaging.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: 'Not found' });
+    const packaging = await Packaging.findById(req.params.id);
+    if (!packaging) return res.status(404).json({ message: 'Not found' });
+
+    // Operators: can only delete their own pending entries
+    if (req.user.role === 'operator') {
+      if (String(packaging.createdBy) !== req.user._id) {
+        return res.status(403).json({ message: 'Not authorized to delete this record' });
+      }
+      if (packaging.status === 'approved') {
+        return res.status(403).json({ message: 'Cannot delete approved records' });
+      }
+    }
+
+    await Packaging.findByIdAndDelete(req.params.id);
     res.json({ message: 'Deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });

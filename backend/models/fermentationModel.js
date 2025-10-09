@@ -9,7 +9,9 @@ const fermentationSchema = new mongoose.Schema({
   campaign: { type: String, required: true },
   receivedAmount: { type: Number, required: true },       
   weight: { type: Number, required: true },          
-  date: { type: Date, required: true },              
+  date: { type: Date, required: true },
+  status: { type: String, enum: ['pending', 'approved'], default: 'pending' },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee', required: true },
   createdAt: { type: Date, default: Date.now }
 
 });
