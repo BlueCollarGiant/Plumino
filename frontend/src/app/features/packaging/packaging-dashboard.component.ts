@@ -1755,7 +1755,8 @@ export class PackagingDashboardComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (newRecord: PackagingResponse) => {
-          this.rows.update(rows => [newRecord, ...rows]);
+          // Reload data to ensure UI shows correct filtered dataset
+          this.loadData();
           this.resetQuickAddForm();
           this.isQuickSaving.set(false);
         },
@@ -1836,9 +1837,8 @@ export class PackagingDashboardComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
-          this.rows.update((rows) =>
-            rows.map((item) => (item._id === updated._id ? { ...item, ...updated } : item))
-          );
+          // Reload data to ensure UI shows correct filtered dataset
+          this.loadData();
           this.isMutating.set(false);
           this.closeEditModal();
         },

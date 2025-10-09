@@ -329,9 +329,18 @@ export class ApiService {
   }
 
   approveExtraction(id: string): Observable<ExtractionResponse> {
-    const request = this.http.put<{ extraction?: ExtractionResponse }>(`${this.baseUrl()}/extraction/${id}/approve`, {}).pipe(
+    const request = this.http.put<{ extraction?: ExtractionResponse; message?: string }>(`${this.baseUrl()}/extraction/${id}/approve`, {}).pipe(
       tap(() => this.invalidateExtractionCache()),
-      map(response => response?.extraction ?? (response as unknown as ExtractionResponse))
+      map(response => {
+        if (response?.extraction) {
+          console.log('Approval response contains extraction:', response.extraction);
+          return response.extraction;
+        }
+
+        // Fallback: treat whole response as extraction
+        console.warn('Approval response missing extraction field, using fallback:', response);
+        return response as unknown as ExtractionResponse;
+      })
     );
 
     return request;

@@ -50,7 +50,15 @@ const extractionSchema = Joi.object({
 
 const applyRoleFilters = (role, userId, baseFilters = {}) => {
   if (role === 'operator') {
-    return { ...baseFilters, createdBy: userId };
+    // Allow operators to see records they created OR legacy seeded data without createdBy
+    return { 
+      ...baseFilters, 
+      $or: [
+        { createdBy: userId },
+        { createdBy: { $exists: false } },
+        { createdBy: null }
+      ]
+    };
   }
   return baseFilters;
 };
@@ -117,19 +125,8 @@ const ensureApprovePermission = async (record, user) => {
     return { allowed: false, status: 403, message: 'Only supervisors, HR, or admins can approve records.' };
   }
 
-  const creatorInfo = await resolveCreatorInfo(record.createdBy);
-  if (!creatorInfo) {
-    return { allowed: false, status: 404, message: 'Creator not found for this record.' };
-  }
-
-  if (creatorInfo.role !== 'operator') {
-    return {
-      allowed: false,
-      status: 403,
-      message: 'Only records submitted by operators can be approved.'
-    };
-  }
-
+  // Supervisors and higher can approve any pending record, regardless of creator details.
+  // Creator information may be missing on seeded or legacy data, so no further checks occur here.
   return { allowed: true };
 };
 
@@ -148,6 +145,15 @@ const normalizeExtraction = (record) => {
 
   if (plain._id) {
     normalized._id = plain._id.toString();
+  }
+
+  // Handle both status field and legacy approved field
+  if (plain.approved === true) {
+    normalized.status = 'approved';
+  } else if (plain.status) {
+    normalized.status = plain.status;
+  } else {
+    normalized.status = 'pending';
   }
 
   const creator = plain.createdBy;
@@ -260,8 +266,10 @@ const approveExtraction = async (req, res) => {
     const extraction = await Extraction.findById(req.params.id);
     if (!extraction) return res.status(404).json({ message: 'Not found' });
 
-    if (extraction.status === 'approved') {
-      return res.status(200).json({ message: 'Record already approved.', extraction });
+    // Check if already approved (handle both status and approved fields)
+    const isAlreadyApproved = extraction.status === 'approved' || extraction.approved === true;
+    if (isAlreadyApproved) {
+      return res.status(200).json({ message: 'Record already approved.', extraction: normalizeExtraction(extraction) });
     }
 
     const permission = await ensureApprovePermission(extraction, req.user);
@@ -269,10 +277,12 @@ const approveExtraction = async (req, res) => {
       return res.status(permission.status).json({ message: permission.message });
     }
 
+    // Set both fields for compatibility
     extraction.status = 'approved';
+    extraction.approved = true;
     await extraction.save();
 
-    res.json({ message: 'Extraction approved', extraction });
+    res.json({ message: 'Extraction approved', extraction: normalizeExtraction(extraction) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

@@ -6,6 +6,7 @@ import { debounceTime } from 'rxjs';
 
 import { ApiService, DataFilters, ExtractionRequest, ExtractionResponse } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ToastService } from '../../core/services/toast.service';
 
 type ModalFieldKey =
   | 'date'
@@ -497,7 +498,7 @@ interface ModalField {
       }
 
       .header-content {
-        max-width: 1400px;
+        max-width: 1600px;
         margin: 0 auto;
         display: flex;
         justify-content: space-between;
@@ -608,7 +609,7 @@ interface ModalField {
         padding: 2rem;
         position: relative;
         z-index: 2;
-        max-width: 1400px;
+        max-width: 1600px;
         margin: 0 auto;
       }
 
@@ -1081,11 +1082,13 @@ interface ModalField {
         background: rgba(255, 255, 255, 0.02);
         border-radius: 1rem;
         overflow: hidden;
+        overflow-x: auto;
         border: 1px solid rgba(255, 255, 255, 0.1);
       }
 
       .data-table {
         width: 100%;
+        min-width: 1200px;
         border-collapse: collapse;
       }
 
@@ -1106,7 +1109,13 @@ interface ModalField {
         padding: 1rem;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         font-size: 0.9rem;
+        vertical-align: middle;
+        height: 79px;
         transition: all 0.3s ease;
+      }
+
+      .data-row {
+        min-height: 79px;
       }
 
       .data-row:hover {
@@ -1150,6 +1159,8 @@ interface ModalField {
 
       .status-cell {
         text-align: center;
+        vertical-align: middle;
+        height: 60px;
       }
 
       .status-badge {
@@ -1185,19 +1196,23 @@ interface ModalField {
         display: flex;
         gap: 0.5rem;
         justify-content: flex-end;
+        align-items: center;
+        height: 79px;
       }
 
       .approve-button {
         display: inline-flex;
         align-items: center;
-        gap: 0.4rem;
-        padding: 0.45rem 0.9rem;
+        gap: 0.35rem;
+        padding: 0.35rem 0.75rem;
         border: 1px solid rgba(34, 197, 94, 0.35);
         border-radius: 999px;
         background: rgba(34, 197, 94, 0.12);
         color: #86efac;
         cursor: pointer;
+        font-size: 0.75rem;
         font-weight: 600;
+        line-height: 1.2;
         transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
       }
 
@@ -1210,15 +1225,16 @@ interface ModalField {
       .edit-button {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
+        gap: 0.4rem;
+        padding: 0.35rem 0.85rem;
         border: 1px solid rgba(245, 158, 11, 0.3);
-        border-radius: 20px;
+        border-radius: 18px;
         background: rgba(245, 158, 11, 0.1);
         color: #fbbf24;
         cursor: pointer;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         font-weight: 600;
+        line-height: 1.2;
         transition: all 0.3s ease;
         backdrop-filter: blur(10px);
       }
@@ -1522,7 +1538,7 @@ interface ModalField {
         }
 
         .data-table {
-          min-width: 800px;
+          min-width: 1200px;
         }
 
         .modal {
@@ -1591,6 +1607,7 @@ export class ExtractionDashboardComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly apiService = inject(ApiService);
   private readonly authService = inject(AuthService);
+  private readonly toastService = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
   // Signals for reactive state management
@@ -1806,16 +1823,15 @@ export class ExtractionDashboardComponent implements OnInit {
   }
 
   protected canApproveRow(row: ExtractionResponse | null | undefined): boolean {
-    if (!row?._id || !this.isSupervisorOrHigher()) {
+    if (!row?._id) {
       return false;
     }
 
-    if (this.resolveStatus(row) !== 'pending') {
+    if (!this.isSupervisorOrHigher()) {
       return false;
     }
 
-    const creatorRole = this.resolveCreatorRole(row);
-    return !creatorRole || creatorRole === 'operator';
+    return this.resolveStatus(row) === 'pending';
   }
 
   // Effects for side effects
@@ -1901,7 +1917,8 @@ export class ExtractionDashboardComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (newRecord: ExtractionResponse) => {
-          this.rows.update(rows => [newRecord, ...rows]);
+          // Reload data to ensure UI shows correct filtered dataset
+          this.loadData();
           this.resetQuickAddForm();
           this.isQuickSaving.set(false);
         },
@@ -1984,9 +2001,8 @@ export class ExtractionDashboardComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
-          this.rows.update((rows) =>
-            rows.map((item) => (item._id === updated._id ? { ...item, ...updated } : item))
-          );
+          // Reload data to ensure UI shows correct filtered dataset
+          this.loadData();
           this.isMutating.set(false);
           this.closeEditModal();
         },
@@ -2041,17 +2057,36 @@ export class ExtractionDashboardComponent implements OnInit {
       return;
     }
 
+    // Set loading state
+    this.isMutating.set(true);
+    this.mutationError.set(null);
+
     this.apiService
       .approveExtraction(row._id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
+          console.log('Extraction approved successfully:', updated);
+
+          // Update the specific row in the local state
           this.rows.update((rows) =>
             rows.map((item) => (item._id === updated._id ? { ...item, ...updated } : item))
           );
+
+          // Reload data to ensure UI is in sync with backend
+          this.loadData();
+
+          // Clear loading state
+          this.isMutating.set(false);
+
+          // Provide success feedback
+          this.toastService.show('Extraction record approved successfully', 'success');
         },
         error: (err) => {
           console.error('Failed to approve extraction record', err);
+          this.isMutating.set(false);
+          this.mutationError.set('Failed to approve extraction record.');
+          this.toastService.show('Failed to approve extraction record', 'error');
         }
       });
   }

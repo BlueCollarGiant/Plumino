@@ -48,7 +48,15 @@ const fermentationSchema = Joi.object({
 
 const applyRoleFilters = (role, userId, baseFilters = {}) => {
   if (role === 'operator') {
-    return { ...baseFilters, createdBy: userId };
+    // Allow operators to see records they created OR legacy seeded data without createdBy
+    return { 
+      ...baseFilters, 
+      $or: [
+        { createdBy: userId },
+        { createdBy: { $exists: false } },
+        { createdBy: null }
+      ]
+    };
   }
   return baseFilters;
 };
@@ -146,6 +154,15 @@ const normalizeFermentation = (record) => {
 
   if (plain._id) {
     normalized._id = plain._id.toString();
+  }
+
+  // Handle both status field and legacy approved field
+  if (plain.approved === true) {
+    normalized.status = 'approved';
+  } else if (plain.status) {
+    normalized.status = plain.status;
+  } else {
+    normalized.status = 'pending';
   }
 
   const creator = plain.createdBy;
@@ -257,8 +274,10 @@ const approveFermentation = async (req, res) => {
     const fermentation = await Fermentation.findById(req.params.id);
     if (!fermentation) return res.status(404).json({ message: 'Record not found' });
 
-    if (fermentation.status === 'approved') {
-      return res.status(200).json({ message: 'Record already approved.', fermentation });
+    // Check if already approved (handle both status and approved fields)
+    const isAlreadyApproved = fermentation.status === 'approved' || fermentation.approved === true;
+    if (isAlreadyApproved) {
+      return res.status(200).json({ message: 'Record already approved.', fermentation: normalizeFermentation(fermentation) });
     }
 
     const permission = await ensureApprovePermission(fermentation, req.user);
@@ -266,9 +285,12 @@ const approveFermentation = async (req, res) => {
       return res.status(permission.status).json({ message: permission.message });
     }
 
+    // Set both fields for compatibility
     fermentation.status = 'approved';
+    fermentation.approved = true;
     await fermentation.save();
-    res.json({ message: 'Fermentation record approved successfully', fermentation });
+    
+    res.json({ message: 'Fermentation record approved successfully', fermentation: normalizeFermentation(fermentation) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

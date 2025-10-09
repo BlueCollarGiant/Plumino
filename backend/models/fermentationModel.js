@@ -11,7 +11,8 @@ const fermentationSchema = new mongoose.Schema({
   weight: { type: Number, required: true },          
   date: { type: Date, required: true },
   status: { type: String, enum: ['pending', 'approved'], default: 'pending' },
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee', required: true },
+  approved: { type: Boolean, default: false }, // Legacy field for existing data
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' }, // Not required for legacy data
   createdAt: { type: Date, default: Date.now }
 
 });

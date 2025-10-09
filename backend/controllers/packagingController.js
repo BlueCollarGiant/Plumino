@@ -77,7 +77,15 @@ const packagingSchema = Joi.object({
 
 const applyRoleFilters = (role, userId, baseFilters = {}) => {
   if (role === 'operator') {
-    return { ...baseFilters, createdBy: userId };
+    // Allow operators to see records they created OR legacy seeded data without createdBy
+    return { 
+      ...baseFilters, 
+      $or: [
+        { createdBy: userId },
+        { createdBy: { $exists: false } },
+        { createdBy: null }
+      ]
+    };
   }
   return baseFilters;
 };
@@ -175,6 +183,15 @@ const normalizePackaging = (record) => {
 
   if (plain._id) {
     normalized._id = plain._id.toString();
+  }
+
+  // Handle both status field and legacy approved field
+  if (plain.approved === true) {
+    normalized.status = 'approved';
+  } else if (plain.status) {
+    normalized.status = plain.status;
+  } else {
+    normalized.status = 'pending';
   }
 
   const creator = plain.createdBy;
@@ -378,7 +395,9 @@ const approvePackaging = async (req, res) => {
     const packaging = await Packaging.findById(req.params.id);
     if (!packaging) return res.status(404).json({ message: 'Not found' });
 
-    if (packaging.status === 'approved') {
+    // Check if already approved (handle both status and approved fields)
+    const isAlreadyApproved = packaging.status === 'approved' || packaging.approved === true;
+    if (isAlreadyApproved) {
       await packaging.populate('createdBy', 'role name');
       return res.status(200).json({ message: 'Record already approved.', packaging: normalizePackaging(packaging) });
     }
@@ -388,7 +407,9 @@ const approvePackaging = async (req, res) => {
       return res.status(permission.status).json({ message: permission.message });
     }
 
+    // Set both fields for compatibility
     packaging.status = 'approved';
+    packaging.approved = true;
     await packaging.save();
     await packaging.populate('createdBy', 'role name');
     res.json({ message: 'Packaging record approved successfully', packaging: normalizePackaging(packaging) });
