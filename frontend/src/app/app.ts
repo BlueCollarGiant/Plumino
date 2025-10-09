@@ -7,12 +7,13 @@ import { AuthService } from './core/services/auth.service';
 import { NotificationService } from './core/services/notification.service';
 import { MobileAuthNavComponent } from './shared/components/navbar/mobile-auth-nav.component';
 import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component';
+import { FooterComponent } from './shared/components/footer/footer.component';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, HttpClientModule, MobileAuthNavComponent, ToastContainerComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, HttpClientModule, MobileAuthNavComponent, ToastContainerComponent, FooterComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
