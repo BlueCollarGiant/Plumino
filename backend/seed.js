@@ -1,5 +1,3 @@
-// Seeding script temporarily disabled. Remove this comment block when ready to seed.
-
 const mongoose = require("mongoose");
 const XLSX = require("xlsx");
 require("dotenv").config();
@@ -8,6 +6,7 @@ require("dotenv").config();
 const Extraction = require("./models/extractionModel");
 const Fermentation = require("./models/fermentationModel");
 const Packaging = require("./models/packagingModel");
+const Employee = require("./models/employeeModel");
 
 // Database connection
 mongoose
@@ -116,7 +115,9 @@ function remapRow(row) {
   }
 
   mapped.createdAt = new Date();
-  mapped.approved = true; // Mark all seeded data as approved
+  mapped.status = 'approved'; // Mark all seeded data as approved
+  // Note: Most seeded data will have no createdBy (legacy data)
+  // This allows operators to see historical records
   return mapped;
 }
 
@@ -137,15 +138,46 @@ const packagingData = XLSX.utils
 
 async function seed() {
   try {
+    // Get operator users for optional assignment to some records
+    const operators = await Employee.find({ role: 'operator' }).select('_id');
+    const operatorIds = operators.map(op => op._id);
+
     await Extraction.deleteMany({});
     await Fermentation.deleteMany({});
     await Packaging.deleteMany({});
 
-    const res1 = await Extraction.insertMany(extractionData);
-    const res2 = await Fermentation.insertMany(fermentationData);
-    const res3 = await Packaging.insertMany(packagingData);
+    // Enhance some records with createdBy for testing
+    const enhancedExtractionData = extractionData.map((record, index) => {
+      // Assign every 4th record to a random operator for testing
+      if (index % 4 === 0 && operatorIds.length > 0) {
+        const randomOperator = operatorIds[Math.floor(Math.random() * operatorIds.length)];
+        return { ...record, createdBy: randomOperator };
+      }
+      return record; // Keep most as legacy data (no createdBy)
+    });
+
+    const enhancedFermentationData = fermentationData.map((record, index) => {
+      if (index % 4 === 0 && operatorIds.length > 0) {
+        const randomOperator = operatorIds[Math.floor(Math.random() * operatorIds.length)];
+        return { ...record, createdBy: randomOperator };
+      }
+      return record;
+    });
+
+    const enhancedPackagingData = packagingData.map((record, index) => {
+      if (index % 4 === 0 && operatorIds.length > 0) {
+        const randomOperator = operatorIds[Math.floor(Math.random() * operatorIds.length)];
+        return { ...record, createdBy: randomOperator };
+      }
+      return record;
+    });
+
+    const res1 = await Extraction.insertMany(enhancedExtractionData);
+    const res2 = await Fermentation.insertMany(enhancedFermentationData);
+    const res3 = await Packaging.insertMany(enhancedPackagingData);
 
     console.log(`Seeded ${res1.length} extractions, ${res2.length} fermentations, ${res3.length} packagings.`);
+    console.log('Note: Most records are legacy data (no createdBy), some are assigned to operators for testing.');
   } catch (err) {
     console.error("Error seeding data:", err);
   } finally {

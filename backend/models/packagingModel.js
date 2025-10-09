@@ -8,11 +8,9 @@ const packagingSchema = new mongoose.Schema({
   packageType: { type: String, required: true },     // maps from "package"
   incomingAmountKg: { type: Number, required: true }, // numeric kg
   outgoingAmountKg: { type: Number, required: true }, // numeric kg
-  approved: { type: Boolean, default: false },        // approval flag
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Employee',
-  },
+  status: { type: String, enum: ['pending', 'approved'], default: 'pending' },
+  approved: { type: Boolean, default: false }, // Legacy field for existing data
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' }, // Not required for legacy data
   createdAt: { type: Date, default: Date.now },
 });
 

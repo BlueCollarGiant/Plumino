@@ -38,12 +38,12 @@ router.put(
   updateExtraction
 );
 
-// DELETE — Supervisor/HR/Admin only in extraction dept
+// DELETE — operators can delete their own pending records; supervisors/hr/admins can delete any
 router.delete(
   '/extraction/:id',
   authMiddleware,
   departmentAuth('extraction'),
-  roleAuth('supervisor', 'hr', 'admin'),
+  roleAuth('operator', 'supervisor', 'hr', 'admin'),
   deleteExtraction
 );
 

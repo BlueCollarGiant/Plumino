@@ -12,11 +12,9 @@ const extractionSchema = new mongoose.Schema({
   weight: { type: Number, required: true },        // kg
   levelIndicator: { type: String, required: true },
   pH: { type: Number, required: true },
-  approved: { type: Boolean, default: false }, // Supervisor/Admin approval
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Employee',
-  },
+  status: { type: String, enum: ['pending', 'approved'], default: 'pending' },
+  approved: { type: Boolean, default: false }, // Legacy field for existing data
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' }, // Not required for legacy data
   createdAt: { type: Date, default: Date.now },
 });
 

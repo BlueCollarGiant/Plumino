@@ -8,6 +8,7 @@ export interface LoginRequest {
 }
 
 export interface EmployeeProfile {
+  readonly id: string;
   readonly name: string;
   readonly role: string;
   readonly department: string;
