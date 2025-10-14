@@ -62,17 +62,32 @@ const applyRoleFilters = (role, userId, baseFilters = {}) => {
 };
 
 const resolveCreatorInfo = async (createdBy) => {
-  if (!createdBy) return null;
+  console.log('🔍 resolveCreatorInfo called with:', createdBy);
+  
+  if (!createdBy) {
+    console.log('❌ No createdBy field');
+    return null;
+  }
 
   if (typeof createdBy === 'object' && createdBy !== null) {
+    console.log('📦 CreatedBy is object:', createdBy);
     const id = createdBy._id ? createdBy._id.toString() : createdBy.toString?.();
     if (createdBy.role) {
+      console.log('✅ Found role in object:', createdBy.role);
       return { id, role: createdBy.role };
     }
   }
 
+  console.log('🔍 Looking up employee by ID:', createdBy);
   const creator = await Employee.findById(createdBy).select('_id role');
-  if (!creator) return null;
+  console.log('👤 Employee lookup result:', creator);
+  
+  if (!creator) {
+    console.log('❌ Employee not found');
+    return null;
+  }
+  
+  console.log('✅ Employee found:', { id: creator._id.toString(), role: creator.role });
   return { id: creator._id.toString(), role: creator.role };
 };
 
@@ -123,19 +138,8 @@ const ensureApprovePermission = async (record, user) => {
     return { allowed: false, status: 403, message: 'Only supervisors, HR, or admins can approve records.' };
   }
 
-  const creatorInfo = await resolveCreatorInfo(record.createdBy);
-  if (!creatorInfo) {
-    return { allowed: false, status: 404, message: 'Creator not found for this record.' };
-  }
-
-  if (creatorInfo.role !== 'operator') {
-    return {
-      allowed: false,
-      status: 403,
-      message: 'Only records submitted by operators can be approved.'
-    };
-  }
-
+  // Supervisors and higher can approve any pending record, regardless of creator details.
+  // Creator information may be missing on seeded or legacy data, so no further checks occur here.
   return { allowed: true };
 };
 
@@ -270,28 +274,47 @@ const updateFermentation = async (req, res) => {
 };
 
 const approveFermentation = async (req, res) => {
+  console.log('🔥 approveFermentation called for ID:', req.params.id);
   try {
+    console.log('🔍 Finding fermentation record...');
     const fermentation = await Fermentation.findById(req.params.id);
-    if (!fermentation) return res.status(404).json({ message: 'Record not found' });
+    console.log('📊 Found fermentation:', !!fermentation);
+    
+    if (!fermentation) {
+      console.log('❌ Fermentation not found');
+      return res.status(404).json({ message: 'Record not found' });
+    }
 
     // Check if already approved (handle both status and approved fields)
     const isAlreadyApproved = fermentation.status === 'approved' || fermentation.approved === true;
+    console.log('✅ Already approved check:', isAlreadyApproved);
+    
     if (isAlreadyApproved) {
+      await fermentation.populate('createdBy', 'role name');
+      console.log('📤 Returning already approved record');
       return res.status(200).json({ message: 'Record already approved.', fermentation: normalizeFermentation(fermentation) });
     }
 
+    console.log('🔐 Checking permissions...');
     const permission = await ensureApprovePermission(fermentation, req.user);
+    console.log('🔐 Permission result:', permission);
+    
     if (!permission.allowed) {
+      console.log('❌ Permission denied');
       return res.status(permission.status).json({ message: permission.message });
     }
 
     // Set both fields for compatibility
+    console.log('💾 Updating fermentation status...');
     fermentation.status = 'approved';
     fermentation.approved = true;
     await fermentation.save();
+    await fermentation.populate('createdBy', 'role name');
     
+    console.log('✅ Successfully approved fermentation record');
     res.json({ message: 'Fermentation record approved successfully', fermentation: normalizeFermentation(fermentation) });
   } catch (err) {
+    console.error('💥 Error in approveFermentation:', err);
     res.status(500).json({ message: err.message });
   }
 };

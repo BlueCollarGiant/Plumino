@@ -47,6 +47,10 @@ router.delete(
 // Approval
 router.put(
   '/fermentation/:id/approve',
+  (req, res, next) => {
+    console.log('🎯 Fermentation approval route hit:', req.params.id);
+    next();
+  },
   authMiddleware,
   departmentAuth('fermentation'),
   roleAuth('supervisor', 'hr', 'admin'),

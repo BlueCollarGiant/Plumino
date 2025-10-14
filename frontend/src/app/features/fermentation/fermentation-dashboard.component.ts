@@ -6,7 +6,8 @@ import { debounceTime } from 'rxjs';
 
 import { ApiService, DataFilters, FermentationRequest, FermentationResponse } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
-import { FermentationYieldGraphComponent } from '../../shared/components/fermentation-yield-graph/fermentation-yield-graph.component';
+import { ToastService } from '../../core/services/toast.service';
+import { FermentationGraphPanelComponent } from '../../shared/components/fermentation-yield-graph/fermentation-yield-graph.component';
 
 
 type ModalFieldKey =
@@ -40,7 +41,7 @@ type FermentationFormValue = Record<ModalFieldKey, unknown>;
 @Component({
   selector: 'app-fermentation-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FermentationYieldGraphComponent],
+  imports: [CommonModule, ReactiveFormsModule, FermentationGraphPanelComponent],
   template: `
     <div class="fermentation-dashboard">
       <!-- Animated Background -->
@@ -310,10 +311,11 @@ type FermentationFormValue = Record<ModalFieldKey, unknown>;
           <button [class.active]="selectedStatus() === 'approved'" (click)="toggleStatus('approved')">Approved</button>
           <button [class.active]="selectedStatus() === 'pending'" (click)="toggleStatus('pending')">Pending</button>
         </div>
-        <app-fermentation-yield-graph
-          [chartData]="chartData()"
+        <app-fermentation-graph-panel
+          [rows]="filteredRows()"
+          [selectedStatus]="selectedStatus()"
           [isLoading]="isLoading()">
-        </app-fermentation-yield-graph>
+        </app-fermentation-graph-panel>
       </section>
 
     <!-- Modal for editing -->
@@ -1564,6 +1566,7 @@ export class FermentationDashboardComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly apiService = inject(ApiService);
   private readonly authService = inject(AuthService);
+  private readonly toastService = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly filterForm = this.fb.nonNullable.group({
@@ -1711,19 +1714,33 @@ export class FermentationDashboardComponent implements OnInit {
     } as const;
   });
 
+  protected readonly filteredRows = computed(() => {
+    const allRows = this.rows();
+    const status = this.selectedStatus();
+
+    // Treat rows with no status (legacy data) as part of the approved baseline
+    const baselineRows = allRows.filter(row => row.status === 'approved' || !row.status);
+    if (status === 'pending') {
+      const pendingRows = allRows.filter(row => row.status === 'pending');
+      return [...baselineRows, ...pendingRows];
+    }
+
+    return baselineRows;
+  });
+
   protected readonly chartData = computed<readonly FermentationChartSeries[]>(() => {
     const allRows = this.rows();
 
-    // Always include all approved rows as the baseline
-    const approvedRows = allRows.filter(row => row.status === 'approved');
+    // Always include all approved or legacy rows as the baseline
+    const baselineRows = allRows.filter(row => row.status === 'approved' || !row.status);
 
     // When pending is selected, also include pending rows
     const pendingRows = this.selectedStatus() === 'pending'
       ? allRows.filter(row => row.status === 'pending')
       : [];
 
-    // Merge approved and pending data (approved first, then pending to prevent duplicates)
-    const mergedRows = [...approvedRows, ...pendingRows];
+    // Merge baseline and pending data (baseline first, then pending to prevent duplicates)
+    const mergedRows = [...baselineRows, ...pendingRows];
 
     const chartData = buildFermentationChartData(
       mergedRows,
@@ -1799,16 +1816,29 @@ export class FermentationDashboardComponent implements OnInit {
   }
 
   protected canApproveRow(row: FermentationResponse | null | undefined): boolean {
+    console.log('🔍 canApproveRow debug:', {
+      hasId: !!row?._id,
+      userRole: this.userRole(),
+      isSupervisorOrHigher: this.isSupervisorOrHigher(),
+      rowStatus: this.resolveStatus(row),
+      creatorRole: this.resolveCreatorRole(row),
+      row: row
+    });
+
     if (!row?._id || !this.isSupervisorOrHigher()) {
+      console.log('❌ Failed: No ID or not supervisor+');
       return false;
     }
 
     if (this.resolveStatus(row) !== 'pending') {
+      console.log('❌ Failed: Status not pending');
       return false;
     }
 
     const creatorRole = this.resolveCreatorRole(row);
-    return !creatorRole || creatorRole === 'operator';
+    const canApprove = !creatorRole || creatorRole === 'operator';
+    console.log('✅ Final approval decision:', canApprove);
+    return canApprove;
   }
 
   // Effects for side effects management
@@ -2025,17 +2055,38 @@ export class FermentationDashboardComponent implements OnInit {
       return;
     }
 
+    console.log('🚀 Sending approval request for:', row._id);
+
+    // Set loading state
+    this.isMutating.set(true);
+    this.mutationError.set(null);
+
     this.apiService
       .approveFermentation(row._id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
+          console.log('✅ Fermentation approved successfully:', updated);
+
+          // Update the specific row in the local state
           this.rows.update((rows) =>
             rows.map((item) => (item._id === updated._id ? { ...item, ...updated } : item))
           );
+
+          // Reload data to ensure UI is in sync with backend
+          this.loadData();
+
+          // Clear loading state
+          this.isMutating.set(false);
+
+          // Provide success feedback
+          this.toastService.show('Fermentation record approved successfully', 'success');
         },
         error: (err) => {
-          console.error('Failed to approve fermentation record', err);
+          console.error('❌ Failed to approve fermentation record', err);
+          this.isMutating.set(false);
+          this.mutationError.set('Failed to approve fermentation record.');
+          this.toastService.show('Failed to approve fermentation record', 'error');
         }
       });
   }

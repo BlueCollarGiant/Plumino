@@ -1,13 +1,18 @@
-<div class="graph-wrapper">
-  @if (isLoading) {
-    <p>Loading graph data...</p>
-  } @else if (chartData?.length) {
-    <canvas baseChart
-      [data]="{ labels: lineChartLabels, datasets: lineChartData }"
-      [options]="lineChartOptions"
-      chartType="line">
-    </canvas>
-  } @else {
-    <p>No chart data available.</p>
-  }
+<div class="graph-grid">
+  <app-input-output-graph
+    [rows]="rows"
+    [isLoading]="isLoading">
+  </app-input-output-graph>
+  <app-production-trend-graph
+    [rows]="rows"
+    [isLoading]="isLoading">
+  </app-production-trend-graph>
+  <app-plant-utilization-graph
+    [rows]="rows"
+    [isLoading]="isLoading">
+  </app-plant-utilization-graph>
+  <app-campaign-output-graph
+    [rows]="rows"
+    [isLoading]="isLoading">
+  </app-campaign-output-graph>
 </div>
