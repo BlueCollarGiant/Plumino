@@ -1,0 +1,14 @@
+:host {
+  display: block;
+}
+
+.graph-wrapper {
+  min-height: 400px;
+  overflow: visible;
+  position: relative;
+}
+
+canvas {
+  width: 100%;
+  height: 100%;
+}

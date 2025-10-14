@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, OnInit, computed, inject, signal, effect } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators, FormControl } from '@angular/forms';
+import { Component, DestroyRef, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime } from 'rxjs';
 
 import { ApiService, DataFilters, FermentationRequest, FermentationResponse } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
+import { FermentationYieldGraphComponent } from '../../shared/components/fermentation-yield-graph/fermentation-yield-graph.component';
 
 
 type ModalFieldKey =
@@ -39,7 +40,7 @@ type FermentationFormValue = Record<ModalFieldKey, unknown>;
 @Component({
   selector: 'app-fermentation-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FermentationYieldGraphComponent],
   template: `
     <div class="fermentation-dashboard">
       <!-- Animated Background -->
@@ -297,13 +298,27 @@ type FermentationFormValue = Record<ModalFieldKey, unknown>;
                 <h4>Loading Data</h4>
                 <p>Fetching fermentation records...</p>
               </div>
-            </div>
-          }
         </div>
+      }
+    </div>
 
-        <!-- Modal for editing -->
-        @if (editingRow()) {
-          <div class="modal-backdrop">
+      <section class="graph-section data-section" style="overflow: visible;">
+        <h3 class="card-title">
+          Fermentation Yield
+        </h3>
+        <div class="status-toggle">
+          <button [class.active]="selectedStatus() === 'approved'" (click)="toggleStatus('approved')">Approved</button>
+          <button [class.active]="selectedStatus() === 'pending'" (click)="toggleStatus('pending')">Pending</button>
+        </div>
+        <app-fermentation-yield-graph
+          [chartData]="chartData()"
+          [isLoading]="isLoading()">
+        </app-fermentation-yield-graph>
+      </section>
+
+    <!-- Modal for editing -->
+    @if (editingRow()) {
+      <div class="modal-backdrop">
             <div class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
               <header class="modal-header">
                 <div class="modal-title-section">
@@ -1563,6 +1578,7 @@ export class FermentationDashboardComponent implements OnInit {
   protected readonly isLoading = signal(false);
   protected readonly userRole = signal<string>('');
   protected readonly userId = signal<string>('');
+  readonly selectedStatus = signal<'approved' | 'pending'>('approved');
   protected readonly isOperator = computed(() => this.userRole() === 'operator');
   protected readonly isSupervisorOrHigher = computed(() => {
     const role = this.userRole();
@@ -1634,7 +1650,6 @@ export class FermentationDashboardComponent implements OnInit {
   }
 
   // Computed signals for derived state
-  protected readonly hasData = computed(() => this.rows().length > 0);
   protected readonly recordCount = computed(() => this.rows().length);
   protected readonly isModalOpen = computed(() => !!this.editingRow());
   protected readonly canSubmitEdit = computed(() => {
@@ -1695,6 +1710,33 @@ export class FermentationDashboardComponent implements OnInit {
       avgLevelIndicator: totals.levelCount ? totals.levelSum / totals.levelCount : 0
     } as const;
   });
+
+  protected readonly chartData = computed<readonly FermentationChartSeries[]>(() => {
+    const allRows = this.rows();
+
+    // Always include all approved rows as the baseline
+    const approvedRows = allRows.filter(row => row.status === 'approved');
+
+    // When pending is selected, also include pending rows
+    const pendingRows = this.selectedStatus() === 'pending'
+      ? allRows.filter(row => row.status === 'pending')
+      : [];
+
+    // Merge approved and pending data (approved first, then pending to prevent duplicates)
+    const mergedRows = [...approvedRows, ...pendingRows];
+
+    const chartData = buildFermentationChartData(
+      mergedRows,
+      (primary, fallback) => this.resolveNumber(primary, fallback)
+    );
+
+    console.log('chartData computed', chartData);
+    return chartData;
+  });
+
+  public toggleStatus(mode: 'approved' | 'pending'): void {
+    this.selectedStatus.set(mode);
+  }
 
   protected resolveStatus(row: FermentationResponse | ModalRow | null | undefined): 'pending' | 'approved' {
     return row?.status === 'approved' ? 'approved' : 'pending';
@@ -2122,5 +2164,53 @@ export class FermentationDashboardComponent implements OnInit {
   }
 }
 
-/* Added manual entry form with API create hook, toggled visibility, and refresh wiring. */
+interface FermentationChartSeries {
+  readonly name: string;
+  readonly data: { readonly x: string | Date; readonly y: number }[];
+}
 
+/**
+ * Builds a multi-series fermentation yield dataset grouped by plant for line charts.
+ */
+function buildFermentationChartData(
+  rows: readonly FermentationResponse[],
+  resolveNumberFn: (primary?: number | null, fallback?: number | null) => number = (primary, fallback) => (primary ?? fallback ?? 0)
+): FermentationChartSeries[] {
+  const grouped = new Map<string, { x: Date; y: number }[]>();
+
+  for (const row of rows) {
+    if (!row) {
+      continue;
+    }
+
+    const normalizedDate = row.date ? new Date(row.date) : null;
+    if (!normalizedDate || Number.isNaN(normalizedDate.getTime())) {
+      continue;
+    }
+
+    const plantName = row.plant?.trim() || 'Unknown';
+    const fallbackReceived = (row as { received?: number | null }).received;
+    const weight = resolveNumberFn(row.weightLbs, row.weight);
+    const received = resolveNumberFn(
+      row.receivedAmountLbs ?? fallbackReceived,
+      row.receivedAmount ?? fallbackReceived
+    );
+    const yieldPercent = weight > 0 ? (received / weight) * 100 : 0;
+
+    if (grouped.has(plantName)) {
+      grouped.get(plantName)!.push({ x: normalizedDate, y: yieldPercent });
+    } else {
+      grouped.set(plantName, [{ x: normalizedDate, y: yieldPercent }]);
+    }
+  }
+
+  const result = Array.from(grouped.entries()).map(([name, data]) => ({
+    name,
+    data: [...data].sort((a, b) => new Date(a.x).getTime() - new Date(b.x).getTime())
+  }));
+
+  console.log('built chart data', result);
+  return result;
+}
+
+/* Added manual entry form with API create hook, toggled visibility, and refresh wiring. */

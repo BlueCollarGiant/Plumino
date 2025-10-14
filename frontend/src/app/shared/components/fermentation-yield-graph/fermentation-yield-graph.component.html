@@ -1,0 +1,13 @@
+<div class="graph-wrapper">
+  @if (isLoading) {
+    <p>Loading graph data...</p>
+  } @else if (chartData?.length) {
+    <canvas baseChart
+      [data]="{ labels: lineChartLabels, datasets: lineChartData }"
+      [options]="lineChartOptions"
+      chartType="line">
+    </canvas>
+  } @else {
+    <p>No chart data available.</p>
+  }
+</div>
