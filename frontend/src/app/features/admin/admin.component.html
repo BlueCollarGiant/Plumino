@@ -1,0 +1,457 @@
+<div class="admin-dashboard">
+  <div class="background-container">
+    <div class="floating-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+      <div class="shape shape-3"></div>
+      <div class="shape shape-4"></div>
+      <div class="shape shape-5"></div>
+    </div>
+    <div class="gradient-overlay"></div>
+  </div>
+
+  <header class="dashboard-header">
+    <div class="header-content">
+      <div class="title-section">
+        <div class="icon-wrapper">
+          <div class="dashboard-icon">ADM</div>
+          <div class="icon-glow"></div>
+        </div>
+        <div class="title-text">
+          <h1>Admin Dashboard</h1>
+          <p>System administration and user management</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="pov" [class.modal-open]="isModalOpen()">
+    <div class="dashboard-toolbar">
+      <div class="toolbar-content">
+        <span class="toolbar-eyebrow">Access Control</span>
+        <h2 class="toolbar-title">Team Overview</h2>
+        <p class="toolbar-description">
+          Monitor organization-wide access and manage employee lifecycle across every role.
+        </p>
+      </div>
+      @if (isAdmin()) {
+        <button
+          type="button"
+          class="btn-primary add-button"
+          (click)="openAddEmployeeModal()"
+        >
+          <span class="btn-icon">+</span>
+          Add Employee
+        </button>
+      }
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-icon-wrapper">
+            <div class="stat-icon">EMP</div>
+            <div class="stat-icon-glow users-glow"></div>
+          </div>
+          <span class="stat-label">Total Employees</span>
+        </div>
+        <div class="stat-value">{{ dashboardStats().total }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-icon-wrapper">
+            <div class="stat-icon">ACT</div>
+            <div class="stat-icon-glow active-glow"></div>
+          </div>
+          <span class="stat-label">Active Users</span>
+        </div>
+        <div class="stat-value">{{ dashboardStats().active }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-icon-wrapper">
+            <div class="stat-icon">DEPT</div>
+            <div class="stat-icon-glow departments-glow"></div>
+          </div>
+          <span class="stat-label">Departments</span>
+        </div>
+        <div class="stat-value">{{ dashboardStats().departments }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-icon-wrapper">
+            <div class="stat-icon">HR</div>
+            <div class="stat-icon-glow health-glow"></div>
+          </div>
+          <span class="stat-label">HR Coverage</span>
+        </div>
+        <div class="stat-value">{{ dashboardStats().hrCount }}</div>
+      </div>
+    </div>
+
+    <div class="feedback-row">
+      @if (loadError()) {
+        <div class="error-banner">
+          <span>{{ loadError() }}</span>
+          <button type="button" class="btn-secondary retry-button" (click)="reloadEmployees()">
+            Retry
+          </button>
+        </div>
+      }
+      @if (mutationError()) {
+        <div class="warning-banner">
+          {{ mutationError() }}
+        </div>
+      }
+    </div>
+
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Loading employee roster…</p>
+      </div>
+    } @else {
+      <div class="role-grid">
+        @for (segment of groupedEmployees(); track segment.role) {
+          <div
+            class="role-card"
+            [class.accent-admin]="segment.role === 'admin'"
+            [class.accent-hr]="segment.role === 'hr'"
+            [class.accent-supervisor]="segment.role === 'supervisor'"
+            [class.accent-operator]="segment.role === 'operator'"
+          >
+            <div class="role-header">
+              <div class="role-header-text">
+                <h3>{{ segment.label }}</h3>
+                <p>{{ segment.description }}</p>
+              </div>
+              <span class="role-count">{{ segment.employees.length }}</span>
+            </div>
+
+            @if (segment.employees.length) {
+              <div class="role-body">
+                <div class="employee-list">
+                  @for (employee of segment.employees; track employee._id) {
+                    <div class="employee-card">
+                      <div class="employee-main-row" (click)="openEmployeeDetailsModal(employee)">
+                        <div class="employee-basic-info">
+                          <div class="employee-name-section">
+                            <span class="employee-name">{{ employee.name }}</span>
+                            <span class="employee-email">{{ employee.email }}</span>
+                          </div>
+                        </div>
+                        <div class="employee-expand-section">
+                          <div class="view-icon">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                              <path d="M1 8s3-5.5 7-5.5S15 8 15 8s-3 5.5-7 5.5S1 8 1 8z"/>
+                              <circle cx="8" cy="8" r="2"/>
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            } @else {
+              <div class="empty-state">
+                <p>No team members assigned yet.</p>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  @if (isEmployeeDetailsModalOpen()) {
+    <div class="modal-backdrop">
+      <div class="modal-panel employee-details-modal">
+        <header class="modal-header">
+          <h2>Employee Details</h2>
+          <p>View and manage employee information</p>
+          <button type="button" class="modal-close-btn" (click)="closeEmployeeDetailsModal()">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/>
+            </svg>
+          </button>
+        </header>
+
+        @if (selectedEmployee()) {
+          @if (!isEmployeeEditing(selectedEmployee()!._id)) {
+            <div class="employee-details-content">
+              <div class="employee-details-grid">
+                <div class="detail-section">
+                  <label class="detail-label">Employee ID</label>
+                  <span class="detail-value">{{ selectedEmployee()!._id }}</span>
+                </div>
+                <div class="detail-section">
+                  <label class="detail-label">Full Name</label>
+                  <span class="detail-value">{{ selectedEmployee()!.name }}</span>
+                </div>
+                <div class="detail-section">
+                  <label class="detail-label">Email Address</label>
+                  <span class="detail-value">{{ selectedEmployee()!.email }}</span>
+                </div>
+                <div class="detail-section">
+                  <label class="detail-label">Department</label>
+                  <span class="detail-value">{{ selectedEmployee()!.department || 'Not assigned' }}</span>
+                </div>
+                <div class="detail-section">
+                  <label class="detail-label">Role</label>
+                  <span class="detail-value">{{ selectedEmployee()!.role | titlecase }}</span>
+                </div>
+                <div class="detail-section">
+                  <label class="detail-label">Account Status</label>
+                  <span class="detail-value">{{ (selectedEmployee()!.isActive ?? true) ? 'Active' : 'Inactive' }}</span>
+                </div>
+                <div class="detail-section">
+                  <label class="detail-label">Reports To</label>
+                  <span class="detail-value">{{ getSupervisorDisplayText(selectedEmployee()!) }}</span>
+                </div>
+              </div>
+
+              <div class="employee-actions">
+                @if (isAdmin()) {
+                  <button
+                    type="button"
+                    class="btn-primary action-btn"
+                    (click)="startEditingEmployee(selectedEmployee()!)"
+                  >
+                    Edit Employee
+                  </button>
+                }
+                <button
+                  type="button"
+                  class="btn-secondary action-btn"
+                  [disabled]="removeInFlight() === selectedEmployee()!._id"
+                  (click)="confirmDeactivateEmployee(selectedEmployee()!)"
+                >
+                  @if (removeInFlight() === selectedEmployee()!._id) {
+                    <span class="inline-spinner" aria-hidden="true"></span>
+                  }
+                  {{ (selectedEmployee()!.isActive ?? true) ? 'Deactivate Employee' : 'Remove Employee' }}
+                </button>
+              </div>
+            </div>
+          }
+
+          @if (isEmployeeEditing(selectedEmployee()!._id)) {
+            <form [formGroup]="editEmployeeForm" (ngSubmit)="saveEmployeeChanges(selectedEmployee()!)" class="edit-employee-form">
+              <div class="employee-details-grid">
+                <div class="detail-section">
+                  <label class="detail-label">Employee ID</label>
+                  <span class="detail-value readonly">{{ selectedEmployee()!._id }}</span>
+                </div>
+                <div class="detail-section">
+                  <label class="detail-label">Full Name</label>
+                  <input
+                    type="text"
+                    formControlName="name"
+                    class="detail-input"
+                    [class.error]="editEmployeeForm.controls.name.invalid && (editEmployeeForm.controls.name.dirty || editEmployeeForm.controls.name.touched)"
+                  />
+                  @if (
+                    editEmployeeForm.controls.name.invalid &&
+                    (editEmployeeForm.controls.name.dirty || editEmployeeForm.controls.name.touched)
+                  ) {
+                    <span class="error-text">Name is required</span>
+                  }
+                </div>
+                <div class="detail-section">
+                  <label class="detail-label">Email Address</label>
+                  <input
+                    type="email"
+                    formControlName="email"
+                    class="detail-input"
+                    [class.error]="editEmployeeForm.controls.email.invalid && (editEmployeeForm.controls.email.dirty || editEmployeeForm.controls.email.touched)"
+                  />
+                  @if (
+                    editEmployeeForm.controls.email.invalid &&
+                    (editEmployeeForm.controls.email.dirty || editEmployeeForm.controls.email.touched)
+                  ) {
+                    <span class="error-text">Valid email is required</span>
+                  }
+                </div>
+                <div class="detail-section">
+                  <label class="detail-label">Department</label>
+                  <select
+                    formControlName="department"
+                    class="detail-input"
+                    [class.error]="editEmployeeForm.controls.department.invalid && (editEmployeeForm.controls.department.dirty || editEmployeeForm.controls.department.touched)"
+                  >
+                    <option value="">Select Department</option>
+                    <option value="fermentation">Fermentation</option>
+                    <option value="extraction">Extraction</option>
+                    <option value="packaging">Packaging</option>
+                    <option value="office">Office</option>
+                  </select>
+                  @if (
+                    editEmployeeForm.controls.department.invalid &&
+                    (editEmployeeForm.controls.department.dirty || editEmployeeForm.controls.department.touched)
+                  ) {
+                    <span class="error-text">Department is required</span>
+                  }
+                </div>
+                <div class="detail-section">
+                  <label class="detail-label">Role</label>
+                  <select
+                    formControlName="role"
+                    class="detail-input"
+                    [class.error]="editEmployeeForm.controls.role.invalid && (editEmployeeForm.controls.role.dirty || editEmployeeForm.controls.role.touched)"
+                  >
+                    <option value="operator">Operator</option>
+                    <option value="supervisor">Supervisor</option>
+                    <option value="hr">HR</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  @if (
+                    editEmployeeForm.controls.role.invalid &&
+                    (editEmployeeForm.controls.role.dirty || editEmployeeForm.controls.role.touched)
+                  ) {
+                    <span class="error-text">Role is required</span>
+                  }
+                </div>
+                <div class="detail-section">
+                  <label class="detail-label">Account Status</label>
+                  <span class="detail-value readonly">{{ (selectedEmployee()!.isActive ?? true) ? 'Active' : 'Inactive' }}</span>
+                </div>
+                <div class="detail-section">
+                  <label class="detail-label">Reports To</label>
+                  <span class="detail-value readonly">{{ getSupervisorDisplayText(selectedEmployee()!) }}</span>
+                </div>
+              </div>
+
+              <div class="employee-actions">
+                <button
+                  type="submit"
+                  class="btn-primary action-btn"
+                  [disabled]="!editEmployeeForm.valid || editingSaving()"
+                >
+                  @if (editingSaving()) {
+                    <span class="inline-spinner" aria-hidden="true"></span>
+                  }
+                  Save Changes
+                </button>
+                <button
+                  type="button"
+                  class="btn-secondary action-btn"
+                  (click)="cancelEditingEmployee()"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          }
+        }
+      </div>
+    </div>
+  }
+
+  @if (isModalOpen()) {
+    <div class="modal-backdrop">
+      <div class="modal-panel">
+        <header class="modal-header">
+          <h2>Add Employee</h2>
+          <p>Provision a new team member and assign their access level.</p>
+        </header>
+
+        <form [formGroup]="addEmployeeForm" (ngSubmit)="submitAddEmployee()" class="modal-form">
+          <label>
+            <span>Name</span>
+            <input type="text" formControlName="name" placeholder="Full name" />
+            @if (
+              addEmployeeForm.controls.name.invalid &&
+              (addEmployeeForm.controls.name.dirty || addEmployeeForm.controls.name.touched)
+            ) {
+              <span class="form-error">
+                Name is required.
+              </span>
+            }
+          </label>
+
+          <label>
+            <span>Email</span>
+            <input type="email" formControlName="email" placeholder="name@plumino.com" />
+            @if (
+              addEmployeeForm.controls.email.invalid &&
+              (addEmployeeForm.controls.email.dirty || addEmployeeForm.controls.email.touched)
+            ) {
+              <span class="form-error">
+                Valid email is required.
+              </span>
+            }
+          </label>
+
+          <label>
+            <span>Password</span>
+            <input type="password" formControlName="password" placeholder="Minimum 8 characters" />
+            @if (
+              addEmployeeForm.controls.password.invalid &&
+              (addEmployeeForm.controls.password.dirty || addEmployeeForm.controls.password.touched)
+            ) {
+              <span class="form-error">
+                Password must be at least 8 characters.
+              </span>
+            }
+          </label>
+
+          <label>
+            <span>Role</span>
+            <select formControlName="role">
+              <option value="" disabled>Select role</option>
+              <option value="admin">Admin</option>
+              <option value="hr">HR</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="operator">Operator</option>
+            </select>
+            @if (
+              addEmployeeForm.controls.role.invalid &&
+              (addEmployeeForm.controls.role.dirty || addEmployeeForm.controls.role.touched)
+            ) {
+              <span class="form-error">
+                Please assign a role.
+              </span>
+            }
+          </label>
+
+          <label>
+            <span>Department</span>
+            @if (departmentOptions().length) {
+              <select formControlName="department">
+                <option value="" disabled>Select department</option>
+                @for (department of departmentOptions(); track department) {
+                  <option [value]="department">
+                    {{ department }}
+                  </option>
+                }
+              </select>
+            } @else {
+              <input type="text" formControlName="department" placeholder="Department name" />
+            }
+            @if (
+              addEmployeeForm.controls.department.invalid &&
+              (addEmployeeForm.controls.department.dirty || addEmployeeForm.controls.department.touched)
+            ) {
+              <span class="form-error">
+                Department is required.
+              </span>
+            }
+          </label>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" (click)="closeAddEmployeeModal()">
+              Cancel
+            </button>
+            <button type="submit" class="btn-primary" [disabled]="isSaving()">
+              @if (isSaving()) {
+                <span class="inline-spinner" aria-hidden="true"></span>
+              }
+              Save Employee
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>
