@@ -9,14 +9,6 @@
   width: 100%;
 }
 
-.graph-card {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 1rem;
-  backdrop-filter: blur(10px);
-  padding: 1rem;
-  min-height: 400px;
-}
-
 @media (max-width: 1024px) {
   .graph-grid {
     grid-template-columns: 1fr;
