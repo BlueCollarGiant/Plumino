@@ -1,25 +1,26 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, Input, OnChanges } from '@angular/core';
-import { ChartConfiguration, ChartOptions } from 'chart.js';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnChanges, inject } from '@angular/core';
+import { ChartConfiguration, ChartOptions, TooltipItem } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
+
 import { ExtractionResponse } from '../../../../core/services/api.service';
 
-interface CampaignWeightSummary {
+interface CampaignPhSummary {
   readonly campaign: string;
-  readonly totalWeight: number;
-  readonly totalVolume: number;
+  readonly averagePh: number;
+  readonly minPh: number;
+  readonly maxPh: number;
   readonly recordCount: number;
-  readonly averageWeight: number;
   readonly latestRecord: ExtractionResponse | null;
 }
 
 @Component({
-  selector: 'app-extraction-campaign-weight-graph',
+  selector: 'app-extraction-campaign-ph-graph',
   standalone: true,
   imports: [NgChartsModule, CommonModule],
   template: `
     <div class="graph-card">
-      <h3>Campaign Output (kg)</h3>
+      <h3>Campaign pH Overview</h3>
       @if (isLoading) {
         <p>Loading data...</p>
       } @else if (rows && rows.length > 0) {
@@ -28,13 +29,14 @@ interface CampaignWeightSummary {
             baseChart
             [data]="chartData"
             [options]="chartOptions"
-            chartType="bar">
+            chartType="bar"
+            (chartClick)="onChartClick($event)">
           </canvas>
         </div>
-        @if (selectedRecord; as record) {
+        @if (selectedSummary; as summary) {
           <div class="record-details">
             <div class="details-header">
-              <h4>Campaign Output Details</h4>
+              <h4>Campaign pH Details</h4>
               <button
                 type="button"
                 class="close-button"
@@ -45,57 +47,61 @@ interface CampaignWeightSummary {
             </div>
             <div class="details-grid">
               <div class="detail-item">
-                <span class="label">Campaign</span>
-                <span class="value campaign-badge">{{ record.campaign }}</span>
+                <span class="label">Campaign:</span>
+                <span class="value campaign-badge">{{ summary.campaign }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">Total Weight</span>
-                <span class="value weight-value">{{ record.totalWeight | number:'1.0-2' }} kg</span>
+                <span class="label">Average pH:</span>
+                <span class="value ph-value">{{ summary.averagePh | number:'1.0-2' }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">Average Weight</span>
-                <span class="value">{{ record.averageWeight | number:'1.0-2' }} kg</span>
+                <span class="label">Min pH:</span>
+                <span class="value">{{ summary.minPh | number:'1.0-2' }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">Total Volume</span>
-                <span class="value volume-value">{{ record.totalVolume | number:'1.0-2' }} gal</span>
+                <span class="label">Max pH:</span>
+                <span class="value">{{ summary.maxPh | number:'1.0-2' }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">Batch Count</span>
-                <span class="value">{{ record.recordCount }}</span>
+                <span class="label">Batch Count:</span>
+                <span class="value">{{ summary.recordCount }}</span>
               </div>
             </div>
-            @if (record.latestRecord; as latest) {
+            @if (summary.latestRecord; as latest) {
               <div class="latest-record">
                 <h5>Most Recent Batch</h5>
                 <div class="details-grid">
                   <div class="detail-item">
-                    <span class="label">Date</span>
+                    <span class="label">Date:</span>
                     <span class="value">{{ formatDate(latest.date) }}</span>
                   </div>
                   <div class="detail-item">
-                    <span class="label">Plant</span>
+                    <span class="label">Plant:</span>
                     <span class="value plant-badge">{{ latest.plant ?? 'N/A' }}</span>
                   </div>
                   <div class="detail-item">
-                    <span class="label">Stage</span>
+                    <span class="label">Stage:</span>
                     <span class="value">{{ latest.stage ?? 'N/A' }}</span>
                   </div>
                   <div class="detail-item">
-                    <span class="label">Tank</span>
+                    <span class="label">Tank:</span>
                     <span class="value">{{ latest.tank ?? 'N/A' }}</span>
                   </div>
                   <div class="detail-item">
-                    <span class="label">Weight</span>
-                    <span class="value weight-value">{{ resolveNumber(latest.weight, null) | number:'1.0-2' }} kg</span>
+                    <span class="label">pH:</span>
+                    <span class="value ph-value">{{ resolveNumber(latest.pH, null) | number:'1.0-2' }}</span>
                   </div>
                   <div class="detail-item">
-                    <span class="label">Volume</span>
+                    <span class="label">Volume:</span>
                     <span class="value volume-value">{{ resolveNumber(latest.volume, null) | number:'1.0-2' }} gal</span>
                   </div>
                   <div class="detail-item">
-                    <span class="label">Concentration</span>
-                    <span class="value">{{ resolveNumber(latest.concentration, null) | number:'1.0-2' }} g/L</span>
+                    <span class="label">Weight:</span>
+                    <span class="value weight-value">{{ resolveNumber(latest.weight, null) | number:'1.0-2' }} kg</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="label">Concentration:</span>
+                    <span class="value concentration-value">{{ resolveNumber(latest.concentration, null) | number:'1.0-2' }} g/L</span>
                   </div>
                 </div>
               </div>
@@ -187,63 +193,69 @@ interface CampaignWeightSummary {
 
     .details-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 0.75rem;
       margin-bottom: 1rem;
     }
 
     .detail-item {
-      padding: 0.6rem;
+      padding: 0.6rem 0.75rem;
       background: rgba(255, 255, 255, 0.02);
       border-radius: 0.5rem;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.05);
       display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
     }
 
     .detail-item .label {
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       color: #94a3b8;
-      letter-spacing: 0.02em;
+      font-weight: 500;
     }
 
     .detail-item .value {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       color: #e2e8f0;
       font-weight: 600;
     }
 
-    .campaign-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0.2rem 0.5rem;
-      border-radius: 0.375rem;
-      background: rgba(34, 197, 94, 0.15);
-      color: #6ee7b7;
-      font-size: 0.8rem;
-      font-weight: 600;
-    }
-
+    .campaign-badge,
     .plant-badge {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 0.2rem 0.5rem;
+      padding: 0.25rem 0.5rem;
       border-radius: 0.375rem;
-      background: rgba(59, 130, 246, 0.15);
-      color: #93c5fd;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       font-weight: 600;
     }
 
-    .weight-value {
+    .campaign-badge {
+      background: rgba(234, 179, 8, 0.15);
       color: #facc15;
     }
 
+    .plant-badge {
+      background: rgba(59, 130, 246, 0.15);
+      color: #93c5fd;
+    }
+
     .volume-value {
-      color: #38bdf8;
+      color: #34d399 !important;
+    }
+
+    .weight-value {
+      color: #60a5fa !important;
+    }
+
+    .concentration-value {
+      color: #c084fc !important;
+    }
+
+    .ph-value {
+      color: #f97316 !important;
     }
 
     .latest-record {
@@ -260,33 +272,36 @@ interface CampaignWeightSummary {
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ExtractionCampaignWeightGraphComponent implements OnChanges {
+export class ExtractionCampaignPhGraphComponent implements OnChanges {
   @Input() rows: ExtractionResponse[] | null = null;
   @Input() isLoading = false;
 
-  protected selectedRecord: CampaignWeightSummary | null = null;
-
+  protected selectedSummary: CampaignPhSummary | null = null;
   protected chartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
-
   protected chartOptions: ChartOptions<'bar'> = this.createChartOptions();
 
-  private summaries: CampaignWeightSummary[] = [];
+  private summaries: CampaignPhSummary[] = [];
+  private readonly cdr = inject(ChangeDetectorRef);
 
   ngOnChanges(): void {
     this.updateChartData();
   }
 
   protected clearSelection(): void {
-    this.selectedRecord = null;
+    this.selectedSummary = null;
+    this.cdr.markForCheck();
   }
 
   protected formatDate(value: string | Date | null | undefined): string {
     if (!value) {
       return 'Unknown';
     }
-
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? 'Unknown' : date.toLocaleDateString();
+  }
+
+  protected onChartClick(_event: unknown): void {
+    // Chart click handled through chartOptions.onClick.
   }
 
   private updateChartData(): void {
@@ -294,92 +309,93 @@ export class ExtractionCampaignWeightGraphComponent implements OnChanges {
       this.chartData = { labels: [], datasets: [] };
       this.chartOptions = this.createChartOptions();
       this.summaries = [];
-      this.selectedRecord = null;
+      this.selectedSummary = null;
+      this.cdr.markForCheck();
       return;
     }
 
-    const campaignTotals = new Map<string, { totalWeight: number; totalVolume: number; rows: ExtractionResponse[] }>();
+    const campaignStats = new Map<string, { sumPh: number; count: number; minPh: number; maxPh: number; rows: ExtractionResponse[] }>();
 
-    this.rows.forEach(row => {
-      if (!row.campaign) {
-        return;
+    for (const row of this.rows) {
+      if (!row?.campaign) {
+        continue;
       }
-      const weight = this.resolveNumber(row.weight, undefined);
-      const volume = this.resolveNumber(row.volume, undefined);
-      const key = row.campaign;
 
-      const current = campaignTotals.get(key);
+      const phValue = this.coerceNumber(row.pH);
+      if (phValue === null) {
+        continue;
+      }
+
+      const key = row.campaign;
+      const current = campaignStats.get(key);
       if (current) {
-        current.totalWeight += weight;
-        current.totalVolume += volume;
+        current.sumPh += phValue;
+        current.count += 1;
+        current.minPh = Math.min(current.minPh, phValue);
+        current.maxPh = Math.max(current.maxPh, phValue);
         current.rows.push(row);
       } else {
-        campaignTotals.set(key, {
-          totalWeight: weight,
-          totalVolume: volume,
+        campaignStats.set(key, {
+          sumPh: phValue,
+          count: 1,
+          minPh: phValue,
+          maxPh: phValue,
           rows: [row]
         });
       }
-    });
+    }
 
-    if (!campaignTotals.size) {
+    if (!campaignStats.size) {
       this.chartData = { labels: [], datasets: [] };
       this.summaries = [];
-      this.selectedRecord = null;
+      this.selectedSummary = null;
       this.chartOptions = this.createChartOptions();
+      this.cdr.markForCheck();
       return;
     }
 
-    const sorted = Array.from(campaignTotals.entries())
+    const summaries = Array.from(campaignStats.entries())
       .map(([campaign, data]) => {
-        const sortedRows = [...data.rows].sort((a, b) =>
-          this.getDateValue(b.date) - this.getDateValue(a.date)
-        );
-        const recordCount = data.rows.length;
+        const sortedRows = [...data.rows].sort((a, b) => this.getDateValue(b.date) - this.getDateValue(a.date));
         return {
           campaign,
-          totalWeight: data.totalWeight,
-          totalVolume: data.totalVolume,
-          recordCount,
-          averageWeight: recordCount ? data.totalWeight / recordCount : 0,
+          averagePh: data.sumPh / data.count,
+          minPh: data.minPh,
+          maxPh: data.maxPh,
+          recordCount: data.count,
           latestRecord: sortedRows[0] ?? null
-        } as CampaignWeightSummary;
+        } satisfies CampaignPhSummary;
       })
-      .sort((a, b) => b.totalWeight - a.totalWeight)
+      .sort((a, b) => b.averagePh - a.averagePh)
       .slice(0, 10);
 
-    this.summaries = sorted;
+    this.summaries = summaries;
 
-    const labels = sorted.map(summary => summary.campaign);
-    const weights = sorted.map(summary => summary.totalWeight);
+    const labels = summaries.map(summary => summary.campaign);
+    const averages = summaries.map(summary => summary.averagePh);
 
     this.chartData = {
       labels,
-      datasets: [{
-        label: 'Total Weight (kg)',
-        data: weights,
-        backgroundColor: labels.map((_, index) => {
-          const hue = (index * 127.5) % 360;
-          return `hsla(${hue}, 70%, 60%, 0.6)`;
-        }),
-        borderColor: labels.map((_, index) => {
-          const hue = (index * 127.5) % 360;
-          return `hsl(${hue}, 70%, 60%)`;
-        }),
-        borderWidth: 1
-      }]
+      datasets: [
+        {
+          label: 'Average pH',
+          data: averages,
+          backgroundColor: labels.map((_, index) => {
+            const hue = (index * 137.5) % 360;
+            return `hsla(${hue}, 65%, 60%, 0.6)`;
+          }),
+          borderColor: labels.map((_, index) => {
+            const hue = (index * 137.5) % 360;
+            return `hsl(${hue}, 65%, 60%)`;
+          }),
+          borderWidth: 1
+        }
+      ]
     };
 
     this.chartOptions = this.createChartOptions();
-
-    if (this.selectedRecord) {
-      const stillExists = this.summaries.find(summary => summary.campaign === this.selectedRecord?.campaign);
-      if (!stillExists) {
-        this.selectedRecord = null;
-      } else {
-        this.selectedRecord = stillExists;
-      }
-    }
+    this.syncSelection();
+    this.cdr.markForCheck();
   }
 
   private createChartOptions(): ChartOptions<'bar'> {
@@ -398,18 +414,19 @@ export class ExtractionCampaignWeightGraphComponent implements OnChanges {
           borderColor: 'rgba(255, 255, 255, 0.2)',
           borderWidth: 1,
           callbacks: {
-            label: (context) => {
+            label: (context: TooltipItem<'bar'>) => {
               const index = context.dataIndex ?? 0;
-        const summary = this.summaries[index];
+              const summary = this.summaries[index];
               const value = context.parsed.x ?? 0;
 
               if (!summary) {
-                return `Total Weight: ${value.toFixed(2)} kg`;
+                return `Average pH: ${value.toFixed(2)}`;
               }
 
               return [
-                `Total Weight: ${value.toFixed(2)} kg`,
-                `Average Weight: ${summary.averageWeight.toFixed(2)} kg`,
+                `Average pH: ${value.toFixed(2)}`,
+                `Min pH: ${summary.minPh.toFixed(2)}`,
+                `Max pH: ${summary.maxPh.toFixed(2)}`,
                 `Batches: ${summary.recordCount}`
               ];
             }
@@ -421,7 +438,7 @@ export class ExtractionCampaignWeightGraphComponent implements OnChanges {
           beginAtZero: true,
           title: {
             display: true,
-            text: 'Total Weight (kg)',
+            text: 'Average pH',
             color: '#e2e8f0'
           },
           ticks: {
@@ -444,10 +461,33 @@ export class ExtractionCampaignWeightGraphComponent implements OnChanges {
         if (!elements.length) {
           return;
         }
-        const index = elements[0].index;
-        this.selectedRecord = this.summaries[index] ?? null;
+        const index = elements[0].index ?? -1;
+        this.selectSummaryByIndex(index);
       }
     };
+  }
+
+  private syncSelection(): void {
+    if (!this.selectedSummary) {
+      return;
+    }
+
+    const stillExists = this.summaries.some(summary => summary.campaign === this.selectedSummary?.campaign);
+    if (!stillExists) {
+      this.selectedSummary = null;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private selectSummaryByIndex(index: number): void {
+    if (index < 0 || index >= this.summaries.length) {
+      this.selectedSummary = null;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.selectedSummary = this.summaries[index] ?? null;
+    this.cdr.markForCheck();
   }
 
   protected resolveNumber(primary: unknown, fallback: unknown): number {

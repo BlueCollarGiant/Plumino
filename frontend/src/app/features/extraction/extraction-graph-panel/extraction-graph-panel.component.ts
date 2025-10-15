@@ -5,7 +5,7 @@ import { ExtractionResponse } from '../../../core/services/api.service';
 import { ExtractionWeightVolumeGraphComponent } from '../../../shared/components/extraction-graphs/weight-volume-graph/weight-volume-graph.component';
 import { ExtractionPlantConcentrationTrendGraphComponent } from '../../../shared/components/extraction-graphs/plant-concentration-trend-graph/plant-concentration-trend-graph.component';
 import { ExtractionPlantVolumeGraphComponent } from '../../../shared/components/extraction-graphs/plant-volume-graph/plant-volume-graph.component';
-import { ExtractionCampaignWeightGraphComponent } from '../../../shared/components/extraction-graphs/campaign-weight-graph/campaign-weight-graph.component';
+import { ExtractionCampaignPhGraphComponent } from '../../../shared/components/extraction-graphs/campaign-ph-graph/campaign-ph-graph.component';
 
 @Component({
   selector: 'app-extraction-graph-panel',
@@ -16,7 +16,7 @@ import { ExtractionCampaignWeightGraphComponent } from '../../../shared/componen
     ExtractionWeightVolumeGraphComponent,
     ExtractionPlantConcentrationTrendGraphComponent,
     ExtractionPlantVolumeGraphComponent,
-    ExtractionCampaignWeightGraphComponent
+    ExtractionCampaignPhGraphComponent
   ],
   templateUrl: './extraction-graph-panel.component.html',
   styleUrl: './extraction-graph-panel.component.css',
