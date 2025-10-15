@@ -1,11 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, OnInit, computed, inject, signal, effect } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators, FormControl } from '@angular/forms';
+import { Component, DestroyRef, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime } from 'rxjs';
 
 import { ApiService, DataFilters, FermentationRequest, FermentationResponse } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ToastService } from '../../core/services/toast.service';
+import { FermentationGraphPanelComponent } from './fermentation-graph-panel/fermentation-graph-panel.component';
 
 
 type ModalFieldKey =
@@ -39,7 +41,7 @@ type FermentationFormValue = Record<ModalFieldKey, unknown>;
 @Component({
   selector: 'app-fermentation-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FermentationGraphPanelComponent],
   template: `
     <div class="fermentation-dashboard">
       <!-- Animated Background -->
@@ -297,13 +299,43 @@ type FermentationFormValue = Record<ModalFieldKey, unknown>;
                 <h4>Loading Data</h4>
                 <p>Fetching fermentation records...</p>
               </div>
-            </div>
-          }
         </div>
+      }
+    </div>
 
-        <!-- Modal for editing -->
-        @if (editingRow()) {
-          <div class="modal-backdrop">
+      <section class="graph-section data-section" style="overflow: visible;">
+        <div class="graph-header">
+          <h3 class="card-title">
+            Process Analytics Dashboard
+          </h3>
+          <div class="status-toggle-container">
+            <div class="status-toggle-slider" [class.slider-right]="selectedStatus() === 'pending'">
+              <button
+                class="status-toggle-btn"
+                [class.active]="selectedStatus() === 'approved'"
+                (click)="toggleStatus('approved')">
+                Approved
+              </button>
+              <button
+                class="status-toggle-btn"
+                [class.active]="selectedStatus() === 'pending'"
+                (click)="toggleStatus('pending')">
+                Pending
+              </button>
+              <div class="slider-indicator"></div>
+            </div>
+          </div>
+        </div>
+        <app-fermentation-graph-panel
+          [rows]="filteredRows()"
+          [selectedStatus]="selectedStatus()"
+          [isLoading]="isLoading()">
+        </app-fermentation-graph-panel>
+      </section>
+
+    <!-- Modal for editing -->
+    @if (editingRow()) {
+      <div class="modal-backdrop">
             <div class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
               <header class="modal-header">
                 <div class="modal-title-section">
@@ -1440,6 +1472,85 @@ type FermentationFormValue = Record<ModalFieldKey, unknown>;
         font-weight: 600;
       }
 
+      /* Graph Section Styles */
+      .graph-section {
+        text-align: center;
+      }
+
+      .graph-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      /* Status Toggle Slider */
+      .status-toggle-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .status-toggle-slider {
+        position: relative;
+        display: inline-flex;
+        background: rgba(15, 23, 42, 0.65);
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.15);
+        padding: 0.25rem;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        backdrop-filter: blur(10px);
+      }
+
+      .status-toggle-btn {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.75rem 1.25rem;
+        border-radius: 12px;
+        border: none;
+        background: transparent;
+        color: rgba(226, 232, 240, 0.85);
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        z-index: 2;
+        min-width: 110px;
+        letter-spacing: 0.01em;
+      }
+
+      .status-toggle-btn:hover {
+        color: #f8fafc;
+        transform: translateY(-1px);
+      }
+
+      .status-toggle-btn.active {
+        color: #021017;
+        font-weight: 700;
+      }
+
+      .slider-indicator {
+        position: absolute;
+        top: 0.25rem;
+        left: 0.25rem;
+        width: calc(50% - 0.25rem);
+        height: calc(100% - 0.5rem);
+        background: linear-gradient(135deg, #22c55e, #4ade80);
+        border-radius: 12px;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
+      }
+
+      .status-toggle-slider.slider-right .slider-indicator {
+        transform: translateX(100%);
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+      }
+
       /* Responsive Design */
       @media (max-width: 1200px) {
         .header-content {
@@ -1484,6 +1595,17 @@ type FermentationFormValue = Record<ModalFieldKey, unknown>;
           grid-template-columns: 1fr;
         }
 
+        .graph-header {
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .status-toggle-btn {
+          padding: 0.65rem 1rem;
+          font-size: 0.85rem;
+          min-width: 95px;
+        }
+
         .quick-add-grid {
           grid-template-columns: 1fr;
         }
@@ -1520,6 +1642,16 @@ type FermentationFormValue = Record<ModalFieldKey, unknown>;
         .modal-actions {
           flex-direction: column;
         }
+
+        .graph-header {
+          gap: 1rem;
+        }
+
+        .status-toggle-btn {
+          padding: 0.6rem 1.2rem;
+          font-size: 0.85rem;
+          min-width: 100px;
+        }
       }
 
       @media (max-width: 480px) {
@@ -1549,6 +1681,7 @@ export class FermentationDashboardComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly apiService = inject(ApiService);
   private readonly authService = inject(AuthService);
+  private readonly toastService = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly filterForm = this.fb.nonNullable.group({
@@ -1563,6 +1696,7 @@ export class FermentationDashboardComponent implements OnInit {
   protected readonly isLoading = signal(false);
   protected readonly userRole = signal<string>('');
   protected readonly userId = signal<string>('');
+  readonly selectedStatus = signal<'approved' | 'pending'>('approved');
   protected readonly isOperator = computed(() => this.userRole() === 'operator');
   protected readonly isSupervisorOrHigher = computed(() => {
     const role = this.userRole();
@@ -1634,7 +1768,6 @@ export class FermentationDashboardComponent implements OnInit {
   }
 
   // Computed signals for derived state
-  protected readonly hasData = computed(() => this.rows().length > 0);
   protected readonly recordCount = computed(() => this.rows().length);
   protected readonly isModalOpen = computed(() => !!this.editingRow());
   protected readonly canSubmitEdit = computed(() => {
@@ -1695,6 +1828,47 @@ export class FermentationDashboardComponent implements OnInit {
       avgLevelIndicator: totals.levelCount ? totals.levelSum / totals.levelCount : 0
     } as const;
   });
+
+  protected readonly filteredRows = computed(() => {
+    const allRows = this.rows();
+    const status = this.selectedStatus();
+
+    // Treat rows with no status (legacy data) as part of the approved baseline
+    const baselineRows = allRows.filter(row => row.status === 'approved' || !row.status);
+    if (status === 'pending') {
+      const pendingRows = allRows.filter(row => row.status === 'pending');
+      return [...baselineRows, ...pendingRows];
+    }
+
+    return baselineRows;
+  });
+
+  protected readonly chartData = computed<readonly FermentationChartSeries[]>(() => {
+    const allRows = this.rows();
+
+    // Always include all approved or legacy rows as the baseline
+    const baselineRows = allRows.filter(row => row.status === 'approved' || !row.status);
+
+    // When pending is selected, also include pending rows
+    const pendingRows = this.selectedStatus() === 'pending'
+      ? allRows.filter(row => row.status === 'pending')
+      : [];
+
+    // Merge baseline and pending data (baseline first, then pending to prevent duplicates)
+    const mergedRows = [...baselineRows, ...pendingRows];
+
+    const chartData = buildFermentationChartData(
+      mergedRows,
+      (primary, fallback) => this.resolveNumber(primary, fallback)
+    );
+
+    console.log('chartData computed', chartData);
+    return chartData;
+  });
+
+  public toggleStatus(mode: 'approved' | 'pending'): void {
+    this.selectedStatus.set(mode);
+  }
 
   protected resolveStatus(row: FermentationResponse | ModalRow | null | undefined): 'pending' | 'approved' {
     return row?.status === 'approved' ? 'approved' : 'pending';
@@ -1757,16 +1931,29 @@ export class FermentationDashboardComponent implements OnInit {
   }
 
   protected canApproveRow(row: FermentationResponse | null | undefined): boolean {
+    console.log('🔍 canApproveRow debug:', {
+      hasId: !!row?._id,
+      userRole: this.userRole(),
+      isSupervisorOrHigher: this.isSupervisorOrHigher(),
+      rowStatus: this.resolveStatus(row),
+      creatorRole: this.resolveCreatorRole(row),
+      row: row
+    });
+
     if (!row?._id || !this.isSupervisorOrHigher()) {
+      console.log('❌ Failed: No ID or not supervisor+');
       return false;
     }
 
     if (this.resolveStatus(row) !== 'pending') {
+      console.log('❌ Failed: Status not pending');
       return false;
     }
 
     const creatorRole = this.resolveCreatorRole(row);
-    return !creatorRole || creatorRole === 'operator';
+    const canApprove = !creatorRole || creatorRole === 'operator';
+    console.log('✅ Final approval decision:', canApprove);
+    return canApprove;
   }
 
   // Effects for side effects management
@@ -1983,17 +2170,38 @@ export class FermentationDashboardComponent implements OnInit {
       return;
     }
 
+    console.log('🚀 Sending approval request for:', row._id);
+
+    // Set loading state
+    this.isMutating.set(true);
+    this.mutationError.set(null);
+
     this.apiService
       .approveFermentation(row._id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
+          console.log('✅ Fermentation approved successfully:', updated);
+
+          // Update the specific row in the local state
           this.rows.update((rows) =>
             rows.map((item) => (item._id === updated._id ? { ...item, ...updated } : item))
           );
+
+          // Reload data to ensure UI is in sync with backend
+          this.loadData();
+
+          // Clear loading state
+          this.isMutating.set(false);
+
+          // Provide success feedback
+          this.toastService.show('Fermentation record approved successfully', 'success');
         },
         error: (err) => {
-          console.error('Failed to approve fermentation record', err);
+          console.error('❌ Failed to approve fermentation record', err);
+          this.isMutating.set(false);
+          this.mutationError.set('Failed to approve fermentation record.');
+          this.toastService.show('Failed to approve fermentation record', 'error');
         }
       });
   }
@@ -2122,5 +2330,53 @@ export class FermentationDashboardComponent implements OnInit {
   }
 }
 
-/* Added manual entry form with API create hook, toggled visibility, and refresh wiring. */
+interface FermentationChartSeries {
+  readonly name: string;
+  readonly data: { readonly x: string | Date; readonly y: number }[];
+}
 
+/**
+ * Builds a multi-series fermentation yield dataset grouped by plant for line charts.
+ */
+function buildFermentationChartData(
+  rows: readonly FermentationResponse[],
+  resolveNumberFn: (primary?: number | null, fallback?: number | null) => number = (primary, fallback) => (primary ?? fallback ?? 0)
+): FermentationChartSeries[] {
+  const grouped = new Map<string, { x: Date; y: number }[]>();
+
+  for (const row of rows) {
+    if (!row) {
+      continue;
+    }
+
+    const normalizedDate = row.date ? new Date(row.date) : null;
+    if (!normalizedDate || Number.isNaN(normalizedDate.getTime())) {
+      continue;
+    }
+
+    const plantName = row.plant?.trim() || 'Unknown';
+    const fallbackReceived = (row as { received?: number | null }).received;
+    const weight = resolveNumberFn(row.weightLbs, row.weight);
+    const received = resolveNumberFn(
+      row.receivedAmountLbs ?? fallbackReceived,
+      row.receivedAmount ?? fallbackReceived
+    );
+    const yieldPercent = weight > 0 ? (received / weight) * 100 : 0;
+
+    if (grouped.has(plantName)) {
+      grouped.get(plantName)!.push({ x: normalizedDate, y: yieldPercent });
+    } else {
+      grouped.set(plantName, [{ x: normalizedDate, y: yieldPercent }]);
+    }
+  }
+
+  const result = Array.from(grouped.entries()).map(([name, data]) => ({
+    name,
+    data: [...data].sort((a, b) => new Date(a.x).getTime() - new Date(b.x).getTime())
+  }));
+
+  console.log('built chart data', result);
+  return result;
+}
+
+/* Added manual entry form with API create hook, toggled visibility, and refresh wiring. */
