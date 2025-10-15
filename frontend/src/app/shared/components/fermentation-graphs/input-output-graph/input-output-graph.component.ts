@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Input, OnChanges } from '@angular/core';
 import { ChartConfiguration, ChartOptions } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
-import { FermentationResponse } from '../../../core/services/api.service';
+import { FermentationResponse } from '../../../../core/services/api.service';
 
 @Component({
   selector: 'app-input-output-graph',

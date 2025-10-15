@@ -7,7 +7,7 @@ import { debounceTime } from 'rxjs';
 import { ApiService, DataFilters, FermentationRequest, FermentationResponse } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
-import { FermentationGraphPanelComponent } from '../../shared/components/fermentation-yield-graph/fermentation-yield-graph.component';
+import { FermentationGraphPanelComponent } from '../../shared/components/fermentation-graphs/fermentation-yield-graph/fermentation-yield-graph.component';
 
 
 type ModalFieldKey =

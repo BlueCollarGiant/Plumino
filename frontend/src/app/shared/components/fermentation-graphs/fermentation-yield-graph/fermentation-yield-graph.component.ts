@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { ChartDataset, ChartOptions } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
-import { FermentationResponse } from '../../../core/services/api.service';
+import { FermentationResponse } from '../../../../core/services/api.service';
 import { InputOutputGraphComponent } from '../input-output-graph/input-output-graph.component';
 import { ProductionTrendGraphComponent } from '../production-trend-graph/production-trend-graph.component';
 import { PlantUtilizationGraphComponent } from '../plant-utilization-graph/plant-utilization-graph.component';
