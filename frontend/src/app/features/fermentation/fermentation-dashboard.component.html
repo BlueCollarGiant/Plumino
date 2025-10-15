@@ -1,0 +1,341 @@
+<div class="fermentation-dashboard">
+      <!-- Animated Background -->
+      <div class="background-container">
+        <div class="floating-shapes">
+          <div class="shape shape-1"></div>
+          <div class="shape shape-2"></div>
+          <div class="shape shape-3"></div>
+          <div class="shape shape-4"></div>
+          <div class="shape shape-5"></div>
+        </div>
+        <div class="gradient-overlay"></div>
+      </div>
+
+      <!-- Header Section -->
+      <header class="dashboard-header">
+        <div class="header-content">
+          <div class="title-section">
+            <div class="title-text">
+              <h1>Fermentation Operations</h1>
+              <p>Real-time monitoring and analytics for fermentation workflows</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="pov" [class.modal-open]="editingRow()">
+        <!-- Filters Card -->
+        <div class="filters-card">
+          <h3 class="card-title">
+            Filter Data
+          </h3>
+          <form [formGroup]="filterForm" class="filters" (ngSubmit)="onSubmit()">
+            <label>
+              <span>Date</span>
+              <input type="date" formControlName="date" />
+            </label>
+            <label>
+              <span>Plant</span>
+              <input type="text" formControlName="plant" placeholder="Enter plant number" />
+            </label>
+            <label>
+              <span>Product</span>
+              <input type="text" formControlName="product" placeholder="Enter product" />
+            </label>
+            <label>
+              <span>Stage</span>
+              <input type="text" formControlName="stage" placeholder="Fermentation stage" />
+            </label>
+            <label>
+              <span>Campaign</span>
+              <input type="text" formControlName="campaign" placeholder="Campaign ID" />
+            </label>
+            <div class="actions">
+              <button type="submit" class="btn-primary">
+                Apply Filters
+              </button>
+              <button type="button" (click)="resetFilters()" class="btn-secondary">
+                Reset
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-icon-wrapper">
+                <div class="stat-icon">WT</div>
+                <div class="stat-icon-glow weight-glow"></div>
+              </div>
+              <span class="stat-label">Total Weight</span>
+            </div>
+            <div class="stat-value">{{ stats().totalWeight | number:'1.0-2' }} lbs</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-icon-wrapper">
+                <div class="stat-icon">RCV</div>
+                <div class="stat-icon-glow received-glow"></div>
+              </div>
+              <span class="stat-label">Total Received</span>
+            </div>
+            <div class="stat-value">{{ stats().totalReceived | number:'1.0-2' }} lbs</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-icon-wrapper">
+                <div class="stat-icon">LVL</div>
+                <div class="stat-icon-glow level-glow"></div>
+              </div>
+              <span class="stat-label">Avg Level Indicator</span>
+            </div>
+            <div class="stat-value">{{ stats().avgLevelIndicator | number:'1.0-2' }}</div>
+          </div>
+        </div>
+
+        <!-- Quick Add Section -->
+        <div class="quick-add-section">
+          <div class="card-header">
+            <h3 class="card-title">
+              Add New Record
+            </h3>
+            <div class="header-accent"></div>
+          </div>
+          <div class="quick-add-form">
+            <div class="quick-add-grid">
+              <label>
+                <span>Date</span>
+                <input type="date" [formControl]="quickAddControls.date" />
+              </label>
+              <label>
+                <span>Plant</span>
+                <input type="text" [formControl]="quickAddControls.plant" placeholder="Plant number" />
+              </label>
+              <label>
+                <span>Product</span>
+                <input type="text" [formControl]="quickAddControls.product" placeholder="Product name" />
+              </label>
+              <label>
+                <span>Campaign</span>
+                <input type="text" [formControl]="quickAddControls.campaign" placeholder="Campaign ID" />
+              </label>
+              <label>
+                <span>Stage</span>
+                <input type="text" [formControl]="quickAddControls.stage" placeholder="Fermentation stage" />
+              </label>
+              <label>
+                <span>Tank</span>
+                <input type="text" [formControl]="quickAddControls.tank" placeholder="Tank identifier" />
+              </label>
+              <label>
+                <span>Level Indicator</span>
+                <input type="text" [formControl]="quickAddControls.levelIndicator" placeholder="Level indicator" />
+              </label>
+              <label>
+                <span>Weight (lbs)</span>
+                <input type="number" [formControl]="quickAddControls.weight" placeholder="0.00" step="any" />
+              </label>
+              <label>
+                <span>Received (lbs)</span>
+                <input type="number" [formControl]="quickAddControls.receivedAmount" placeholder="0.00" step="any" />
+              </label>
+            </div>
+            @if (quickSaveError()) {
+              <div class="error-message">
+                <span class="error-icon">ERROR</span>
+                {{ quickSaveError() }}
+              </div>
+            }
+            <div class="quick-add-actions">
+              <button type="button" class="quick-save-btn" (click)="quickSave()" [disabled]="!canQuickSave()">
+                @if (isQuickSaving()) {
+                  <div class="loading-spinner"></div>
+                  <span class="saving">Saving...</span>
+                } @else {
+                  Save Record
+                }
+              </button>
+              <button type="button" class="quick-clear-btn" (click)="resetQuickAddForm()" [disabled]="isQuickSaving()">
+                Clear Form
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data Table Section -->
+        <div class="data-section">
+          <div class="section-header">
+            <h3 class="section-title">
+              Fermentation Records
+            </h3>
+            <div class="record-count">
+              {{ rows().length }} record{{ rows().length !== 1 ? 's' : '' }}
+            </div>
+          </div>
+
+          @if (!isLoading()) {
+            <div class="table-container" [class.dimmed]="editingRow()">
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Plant</th>
+                      <th>Product</th>
+                      <th>Campaign</th>
+                      <th>Stage</th>
+                      <th>Tank</th>
+                      <th>Level Indicator</th>
+                      <th>Weight (lbs)</th>
+                      <th>Received (lbs)</th>
+                      <th>Status</th>
+                      <th class="actions-header">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of rows(); track row._id || $index) {
+                      <tr class="data-row">
+                        <td class="date-cell">{{ row.date | date:'MMM dd, yyyy' }}</td>
+                        <td class="plant-cell">
+                          <span class="plant-badge">{{ row.plant }}</span>
+                        </td>
+                        <td class="product-cell">{{ row.product }}</td>
+                        <td class="campaign-cell">
+                          <span class="campaign-badge">{{ row.campaign }}</span>
+                        </td>
+                        <td class="stage-cell">{{ row.stage }}</td>
+                        <td class="tank-cell">{{ row.tank }}</td>
+                        <td class="level-indicator-cell">{{ row.levelIndicator }}</td>
+                        <td class="amount-cell incoming">
+                          <span class="amount-value">{{ resolveNumber(row.weightLbs, row.weight) | number:'1.0-2' }}</span>
+                        </td>
+                        <td class="amount-cell outgoing">
+                          <span class="amount-value">{{ resolveNumber(row.receivedAmountLbs, row.receivedAmount) | number:'1.0-2' }}</span>
+                        </td>
+                        <td class="status-cell">
+                          <span class="status-badge" [ngClass]="resolveStatus(row)">
+                            {{ resolveStatus(row) | titlecase }}
+                          </span>
+                        </td>
+                        <td class="actions-cell">
+                          @if (canApproveRow(row)) {
+                            <button type="button" class="approve-button" (click)="approveRecord(row)">
+                              Approve
+                            </button>
+                          }
+                          @if (canEditRow(row)) {
+                            <button type="button" class="edit-button" (click)="openEditModal(row)">
+                              Edit
+                            </button>
+                          }
+                        </td>
+                      </tr>
+                    } @empty {
+                      <tr class="empty-row">
+                        <td colspan="11" class="empty-message">
+                          <div class="empty-content">
+                            <div class="empty-icon">NO DATA</div>
+                            <h4>No Records Found</h4>
+                            <p>No fermentation records match your current filters. Try adjusting your search criteria or add a new record.</p>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          } @else {
+            <div class="loading-container">
+              <div class="loading-content">
+                <div class="loading-spinner large"></div>
+                <h4>Loading Data</h4>
+                <p>Fetching fermentation records...</p>
+              </div>
+        </div>
+      }
+    </div>
+
+      <section class="graph-section data-section" style="overflow: visible;">
+        <div class="graph-header">
+          <h3 class="card-title">
+            Process Analytics Dashboard
+          </h3>
+          <div class="status-toggle-container">
+            <div class="status-toggle-slider" [class.slider-right]="selectedStatus() === 'pending'">
+              <button
+                class="status-toggle-btn"
+                [class.active]="selectedStatus() === 'approved'"
+                (click)="toggleStatus('approved')">
+                Approved
+              </button>
+              <button
+                class="status-toggle-btn"
+                [class.active]="selectedStatus() === 'pending'"
+                (click)="toggleStatus('pending')">
+                Pending
+              </button>
+              <div class="slider-indicator"></div>
+            </div>
+          </div>
+        </div>
+        <app-fermentation-graph-panel
+          [rows]="filteredRows()"
+          [selectedStatus]="selectedStatus()"
+          [isLoading]="isLoading()">
+        </app-fermentation-graph-panel>
+      </section>
+
+    <!-- Modal for editing -->
+    @if (editingRow()) {
+      <div class="modal-backdrop">
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+              <header class="modal-header">
+                <div class="modal-title-section">
+                  <div class="modal-icon">EDIT</div>
+                  <h2 id="edit-modal-title">Edit Fermentation Record</h2>
+                </div>
+                <button type="button" class="modal-close" (click)="closeEditModal()" aria-label="Close">
+                  <span class="close-icon">X</span>
+                </button>
+              </header>
+              <form class="modal-form" [formGroup]="editForm" (ngSubmit)="submitEdit()">
+                <div class="modal-grid">
+                  @for (field of modalFields; track field.key) {
+                    <label [attr.for]="'field-' + field.key" class="modal-field">
+                      <span class="field-label">{{ field.label }}</span>
+                      <input
+                        [id]="'field-' + field.key"
+                        [type]="field.type"
+                        [formControlName]="field.key"
+                        [attr.placeholder]="field.label"
+                        class="field-input"
+                      />
+                    </label>
+                  }
+                </div>
+                @if (mutationError()) {
+                  <div class="error-message modal-error">
+                    <span class="error-icon">ERROR</span>
+                    {{ mutationError() }}
+                  </div>
+                }
+                <div class="modal-actions">
+                  <button type="submit" class="btn-primary modal-btn" [disabled]="!canSubmitEdit()">
+                    Save Changes
+                  </button>
+                  <button type="button" class="btn-danger modal-btn" (click)="deleteCurrentRow()" [disabled]="!canDelete()">
+                    Delete Record
+                  </button>
+                  <button type="button" class="btn-secondary modal-btn" (click)="closeEditModal()" [disabled]="isMutating()">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        }
+      </section>
+    </div>
