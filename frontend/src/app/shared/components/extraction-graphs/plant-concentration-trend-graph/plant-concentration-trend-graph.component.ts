@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, Input, OnChanges } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnChanges, inject } from '@angular/core';
 import { ChartConfiguration, ChartOptions } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
 import { ExtractionResponse } from '../../../../core/services/api.service';
@@ -24,7 +24,8 @@ interface LabeledDate {
             baseChart
             [data]="chartData"
             [options]="chartOptions"
-            chartType="line">
+            chartType="line"
+            (chartClick)="onChartClick($event)">
           </canvas>
         </div>
         @if (selectedRecord; as record) {
@@ -41,46 +42,46 @@ interface LabeledDate {
             </div>
             <div class="details-grid">
               <div class="detail-item">
-                <span class="label">Date</span>
+                <span class="label">Date:</span>
                 <span class="value">{{ formatDate(record.date) }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">Plant</span>
+                <span class="label">Plant:</span>
                 <span class="value plant-badge">{{ record.plant ?? 'N/A' }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">Campaign</span>
+                <span class="label">Campaign:</span>
                 <span class="value campaign-badge">{{ record.campaign ?? 'N/A' }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">Stage</span>
+                <span class="label">Stage:</span>
                 <span class="value">{{ record.stage ?? 'N/A' }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">Tank</span>
+                <span class="label">Tank:</span>
                 <span class="value">{{ record.tank ?? 'N/A' }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">Concentration</span>
+                <span class="label">Concentration:</span>
                 <span class="value concentration-value">
                   {{ getConcentration(record) | number:'1.0-2' }} g/L
                 </span>
               </div>
               <div class="detail-item">
-                <span class="label">Volume</span>
+                <span class="label">Volume:</span>
                 <span class="value volume-value">
                   {{ getVolume(record) | number:'1.0-2' }} gal
                 </span>
               </div>
               <div class="detail-item">
-                <span class="label">Weight</span>
+                <span class="label">Weight:</span>
                 <span class="value weight-value">
                   {{ getWeightKg(record) | number:'1.0-2' }} kg
                 </span>
               </div>
               <div class="detail-item">
-                <span class="label">pH</span>
-                <span class="value">
+                <span class="label">pH:</span>
+                <span class="value ph-value">
                   {{ getPh(record) | number:'1.0-2' }}
                 </span>
               </div>
@@ -165,46 +166,55 @@ interface LabeledDate {
 
     .details-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 0.75rem;
     }
 
     .detail-item {
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-      background: rgba(148, 163, 184, 0.1);
+      padding: 0.6rem 0.75rem;
+      background: rgba(255, 255, 255, 0.02);
       border-radius: 0.5rem;
-      padding: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
     }
 
     .detail-item .label {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-size: 0.8rem;
       color: #94a3b8;
+      font-weight: 500;
     }
 
     .detail-item .value {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       color: #e2e8f0;
       font-weight: 600;
     }
 
     .plant-badge {
-      background: rgba(59, 130, 246, 0.2);
-      color: #93c5fd;
-      padding: 0.2rem 0.5rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.25rem 0.5rem;
       border-radius: 0.375rem;
-      font-size: 0.75rem !important;
+      background: rgba(59, 130, 246, 0.15);
+      color: #93c5fd;
+      font-size: 0.75rem;
+      font-weight: 600;
     }
 
     .campaign-badge {
-      background: rgba(34, 197, 94, 0.2);
-      color: #86efac;
-      padding: 0.2rem 0.5rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.25rem 0.5rem;
       border-radius: 0.375rem;
-      font-size: 0.75rem !important;
+      background: rgba(234, 179, 8, 0.15);
+      color: #facc15;
+      font-size: 0.75rem;
+      font-weight: 600;
     }
 
     .concentration-value {
@@ -212,11 +222,15 @@ interface LabeledDate {
     }
 
     .volume-value {
-      color: #38bdf8 !important;
+      color: #34d399 !important;
     }
 
     .weight-value {
-      color: #facc15 !important;
+      color: #60a5fa !important;
+    }
+
+    .ph-value {
+      color: #f97316 !important;
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -230,6 +244,7 @@ export class ExtractionPlantConcentrationTrendGraphComponent implements OnChange
   protected chartOptions: ChartOptions<'line'> = this.createChartOptions();
 
   private datasetRecordMatrix: (ExtractionResponse | null)[][] = [];
+  private readonly cdr = inject(ChangeDetectorRef);
 
   ngOnChanges(): void {
     this.updateChartData();
@@ -237,6 +252,7 @@ export class ExtractionPlantConcentrationTrendGraphComponent implements OnChange
 
   protected clearSelection(): void {
     this.selectedRecord = null;
+    this.cdr.markForCheck();
   }
 
   protected formatDate(value: string | Date | null | undefined): string {
@@ -263,11 +279,16 @@ export class ExtractionPlantConcentrationTrendGraphComponent implements OnChange
     return this.resolveNumber(record?.pH, undefined);
   }
 
+  protected onChartClick(_event: unknown): void {
+    // Interactions are handled via chartOptions.onClick.
+  }
+
   private updateChartData(): void {
     if (!this.rows?.length) {
       this.chartData = { labels: [], datasets: [] };
       this.datasetRecordMatrix = [];
       this.selectedRecord = null;
+      this.cdr.markForCheck();
       return;
     }
 
@@ -276,6 +297,7 @@ export class ExtractionPlantConcentrationTrendGraphComponent implements OnChange
       this.chartData = { labels: [], datasets: [] };
       this.datasetRecordMatrix = [];
       this.selectedRecord = null;
+      this.cdr.markForCheck();
       return;
     }
 
@@ -319,6 +341,7 @@ export class ExtractionPlantConcentrationTrendGraphComponent implements OnChange
 
     this.chartOptions = this.createChartOptions();
     this.syncSelection();
+    this.cdr.markForCheck();
   }
 
   private buildLabels(rows: ExtractionResponse[]): LabeledDate[] {
@@ -454,7 +477,7 @@ export class ExtractionPlantConcentrationTrendGraphComponent implements OnChange
           return;
         }
         const element = elements[0];
-        this.selectedRecord = this.datasetRecordMatrix[element.datasetIndex]?.[element.index] ?? null;
+        this.selectRecordByIndex(element.datasetIndex ?? -1, element.index ?? -1);
       }
     };
   }
@@ -470,7 +493,20 @@ export class ExtractionPlantConcentrationTrendGraphComponent implements OnChange
 
     if (!stillExists) {
       this.selectedRecord = null;
+      this.cdr.markForCheck();
     }
+  }
+
+  private selectRecordByIndex(datasetIndex: number, dataIndex: number): void {
+    if (datasetIndex < 0 || dataIndex < 0) {
+      this.selectedRecord = null;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    const record = this.datasetRecordMatrix[datasetIndex]?.[dataIndex] ?? null;
+    this.selectedRecord = record;
+    this.cdr.markForCheck();
   }
 
   private resolveNumber(primary: unknown, fallback: unknown): number {
