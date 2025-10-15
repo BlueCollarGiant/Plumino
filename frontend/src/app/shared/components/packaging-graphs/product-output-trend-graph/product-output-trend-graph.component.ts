@@ -146,44 +146,70 @@ import { PackagingResponse } from '../../../../core/services/api.service';
     }
 
     .close-button {
-      background: transparent;
-      border: none;
-      color: #94a3b8;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 0.5rem;
+      padding: 0.375rem 0.5rem;
       cursor: pointer;
-      font-size: 1.2rem;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #f87171;
+      font-size: 0.9rem;
       line-height: 1;
-      padding: 0.25rem;
     }
 
     .close-button:hover {
-      color: #f1f5f9;
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.5);
+      transform: scale(1.05);
+    }
+
+    .close-button:active {
+      transform: scale(0.95);
     }
 
     .details-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 0.75rem;
     }
 
     .detail-item {
       display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-      background: rgba(255, 255, 255, 0.04);
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.65rem;
+      background: rgba(255, 255, 255, 0.02);
       border-radius: 0.5rem;
-      padding: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      gap: 0.75rem;
     }
 
-    .label {
+    .detail-item.difference {
+      grid-column: 1 / -1;
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .detail-item.difference .value {
+      font-weight: 700;
+    }
+
+    .detail-item .label {
       font-size: 0.8rem;
       color: #94a3b8;
+      font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
 
-    .value {
-      font-size: 0.95rem;
+    .detail-item .value {
+      font-size: 0.85rem;
       color: #e2e8f0;
+      font-weight: 600;
+      text-align: right;
     }
 
     .product-badge,
@@ -229,6 +255,7 @@ import { PackagingResponse } from '../../../../core/services/api.service';
     .difference .value.negative {
       color: #f87171;
     }
+
   `]
 })
 export class PackagingProductOutputTrendGraphComponent implements OnChanges {

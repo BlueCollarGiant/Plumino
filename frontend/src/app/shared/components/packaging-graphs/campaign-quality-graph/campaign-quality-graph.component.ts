@@ -110,6 +110,22 @@ interface SummaryAccumulator {
                     <span class="value">{{ record.packageType || 'N/A' }}</span>
                   </div>
                   <div class="detail-item">
+                    <span class="label">Status</span>
+                    <span class="value">
+                      <span class="status-badge" [class.approved]="getStatus(record) === 'Approved'" [class.pending]="getStatus(record) === 'Pending'">
+                        {{ getStatus(record) }}
+                      </span>
+                    </span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="label">Created By</span>
+                    <span class="value">{{ getCreatorName(record) }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="label">Role</span>
+                    <span class="value">{{ getCreatorRole(record) }}</span>
+                  </div>
+                  <div class="detail-item">
                     <span class="label">Produced</span>
                     <span class="value produced-value">
                       {{ coerceNumber(record.incomingAmountKg) | number:'1.0-2' }} kg
@@ -193,44 +209,60 @@ interface SummaryAccumulator {
     }
 
     .close-button {
-      background: transparent;
-      border: none;
-      color: #94a3b8;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 0.5rem;
+      padding: 0.375rem 0.5rem;
       cursor: pointer;
-      font-size: 1.2rem;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #f87171;
+      font-size: 0.9rem;
       line-height: 1;
-      padding: 0.25rem;
     }
 
     .close-button:hover {
-      color: #f1f5f9;
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.5);
+      transform: scale(1.05);
+    }
+
+    .close-button:active {
+      transform: scale(0.95);
     }
 
     .details-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 0.75rem;
     }
 
     .detail-item {
       display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-      background: rgba(255, 255, 255, 0.04);
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.65rem;
+      background: rgba(255, 255, 255, 0.02);
       border-radius: 0.5rem;
-      padding: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      gap: 0.75rem;
     }
 
-    .label {
+    .detail-item .label {
       font-size: 0.8rem;
       color: #94a3b8;
+      font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
 
-    .value {
-      font-size: 0.95rem;
+    .detail-item .value {
+      font-size: 0.85rem;
       color: #e2e8f0;
+      font-weight: 600;
+      text-align: right;
     }
 
     .campaign-badge,
@@ -285,6 +317,30 @@ interface SummaryAccumulator {
       color: #e2e8f0;
       font-size: 0.95rem;
       font-weight: 600;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.3rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .status-badge.approved {
+      background: rgba(34, 197, 94, 0.18);
+      color: #86efac;
+      border: 1px solid rgba(34, 197, 94, 0.35);
+    }
+
+    .status-badge.pending {
+      background: rgba(245, 158, 11, 0.18);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.35);
     }
   `]
 })
@@ -508,5 +564,26 @@ export class PackagingCampaignQualityGraphComponent implements OnChanges {
     const stillExists = this.summaries.find(summary => summary.campaign === this.selectedSummary?.campaign);
     this.selectedSummary = stillExists ?? null;
     this.cdr.markForCheck();
+  }
+
+  protected getStatus(record: PackagingResponse | null): 'Approved' | 'Pending' {
+    if (!record || record.status !== 'approved') {
+      return 'Pending';
+    }
+    return 'Approved';
+  }
+
+  protected getCreatorName(record: PackagingResponse | null): string {
+    if (!record) {
+      return 'N/A';
+    }
+    return record.createdByName ?? record.createdBy ?? 'N/A';
+  }
+
+  protected getCreatorRole(record: PackagingResponse | null): string {
+    if (!record?.createdByRole) {
+      return 'N/A';
+    }
+    return record.createdByRole.charAt(0).toUpperCase() + record.createdByRole.slice(1);
   }
 }
