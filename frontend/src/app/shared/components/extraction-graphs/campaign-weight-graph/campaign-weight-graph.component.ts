@@ -4,6 +4,15 @@ import { ChartConfiguration, ChartOptions } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
 import { ExtractionResponse } from '../../../../core/services/api.service';
 
+interface CampaignWeightSummary {
+  readonly campaign: string;
+  readonly totalWeight: number;
+  readonly totalVolume: number;
+  readonly recordCount: number;
+  readonly averageWeight: number;
+  readonly latestRecord: ExtractionResponse | null;
+}
+
 @Component({
   selector: 'app-extraction-campaign-weight-graph',
   standalone: true,
@@ -14,12 +23,85 @@ import { ExtractionResponse } from '../../../../core/services/api.service';
       @if (isLoading) {
         <p>Loading data...</p>
       } @else if (rows && rows.length > 0) {
-        <canvas
-          baseChart
-          [data]="chartData"
-          [options]="chartOptions"
-          chartType="bar">
-        </canvas>
+        <div class="chart-container">
+          <canvas
+            baseChart
+            [data]="chartData"
+            [options]="chartOptions"
+            chartType="bar">
+          </canvas>
+        </div>
+        @if (selectedRecord; as record) {
+          <div class="record-details">
+            <div class="details-header">
+              <h4>Campaign Output Details</h4>
+              <button
+                type="button"
+                class="close-button"
+                (click)="clearSelection()"
+                title="Close details">
+                <span class="close-icon">&times;</span>
+              </button>
+            </div>
+            <div class="details-grid">
+              <div class="detail-item">
+                <span class="label">Campaign</span>
+                <span class="value campaign-badge">{{ record.campaign }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">Total Weight</span>
+                <span class="value weight-value">{{ record.totalWeight | number:'1.0-2' }} kg</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">Average Weight</span>
+                <span class="value">{{ record.averageWeight | number:'1.0-2' }} kg</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">Total Volume</span>
+                <span class="value volume-value">{{ record.totalVolume | number:'1.0-2' }} gal</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">Batch Count</span>
+                <span class="value">{{ record.recordCount }}</span>
+              </div>
+            </div>
+            @if (record.latestRecord; as latest) {
+              <div class="latest-record">
+                <h5>Most Recent Batch</h5>
+                <div class="details-grid">
+                  <div class="detail-item">
+                    <span class="label">Date</span>
+                    <span class="value">{{ formatDate(latest.date) }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="label">Plant</span>
+                    <span class="value plant-badge">{{ latest.plant ?? 'N/A' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="label">Stage</span>
+                    <span class="value">{{ latest.stage ?? 'N/A' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="label">Tank</span>
+                    <span class="value">{{ latest.tank ?? 'N/A' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="label">Weight</span>
+                    <span class="value weight-value">{{ resolveNumber(latest.weight, null) | number:'1.0-2' }} kg</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="label">Volume</span>
+                    <span class="value volume-value">{{ resolveNumber(latest.volume, null) | number:'1.0-2' }} gal</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="label">Concentration</span>
+                    <span class="value">{{ resolveNumber(latest.concentration, null) | number:'1.0-2' }} g/L</span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
       } @else {
         <p>No data available</p>
       }
@@ -48,6 +130,133 @@ import { ExtractionResponse } from '../../../../core/services/api.service';
       margin: 0;
       font-size: 0.9rem;
     }
+
+    .chart-container {
+      margin-bottom: 1.5rem;
+    }
+
+    .record-details {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 0.75rem;
+      padding: 1rem;
+    }
+
+    .details-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .details-header h4 {
+      margin: 0;
+      color: #e2e8f0;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .close-button {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 0.5rem;
+      padding: 0.375rem 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .close-button:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.5);
+      transform: scale(1.05);
+    }
+
+    .close-button:active {
+      transform: scale(0.95);
+    }
+
+    .close-icon {
+      color: #f87171;
+      font-size: 0.9rem;
+      font-weight: 600;
+      line-height: 1;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .detail-item {
+      padding: 0.6rem;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 0.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .detail-item .label {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      letter-spacing: 0.02em;
+    }
+
+    .detail-item .value {
+      font-size: 0.9rem;
+      color: #e2e8f0;
+      font-weight: 600;
+    }
+
+    .campaign-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.375rem;
+      background: rgba(34, 197, 94, 0.15);
+      color: #6ee7b7;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .plant-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.375rem;
+      background: rgba(59, 130, 246, 0.15);
+      color: #93c5fd;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .weight-value {
+      color: #facc15;
+    }
+
+    .volume-value {
+      color: #38bdf8;
+    }
+
+    .latest-record {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 1rem;
+    }
+
+    .latest-record h5 {
+      margin: 0 0 0.75rem 0;
+      color: #cbd5f5;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -55,87 +264,94 @@ export class ExtractionCampaignWeightGraphComponent implements OnChanges {
   @Input() rows: ExtractionResponse[] | null = null;
   @Input() isLoading = false;
 
+  protected selectedRecord: CampaignWeightSummary | null = null;
+
   protected chartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
 
-  protected chartOptions: ChartOptions<'bar'> = {
-    responsive: true,
-    indexAxis: 'y',
-    plugins: {
-      legend: {
-        display: false
-      },
-      tooltip: {
-        enabled: true,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleColor: '#e2e8f0',
-        bodyColor: '#e2e8f0',
-        borderColor: 'rgba(255, 255, 255, 0.2)',
-        borderWidth: 1,
-        callbacks: {
-          label: (context) => {
-            const value = context.parsed.x ?? 0;
-            return `Total Weight: ${value.toFixed(2)} kg`;
-          }
-        }
-      }
-    },
-    scales: {
-      x: {
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: 'Total Weight (kg)',
-          color: '#e2e8f0'
-        },
-        ticks: {
-          color: '#94a3b8'
-        },
-        grid: {
-          color: 'rgba(255, 255, 255, 0.1)'
-        }
-      },
-      y: {
-        ticks: {
-          color: '#94a3b8'
-        },
-        grid: {
-          color: 'rgba(255, 255, 255, 0.1)'
-        }
-      }
-    }
-  };
+  protected chartOptions: ChartOptions<'bar'> = this.createChartOptions();
+
+  private summaries: CampaignWeightSummary[] = [];
 
   ngOnChanges(): void {
     this.updateChartData();
   }
 
+  protected clearSelection(): void {
+    this.selectedRecord = null;
+  }
+
+  protected formatDate(value: string | Date | null | undefined): string {
+    if (!value) {
+      return 'Unknown';
+    }
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'Unknown' : date.toLocaleDateString();
+  }
+
   private updateChartData(): void {
     if (!this.rows?.length) {
       this.chartData = { labels: [], datasets: [] };
+      this.chartOptions = this.createChartOptions();
+      this.summaries = [];
+      this.selectedRecord = null;
       return;
     }
 
-    const campaignTotals = new Map<string, number>();
+    const campaignTotals = new Map<string, { totalWeight: number; totalVolume: number; rows: ExtractionResponse[] }>();
 
     this.rows.forEach(row => {
       if (!row.campaign) {
         return;
       }
       const weight = this.resolveNumber(row.weight, undefined);
-      campaignTotals.set(row.campaign, (campaignTotals.get(row.campaign) ?? 0) + weight);
+      const volume = this.resolveNumber(row.volume, undefined);
+      const key = row.campaign;
+
+      const current = campaignTotals.get(key);
+      if (current) {
+        current.totalWeight += weight;
+        current.totalVolume += volume;
+        current.rows.push(row);
+      } else {
+        campaignTotals.set(key, {
+          totalWeight: weight,
+          totalVolume: volume,
+          rows: [row]
+        });
+      }
     });
 
     if (!campaignTotals.size) {
       this.chartData = { labels: [], datasets: [] };
+      this.summaries = [];
+      this.selectedRecord = null;
+      this.chartOptions = this.createChartOptions();
       return;
     }
 
     const sorted = Array.from(campaignTotals.entries())
-      .sort((a, b) => b[1] - a[1])
+      .map(([campaign, data]) => {
+        const sortedRows = [...data.rows].sort((a, b) =>
+          this.getDateValue(b.date) - this.getDateValue(a.date)
+        );
+        const recordCount = data.rows.length;
+        return {
+          campaign,
+          totalWeight: data.totalWeight,
+          totalVolume: data.totalVolume,
+          recordCount,
+          averageWeight: recordCount ? data.totalWeight / recordCount : 0,
+          latestRecord: sortedRows[0] ?? null
+        } as CampaignWeightSummary;
+      })
+      .sort((a, b) => b.totalWeight - a.totalWeight)
       .slice(0, 10);
 
-    const labels = sorted.map(([campaign]) => campaign);
-    const weights = sorted.map(([, value]) => value);
+    this.summaries = sorted;
+
+    const labels = sorted.map(summary => summary.campaign);
+    const weights = sorted.map(summary => summary.totalWeight);
 
     this.chartData = {
       labels,
@@ -153,9 +369,88 @@ export class ExtractionCampaignWeightGraphComponent implements OnChanges {
         borderWidth: 1
       }]
     };
+
+    this.chartOptions = this.createChartOptions();
+
+    if (this.selectedRecord) {
+      const stillExists = this.summaries.find(summary => summary.campaign === this.selectedRecord?.campaign);
+      if (!stillExists) {
+        this.selectedRecord = null;
+      } else {
+        this.selectedRecord = stillExists;
+      }
+    }
   }
 
-  private resolveNumber(primary: unknown, fallback: unknown): number {
+  private createChartOptions(): ChartOptions<'bar'> {
+    return {
+      responsive: true,
+      indexAxis: 'y',
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          enabled: true,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          titleColor: '#e2e8f0',
+          bodyColor: '#e2e8f0',
+          borderColor: 'rgba(255, 255, 255, 0.2)',
+          borderWidth: 1,
+          callbacks: {
+            label: (context) => {
+              const index = context.dataIndex ?? 0;
+        const summary = this.summaries[index];
+              const value = context.parsed.x ?? 0;
+
+              if (!summary) {
+                return `Total Weight: ${value.toFixed(2)} kg`;
+              }
+
+              return [
+                `Total Weight: ${value.toFixed(2)} kg`,
+                `Average Weight: ${summary.averageWeight.toFixed(2)} kg`,
+                `Batches: ${summary.recordCount}`
+              ];
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Total Weight (kg)',
+            color: '#e2e8f0'
+          },
+          ticks: {
+            color: '#94a3b8'
+          },
+          grid: {
+            color: 'rgba(255, 255, 255, 0.1)'
+          }
+        },
+        y: {
+          ticks: {
+            color: '#94a3b8'
+          },
+          grid: {
+            color: 'rgba(255, 255, 255, 0.1)'
+          }
+        }
+      },
+      onClick: (_event, elements) => {
+        if (!elements.length) {
+          return;
+        }
+        const index = elements[0].index;
+        this.selectedRecord = this.summaries[index] ?? null;
+      }
+    };
+  }
+
+  protected resolveNumber(primary: unknown, fallback: unknown): number {
     return this.coerceNumber(primary) ?? this.coerceNumber(fallback) ?? 0;
   }
 
@@ -179,5 +474,14 @@ export class ExtractionCampaignWeightGraphComponent implements OnChanges {
 
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private getDateValue(value: string | Date | null | undefined): number {
+    if (!value) {
+      return 0;
+    }
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
   }
 }

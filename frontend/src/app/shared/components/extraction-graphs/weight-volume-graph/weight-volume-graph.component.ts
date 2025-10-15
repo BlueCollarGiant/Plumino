@@ -1,13 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, Input, OnChanges } from '@angular/core';
-import { ChartConfiguration, ChartOptions } from 'chart.js';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnChanges, inject } from '@angular/core';
+import { ChartConfiguration, ChartOptions, TooltipItem } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
+
 import { ExtractionResponse } from '../../../../core/services/api.service';
 
 @Component({
   selector: 'app-extraction-weight-volume-graph',
   standalone: true,
-  imports: [NgChartsModule, CommonModule],
+  imports: [CommonModule, NgChartsModule],
   template: `
     <div class="graph-card">
       <h3>Tank Weight vs Volume</h3>
@@ -19,7 +20,8 @@ import { ExtractionResponse } from '../../../../core/services/api.service';
             baseChart
             [data]="chartData"
             [options]="chartOptions"
-            chartType="bar">
+            chartType="bar"
+            (chartClick)="onChartClick($event)">
           </canvas>
         </div>
         @if (selectedRecord; as record) {
@@ -36,48 +38,48 @@ import { ExtractionResponse } from '../../../../core/services/api.service';
             </div>
             <div class="details-grid">
               <div class="detail-item">
-                <span class="label">Date</span>
+                <span class="label">Date:</span>
                 <span class="value">{{ formatDate(record.date) }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">Plant</span>
+                <span class="label">Plant:</span>
                 <span class="value plant-badge">{{ record.plant ?? 'N/A' }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">Product</span>
+                <span class="label">Product:</span>
                 <span class="value">{{ record.product ?? 'N/A' }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">Campaign</span>
+                <span class="label">Campaign:</span>
                 <span class="value campaign-badge">{{ record.campaign ?? 'N/A' }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">Stage</span>
+                <span class="label">Stage:</span>
                 <span class="value">{{ record.stage ?? 'N/A' }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">Tank</span>
+                <span class="label">Tank:</span>
                 <span class="value">{{ record.tank ?? 'N/A' }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">Weight</span>
+                <span class="label">Weight:</span>
                 <span class="value weight-value">{{ getWeightKg(record) | number:'1.0-2' }} kg</span>
               </div>
               <div class="detail-item">
-                <span class="label">Volume</span>
+                <span class="label">Volume:</span>
                 <span class="value volume-value">{{ getVolume(record) | number:'1.0-2' }} gal</span>
               </div>
               <div class="detail-item">
-                <span class="label">Concentration</span>
+                <span class="label">Concentration:</span>
                 <span class="value concentration-value">{{ getConcentration(record) | number:'1.0-2' }} g/L</span>
               </div>
               <div class="detail-item">
-                <span class="label">Level Indicator</span>
+                <span class="label">Level:</span>
                 <span class="value">{{ record.levelIndicator ?? 'N/A' }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">pH</span>
-                <span class="value">{{ getPh(record) | number:'1.0-2' }}</span>
+                <span class="label">pH:</span>
+                <span class="value ph-value">{{ getPh(record) | number:'1.0-2' }}</span>
               </div>
             </div>
           </div>
@@ -130,76 +132,86 @@ import { ExtractionResponse } from '../../../../core/services/api.service';
       margin-bottom: 1rem;
     }
 
-    .details-header h4 {
-      margin: 0;
-      color: #e2e8f0;
-      font-size: 1rem;
-      font-weight: 600;
-    }
-
     .close-button {
-      background: none;
-      border: none;
-      color: #94a3b8;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 0.5rem;
+      padding: 0.375rem 0.5rem;
       cursor: pointer;
-      font-size: 1.25rem;
-      padding: 0.25rem;
-      line-height: 1;
-      transition: color 0.2s ease;
-    }
-
-    .close-button:hover {
-      color: #f87171;
-    }
-
-    .close-icon {
-      display: inline-flex;
+      transition: all 0.2s ease;
+      display: flex;
       align-items: center;
       justify-content: center;
     }
 
+    .close-button:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.5);
+      transform: scale(1.05);
+    }
+
+    .close-button:active {
+      transform: scale(0.95);
+    }
+
+    .close-icon {
+      color: #f87171;
+      font-size: 0.9rem;
+      font-weight: 600;
+      line-height: 1;
+    }
+
     .details-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 0.75rem;
     }
 
     .detail-item {
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-      background: rgba(148, 163, 184, 0.1);
+      padding: 0.6rem 0.75rem;
+      background: rgba(255, 255, 255, 0.02);
       border-radius: 0.5rem;
-      padding: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
     }
 
     .detail-item .label {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-size: 0.8rem;
       color: #94a3b8;
+      font-weight: 500;
     }
 
     .detail-item .value {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       color: #e2e8f0;
       font-weight: 600;
     }
 
     .plant-badge {
-      background: rgba(59, 130, 246, 0.2);
-      color: #93c5fd;
-      padding: 0.2rem 0.5rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.25rem 0.5rem;
       border-radius: 0.375rem;
-      font-size: 0.75rem !important;
+      background: rgba(59, 130, 246, 0.15);
+      color: #93c5fd;
+      font-size: 0.75rem;
+      font-weight: 600;
     }
 
     .campaign-badge {
-      background: rgba(34, 197, 94, 0.2);
-      color: #86efac;
-      padding: 0.2rem 0.5rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.25rem 0.5rem;
       border-radius: 0.375rem;
-      font-size: 0.75rem !important;
+      background: rgba(234, 179, 8, 0.15);
+      color: #facc15;
+      font-size: 0.75rem;
+      font-weight: 600;
     }
 
     .concentration-value {
@@ -207,11 +219,15 @@ import { ExtractionResponse } from '../../../../core/services/api.service';
     }
 
     .volume-value {
-      color: #38bdf8 !important;
+      color: #34d399 !important;
     }
 
     .weight-value {
-      color: #facc15 !important;
+      color: #60a5fa !important;
+    }
+
+    .ph-value {
+      color: #f97316 !important;
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -221,8 +237,11 @@ export class ExtractionWeightVolumeGraphComponent implements OnChanges {
   @Input() isLoading = false;
 
   protected selectedRecord: ExtractionResponse | null = null;
+
   protected chartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
   protected chartOptions: ChartOptions<'bar'> = this.createChartOptions();
+
+  private readonly cdr = inject(ChangeDetectorRef);
 
   ngOnChanges(): void {
     this.updateChartData();
@@ -230,22 +249,23 @@ export class ExtractionWeightVolumeGraphComponent implements OnChanges {
 
   protected clearSelection(): void {
     this.selectedRecord = null;
+    this.cdr.markForCheck();
   }
 
   protected getConcentration(record: ExtractionResponse | null | undefined): number {
-    return this.resolveNumber(record?.concentration, undefined);
+    return this.resolveNumber(record?.concentration, null);
   }
 
   protected getVolume(record: ExtractionResponse | null | undefined): number {
-    return this.resolveNumber(record?.volume, undefined);
+    return this.resolveNumber(record?.volume, null);
   }
 
   protected getWeightKg(record: ExtractionResponse | null | undefined): number {
-    return this.resolveNumber(record?.weight, undefined);
+    return this.resolveNumber(record?.weight, null);
   }
 
   protected getPh(record: ExtractionResponse | null | undefined): number {
-    return this.resolveNumber(record?.pH, undefined);
+    return this.resolveNumber(record?.pH, null);
   }
 
   protected formatDate(value: string | Date | null | undefined): string {
@@ -254,6 +274,10 @@ export class ExtractionWeightVolumeGraphComponent implements OnChanges {
     }
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? 'Unknown' : date.toLocaleDateString();
+  }
+
+  protected onChartClick(_event: unknown): void {
+    // Handled via chartOptions.onClick to keep logic centralized.
   }
 
   private createChartOptions(): ChartOptions<'bar'> {
@@ -274,7 +298,7 @@ export class ExtractionWeightVolumeGraphComponent implements OnChanges {
           borderColor: 'rgba(255, 255, 255, 0.2)',
           borderWidth: 1,
           callbacks: {
-            title: (context) => {
+            title: (context: TooltipItem<'bar'>[]) => {
               const index = context[0]?.dataIndex ?? 0;
               const record = this.rows?.[index];
               if (!record) {
@@ -283,7 +307,7 @@ export class ExtractionWeightVolumeGraphComponent implements OnChanges {
               const date = this.formatDate(record.date ?? null);
               return record.plant ? `${date} - Plant ${record.plant}` : date;
             },
-            label: (context) => {
+            label: (context: TooltipItem<'bar'>) => {
               const value = context.parsed.y ?? 0;
               if (context.datasetIndex === 0) {
                 return `Weight: ${value.toFixed(2)} kg`;
@@ -322,7 +346,7 @@ export class ExtractionWeightVolumeGraphComponent implements OnChanges {
           return;
         }
         const index = elements[0].index;
-        this.selectedRecord = this.rows?.[index] ?? null;
+        this.selectRecordByIndex(index);
       }
     };
   }
@@ -335,8 +359,8 @@ export class ExtractionWeightVolumeGraphComponent implements OnChanges {
     }
 
     const labels = this.rows.map(row => this.formatDate(row.date ?? null));
-    const weightData = this.rows.map(row => this.resolveNumber(row.weight, undefined));
-    const volumeData = this.rows.map(row => this.resolveNumber(row.volume, undefined));
+    const weightData = this.rows.map(row => this.resolveNumber(row.weight, null));
+    const volumeData = this.rows.map(row => this.resolveNumber(row.volume, null));
 
     this.chartData = {
       labels,
@@ -362,11 +386,12 @@ export class ExtractionWeightVolumeGraphComponent implements OnChanges {
       const stillExists = this.rows.some(row => row === this.selectedRecord);
       if (!stillExists) {
         this.selectedRecord = null;
+        this.cdr.markForCheck();
       }
     }
   }
 
-  private resolveNumber(primary: unknown, fallback: unknown): number {
+  protected resolveNumber(primary: unknown, fallback: unknown): number {
     return this.coerceNumber(primary) ?? this.coerceNumber(fallback) ?? 0;
   }
 
@@ -390,5 +415,15 @@ export class ExtractionWeightVolumeGraphComponent implements OnChanges {
 
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private selectRecordByIndex(index: number): void {
+    if (!this.rows?.length || index < 0 || index >= this.rows.length) {
+      this.selectedRecord = null;
+      this.cdr.markForCheck();
+      return;
+    }
+    this.selectedRecord = this.rows[index] ?? null;
+    this.cdr.markForCheck();
   }
 }
