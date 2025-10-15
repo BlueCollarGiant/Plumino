@@ -5,12 +5,12 @@ import { NgChartsModule } from 'ng2-charts';
 import { ExtractionResponse } from '../../../../core/services/api.service';
 
 @Component({
-  selector: 'app-extraction-concentration-volume-graph',
+  selector: 'app-extraction-weight-volume-graph',
   standalone: true,
   imports: [NgChartsModule, CommonModule],
   template: `
     <div class="graph-card">
-      <h3>Tank Concentration vs Volume</h3>
+      <h3>Tank Weight vs Volume</h3>
       @if (isLoading) {
         <p>Loading data...</p>
       } @else if (rows && rows.length > 0) {
@@ -60,16 +60,16 @@ import { ExtractionResponse } from '../../../../core/services/api.service';
                 <span class="value">{{ record.tank ?? 'N/A' }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">Concentration</span>
-                <span class="value concentration-value">{{ getConcentration(record) | number:'1.0-2' }} g/L</span>
+                <span class="label">Weight</span>
+                <span class="value weight-value">{{ getWeightKg(record) | number:'1.0-2' }} kg</span>
               </div>
               <div class="detail-item">
                 <span class="label">Volume</span>
                 <span class="value volume-value">{{ getVolume(record) | number:'1.0-2' }} gal</span>
               </div>
               <div class="detail-item">
-                <span class="label">Weight</span>
-                <span class="value weight-value">{{ getWeightKg(record) | number:'1.0-2' }} kg</span>
+                <span class="label">Concentration</span>
+                <span class="value concentration-value">{{ getConcentration(record) | number:'1.0-2' }} g/L</span>
               </div>
               <div class="detail-item">
                 <span class="label">Level Indicator</span>
@@ -216,7 +216,7 @@ import { ExtractionResponse } from '../../../../core/services/api.service';
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ExtractionConcentrationVolumeGraphComponent implements OnChanges {
+export class ExtractionWeightVolumeGraphComponent implements OnChanges {
   @Input() rows: ExtractionResponse[] | null = null;
   @Input() isLoading = false;
 
@@ -284,9 +284,11 @@ export class ExtractionConcentrationVolumeGraphComponent implements OnChanges {
               return record.plant ? `${date} - Plant ${record.plant}` : date;
             },
             label: (context) => {
-              const label = context.dataset.label ?? 'Value';
               const value = context.parsed.y ?? 0;
-              return `${label}: ${value.toFixed(2)}`;
+              if (context.datasetIndex === 0) {
+                return `Weight: ${value.toFixed(2)} kg`;
+              }
+              return `Volume: ${value.toFixed(2)} gal`;
             }
           }
         }
@@ -296,7 +298,7 @@ export class ExtractionConcentrationVolumeGraphComponent implements OnChanges {
           beginAtZero: true,
           title: {
             display: true,
-            text: 'Measurement',
+            text: 'Amount',
             color: '#e2e8f0'
           },
           ticks: {
@@ -333,17 +335,17 @@ export class ExtractionConcentrationVolumeGraphComponent implements OnChanges {
     }
 
     const labels = this.rows.map(row => this.formatDate(row.date ?? null));
-    const concentrationData = this.rows.map(row => this.resolveNumber(row.concentration, undefined));
+    const weightData = this.rows.map(row => this.resolveNumber(row.weight, undefined));
     const volumeData = this.rows.map(row => this.resolveNumber(row.volume, undefined));
 
     this.chartData = {
       labels,
       datasets: [
         {
-          label: 'Concentration (g/L)',
-          data: concentrationData,
-          backgroundColor: 'rgba(192, 132, 252, 0.5)',
-          borderColor: 'rgba(192, 132, 252, 1)',
+          label: 'Weight (kg)',
+          data: weightData,
+          backgroundColor: 'rgba(250, 204, 21, 0.5)',
+          borderColor: 'rgba(234, 179, 8, 1)',
           borderWidth: 1
         },
         {

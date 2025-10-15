@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { NgChartsModule } from 'ng2-charts';
 import { ExtractionResponse } from '../../../core/services/api.service';
-import { ExtractionConcentrationVolumeGraphComponent } from '../../../shared/components/extraction-graphs/concentration-volume-graph/concentration-volume-graph.component';
+import { ExtractionWeightVolumeGraphComponent } from '../../../shared/components/extraction-graphs/weight-volume-graph/weight-volume-graph.component';
 import { ExtractionPlantConcentrationTrendGraphComponent } from '../../../shared/components/extraction-graphs/plant-concentration-trend-graph/plant-concentration-trend-graph.component';
 import { ExtractionPlantVolumeGraphComponent } from '../../../shared/components/extraction-graphs/plant-volume-graph/plant-volume-graph.component';
 import { ExtractionCampaignWeightGraphComponent } from '../../../shared/components/extraction-graphs/campaign-weight-graph/campaign-weight-graph.component';
@@ -13,7 +13,7 @@ import { ExtractionCampaignWeightGraphComponent } from '../../../shared/componen
   imports: [
     CommonModule,
     NgChartsModule,
-    ExtractionConcentrationVolumeGraphComponent,
+    ExtractionWeightVolumeGraphComponent,
     ExtractionPlantConcentrationTrendGraphComponent,
     ExtractionPlantVolumeGraphComponent,
     ExtractionCampaignWeightGraphComponent
