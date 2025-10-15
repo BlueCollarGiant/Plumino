@@ -2,11 +2,11 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { ChartDataset, ChartOptions } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
-import { FermentationResponse } from '../../../../core/services/api.service';
-import { InputOutputGraphComponent } from '../../../../shared/components/fermentation-graphs/input-output-graph/input-output-graph.component';
-import { ProductionTrendGraphComponent } from '../../../../shared/components/fermentation-graphs/production-trend-graph/production-trend-graph.component';
-import { PlantUtilizationGraphComponent } from '../../../../shared/components/fermentation-graphs/plant-utilization-graph/plant-utilization-graph.component';
-import { CampaignOutputGraphComponent } from '../../../../shared/components/fermentation-graphs/campaign-output-graph/campaign-output-graph.component';
+import { FermentationResponse } from '../../../core/services/api.service';
+import { InputOutputGraphComponent } from '../../../shared/components/fermentation-graphs/input-output-graph/input-output-graph.component';
+import { ProductionTrendGraphComponent } from '../../../shared/components/fermentation-graphs/production-trend-graph/production-trend-graph.component';
+import { PlantUtilizationGraphComponent } from '../../../shared/components/fermentation-graphs/plant-utilization-graph/plant-utilization-graph.component';
+import { CampaignOutputGraphComponent } from '../../../shared/components/fermentation-graphs/campaign-output-graph/campaign-output-graph.component';
 
 export interface FermentationChartSeries {
   readonly name: string;
@@ -33,3 +33,4 @@ export class FermentationGraphPanelComponent {
   @Input() selectedStatus: 'approved' | 'pending' = 'approved';
   @Input() isLoading: boolean = false;
 }
+
