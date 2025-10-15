@@ -304,12 +304,27 @@ type FermentationFormValue = Record<ModalFieldKey, unknown>;
     </div>
 
       <section class="graph-section data-section" style="overflow: visible;">
-        <h3 class="card-title">
-          Fermentation Yield
-        </h3>
-        <div class="status-toggle">
-          <button [class.active]="selectedStatus() === 'approved'" (click)="toggleStatus('approved')">Approved</button>
-          <button [class.active]="selectedStatus() === 'pending'" (click)="toggleStatus('pending')">Pending</button>
+        <div class="graph-header">
+          <h3 class="card-title">
+            Process Analytics Dashboard
+          </h3>
+          <div class="status-toggle-container">
+            <div class="status-toggle-slider" [class.slider-right]="selectedStatus() === 'pending'">
+              <button
+                class="status-toggle-btn"
+                [class.active]="selectedStatus() === 'approved'"
+                (click)="toggleStatus('approved')">
+                Approved
+              </button>
+              <button
+                class="status-toggle-btn"
+                [class.active]="selectedStatus() === 'pending'"
+                (click)="toggleStatus('pending')">
+                Pending
+              </button>
+              <div class="slider-indicator"></div>
+            </div>
+          </div>
         </div>
         <app-fermentation-graph-panel
           [rows]="filteredRows()"
@@ -1457,6 +1472,85 @@ type FermentationFormValue = Record<ModalFieldKey, unknown>;
         font-weight: 600;
       }
 
+      /* Graph Section Styles */
+      .graph-section {
+        text-align: center;
+      }
+
+      .graph-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      /* Status Toggle Slider */
+      .status-toggle-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .status-toggle-slider {
+        position: relative;
+        display: inline-flex;
+        background: rgba(15, 23, 42, 0.65);
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.15);
+        padding: 0.25rem;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        backdrop-filter: blur(10px);
+      }
+
+      .status-toggle-btn {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.75rem 1.25rem;
+        border-radius: 12px;
+        border: none;
+        background: transparent;
+        color: rgba(226, 232, 240, 0.85);
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        z-index: 2;
+        min-width: 110px;
+        letter-spacing: 0.01em;
+      }
+
+      .status-toggle-btn:hover {
+        color: #f8fafc;
+        transform: translateY(-1px);
+      }
+
+      .status-toggle-btn.active {
+        color: #021017;
+        font-weight: 700;
+      }
+
+      .slider-indicator {
+        position: absolute;
+        top: 0.25rem;
+        left: 0.25rem;
+        width: calc(50% - 0.25rem);
+        height: calc(100% - 0.5rem);
+        background: linear-gradient(135deg, #22c55e, #4ade80);
+        border-radius: 12px;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
+      }
+
+      .status-toggle-slider.slider-right .slider-indicator {
+        transform: translateX(100%);
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+      }
+
       /* Responsive Design */
       @media (max-width: 1200px) {
         .header-content {
@@ -1501,6 +1595,17 @@ type FermentationFormValue = Record<ModalFieldKey, unknown>;
           grid-template-columns: 1fr;
         }
 
+        .graph-header {
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .status-toggle-btn {
+          padding: 0.65rem 1rem;
+          font-size: 0.85rem;
+          min-width: 95px;
+        }
+
         .quick-add-grid {
           grid-template-columns: 1fr;
         }
@@ -1536,6 +1641,16 @@ type FermentationFormValue = Record<ModalFieldKey, unknown>;
 
         .modal-actions {
           flex-direction: column;
+        }
+
+        .graph-header {
+          gap: 1rem;
+        }
+
+        .status-toggle-btn {
+          padding: 0.6rem 1.2rem;
+          font-size: 0.85rem;
+          min-width: 100px;
         }
       }
 
