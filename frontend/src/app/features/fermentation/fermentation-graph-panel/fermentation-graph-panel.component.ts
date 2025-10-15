@@ -3,10 +3,10 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { ChartDataset, ChartOptions } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
 import { FermentationResponse } from '../../../../core/services/api.service';
-import { InputOutputGraphComponent } from '../input-output-graph/input-output-graph.component';
-import { ProductionTrendGraphComponent } from '../production-trend-graph/production-trend-graph.component';
-import { PlantUtilizationGraphComponent } from '../plant-utilization-graph/plant-utilization-graph.component';
-import { CampaignOutputGraphComponent } from '../campaign-output-graph/campaign-output-graph.component';
+import { InputOutputGraphComponent } from '../../../../shared/components/fermentation-graphs/input-output-graph/input-output-graph.component';
+import { ProductionTrendGraphComponent } from '../../../../shared/components/fermentation-graphs/production-trend-graph/production-trend-graph.component';
+import { PlantUtilizationGraphComponent } from '../../../../shared/components/fermentation-graphs/plant-utilization-graph/plant-utilization-graph.component';
+import { CampaignOutputGraphComponent } from '../../../../shared/components/fermentation-graphs/campaign-output-graph/campaign-output-graph.component';
 
 export interface FermentationChartSeries {
   readonly name: string;
@@ -24,8 +24,8 @@ export interface FermentationChartSeries {
     PlantUtilizationGraphComponent,
     CampaignOutputGraphComponent
   ],
-  templateUrl: './fermentation-yield-graph.component.html',
-  styleUrl: './fermentation-yield-graph.component.css',
+  templateUrl: './fermentation-graph-panel.component.html',
+  styleUrl: './fermentation-graph-panel.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FermentationGraphPanelComponent {
