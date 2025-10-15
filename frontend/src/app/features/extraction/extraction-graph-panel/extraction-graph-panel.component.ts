@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { ExtractionResponse } from '../../../core/services/api.service';
 import { ExtractionWeightVolumeGraphComponent } from '../../../shared/components/extraction-graphs/weight-volume-graph/weight-volume-graph.component';
 import { ExtractionPlantConcentrationTrendGraphComponent } from '../../../shared/components/extraction-graphs/plant-concentration-trend-graph/plant-concentration-trend-graph.component';
@@ -21,6 +21,6 @@ import { ExtractionCampaignPhGraphComponent } from '../../../shared/components/e
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ExtractionGraphPanelComponent {
-  @Input() rows: ExtractionResponse[] | null = null;
-  @Input() isLoading: boolean = false;
+  rows = input<ExtractionResponse[] | null>(null);
+  isLoading = input<boolean>(false);
 }
