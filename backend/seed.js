@@ -1,18 +1,23 @@
 const mongoose = require("mongoose");
+const dotenv = require("dotenv");
 const XLSX = require("xlsx");
-require("dotenv").config();
+
+dotenv.config();
+
+// Render runs `npm install` followed by `npm run postinstall`, so ensure MONGO_URI is set in Render's dashboard.
+
+const { MONGO_URI } = process.env;
+
+if (!MONGO_URI) {
+  console.error("Missing MONGO_URI environment variable. Set it locally or in Render's dashboard.");
+  process.exit(1);
+}
 
 // Models
 const Extraction = require("./models/extractionModel");
 const Fermentation = require("./models/fermentationModel");
 const Packaging = require("./models/packagingModel");
 const Employee = require("./models/employeeModel");
-
-// Database connection
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB connection error:", err));
 
 // Load workbook
 const workbook = XLSX.readFile("./firstspreadsheets.xlsx");
@@ -180,10 +185,26 @@ async function seed() {
     console.log('Note: Most records are legacy data (no createdBy), some are assigned to operators for testing.');
   } catch (err) {
     console.error("Error seeding data:", err);
-  } finally {
-    mongoose.connection.close();
+    throw err;
   }
 }
 
-seed();
+async function main() {
+  try {
+    await mongoose.connect(MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log("Connected to MongoDB");
+    await seed();
+    console.log("Seeding complete");
+  } catch (err) {
+    console.error("MongoDB connection error:", err);
+  } finally {
+    await mongoose.disconnect();
+    console.log("Disconnected from MongoDB");
+  }
+}
+
+main();
 

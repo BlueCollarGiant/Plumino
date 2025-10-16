@@ -1,15 +1,20 @@
 const mongoose = require("mongoose");
+const dotenv = require("dotenv");
 const bcrypt = require("bcryptjs");
-require("dotenv").config();
+
+dotenv.config();
+
+// Render runs `npm install` followed by `npm run postinstall`, so ensure MONGO_URI is set in Render's dashboard.
+
+const { MONGO_URI } = process.env;
+
+if (!MONGO_URI) {
+  console.error("Missing MONGO_URI environment variable. Set it locally or in Render's dashboard.");
+  process.exit(1);
+}
 
 // Models
 const Employee = require("./models/employeeModel");
-
-// Database connection
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB connection error:", err));
 
 // Employee seed data
 const employeeData = [
@@ -111,9 +116,25 @@ async function seedEmployees() {
     
   } catch (err) {
     console.error("Error seeding employees:", err);
-  } finally {
-    mongoose.connection.close();
+    throw err;
   }
 }
 
-seedEmployees();
+async function main() {
+  try {
+    await mongoose.connect(MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log("Connected to MongoDB");
+    await seedEmployees();
+    console.log("Seeding complete");
+  } catch (err) {
+    console.error("MongoDB connection error:", err);
+  } finally {
+    await mongoose.disconnect();
+    console.log("Disconnected from MongoDB");
+  }
+}
+
+main();
