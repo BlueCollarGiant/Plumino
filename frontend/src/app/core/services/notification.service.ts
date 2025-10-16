@@ -2,6 +2,7 @@ import { Injectable, inject, signal, NgZone } from '@angular/core';
 import { AuthService } from './auth.service';
 import { ToastService } from './toast.service';
 import { Router } from '@angular/router';
+import { environment } from '../config/environment';
 
 export interface SSENotification {
   message: string;
@@ -17,6 +18,7 @@ export class NotificationService {
   private readonly toastService = inject(ToastService);
   private readonly router = inject(Router);
   private readonly ngZone = inject(NgZone);
+  private readonly notificationsUrl = environment.sseUrl;
 
   private eventSource: EventSource | null = null;
   private xhr: XMLHttpRequest | null = null;
@@ -44,7 +46,7 @@ export class NotificationService {
   private createAuthenticatedEventSource(token: string): void {
     // Since EventSource doesn't support custom headers, we need to create our own
     this.xhr = new XMLHttpRequest();
-    this.xhr.open('GET', 'http://localhost:5000/api/sse/notifications', true);
+    this.xhr.open('GET', this.notificationsUrl, true);
     this.xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     this.xhr.setRequestHeader('Accept', 'text/event-stream');
     this.xhr.setRequestHeader('Cache-Control', 'no-cache');

@@ -3,6 +3,13 @@
 ## Overview
 Plumino (formerly BioKyowa Inc.) is a biotechnology company based in Cape Girardeau, Missouri. Following its recent acquisition, the company has been rebranded as Plumino while maintaining its core operations in fermentation facilities to produce bulk amino acids. Originally established as BioKyowa Inc. in 1982, production began in 1984 with amino-acid feed supplements. It was the first major plant investment by a Japanese company in Missouri and the first commercial lysine-producing plant in the U.S. The company was previously a wholly owned subsidiary of Kyowa Hakko Bio Co., Ltd., part of Kirin Holdings.
 
+## Netlify Deployment
+- Ensure your backend is reachable from Netlify (e.g., Render, Railway, or a self-hosted HTTPS endpoint).
+- Connect the repository to Netlify; the included `netlify.toml` sets the base directory to `frontend`, runs `npm install && npm run build`, and publishes `dist/frontend-app/browser`.
+- In Netlify → Site configuration → Environment variables, add `NG_APP_API_BASE_URL` pointing to your backend (e.g., `https://plumino-api.example.com/api`). Optional: set `NG_APP_SSE_URL` if your Server-Sent Events endpoint lives outside `${NG_APP_API_BASE_URL}/sse/notifications`.
+- Trigger a deploy. Angular bundles pick up `NG_APP_*` variables at build time; local development continues to default to `http://localhost:5000/api`.
+- For SPA routing support, the generated `_redirects` rule in `netlify.toml` sends all non-asset paths to `index.html`.
+
 ## History and Parent Company
 - Construction began in 1982; production launched in 1984 with swine and poultry feed supplements.
 - Expanded over 30+ years into multiple facilities producing high-quality amino acids.

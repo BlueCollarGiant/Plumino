@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal, effect, Injector } from '@angular/core';
 import { map, tap } from 'rxjs';
+import { environment } from '../config/environment';
 
 export interface LoginRequest {
   readonly email: string;
@@ -31,6 +32,7 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly injector = inject(Injector);
   private readonly authState = signal<AuthState>({ token: null, employee: null });
+  private readonly apiBaseUrl = environment.apiBaseUrl;
 
   readonly token = computed(() => this.authState().token);
   readonly employee = computed(() => this.authState().employee);
@@ -72,7 +74,7 @@ export class AuthService {
   }
 
   login(credentials: LoginRequest) {
-    return this.http.post<LoginResponse>('http://localhost:5000/api/auth/login', credentials).pipe(
+    return this.http.post<LoginResponse>(`${this.apiBaseUrl}/auth/login`, credentials).pipe(
       tap(response => {
         this.persistSession(response);
         // SSE connection will be handled automatically by the auth state effect
@@ -90,7 +92,7 @@ export class AuthService {
     // Call backend logout endpoint first if we have a token
     const currentAuth = this.authState();
     if (currentAuth?.token) {
-      this.http.post('http://localhost:5000/api/auth/logout', {}, {
+      this.http.post(`${this.apiBaseUrl}/auth/logout`, {}, {
         headers: { Authorization: `Bearer ${currentAuth.token}` }
       }).subscribe({
         next: () => console.log('✅ Backend logout successful'),

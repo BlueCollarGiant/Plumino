@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, timer } from 'rxjs';
 import { map, catchError, startWith, switchMap } from 'rxjs/operators';
+import { environment } from '../config/environment';
 
 export interface SystemStatus {
   backend: boolean;
@@ -20,7 +21,7 @@ export interface SystemStatus {
   providedIn: 'root'
 })
 export class HealthService {
-  private readonly apiUrl = 'http://localhost:5000/api';
+  private readonly apiUrl = environment.apiBaseUrl;
   private statusSubject = new BehaviorSubject<SystemStatus>({
     backend: false,
     database: false,

@@ -2,6 +2,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { Observable, map, shareReplay, tap } from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
+import { environment } from '../config/environment';
 
 export interface PackagingFilters {
   [key: string]: unknown;
@@ -115,7 +116,7 @@ export interface PackagingRequest {
 // Exported: used in all three dashboard components
 export class ApiService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = signal('http://localhost:5000/api');
+  private readonly baseUrl = signal(environment.apiBaseUrl);
 
   // Signal-based caching for performance optimization
   private readonly packagingCache = signal<Map<string, PackagingResponse[]>>(new Map());

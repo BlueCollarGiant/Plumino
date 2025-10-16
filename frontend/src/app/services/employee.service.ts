@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, throwError } from 'rxjs';
+import { environment } from '../core/config/environment';
 
 export interface Employee {
   readonly _id: string;
@@ -39,7 +40,7 @@ export interface UpdateEmployeeRequest {
 @Injectable({ providedIn: 'root' })
 export class EmployeeService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = 'http://localhost:5000/api/employees';
+  private readonly baseUrl = `${environment.apiBaseUrl}/employees`;
 
   // Centralized API access for Admin dashboard employee management.
   getEmployees(): Observable<Employee[]> {
