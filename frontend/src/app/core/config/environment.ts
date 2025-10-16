@@ -1,5 +1,7 @@
-// Set VITE_API_URL in Netlify Environment Variables to match your Render backend URL
-const FALLBACK_API_BASE_URL = 'http://localhost:5000/api';
+const DEFAULT_API_BASE_URL =
+  typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? 'http://localhost:5000/api'
+    : 'https://plumino.onrender.com/api';
 
 declare global {
   interface ImportMetaEnv {
@@ -50,9 +52,9 @@ const readEnvValue = (key: keyof ImportMetaEnv): string | undefined => {
 const normalizeUrl = (value: string): string => value.replace(/\/+$/, '');
 
 const apiBaseCandidate =
-  readEnvValue('VITE_API_URL') ??
   readEnvValue('NG_APP_API_BASE_URL') ??
-  FALLBACK_API_BASE_URL;
+  readEnvValue('VITE_API_URL') ??
+  DEFAULT_API_BASE_URL;
 const apiBaseUrl = normalizeUrl(apiBaseCandidate);
 const sseCandidate = readEnvValue('NG_APP_SSE_URL') ?? `${apiBaseUrl}/sse/notifications`;
 const sseUrl = normalizeUrl(sseCandidate);
