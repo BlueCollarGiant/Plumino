@@ -96,15 +96,12 @@ export class HrComponent {
   );
 
   constructor() {
-    effect(
-      () => {
-        const employee = this.authService.employee();
-        if (employee?.role === 'hr') {
-          this.loadEmployees();
-        }
-      },
-      { allowSignalWrites: true }
-    );
+    effect(() => {
+      const employee = this.authService.employee();
+      if (employee?.role === 'hr') {
+        this.loadEmployees();
+      }
+    });
   }
 
   protected reload(): void {

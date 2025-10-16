@@ -254,7 +254,7 @@ export class PackagingDashboardComponent implements OnInit {
     const employee = this.authService.employee();
     this.userRole.set(employee?.role ?? '');
     this.userId.set(employee?.id ?? '');
-  }, { allowSignalWrites: true });
+  });
 
   // Effects for side effects management
   private readonly filterChangesEffect = effect(() => {
@@ -262,7 +262,7 @@ export class PackagingDashboardComponent implements OnInit {
     this.filterForm.valueChanges
       .pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.loadData());
-  }, { allowSignalWrites: false });
+  });
 
   private readonly modalStateEffect = effect(() => {
     // Clear mutation errors when modal opens/closes
@@ -271,7 +271,7 @@ export class PackagingDashboardComponent implements OnInit {
       this.mutationError.set(null);
       this.isMutating.set(false);
     }
-  }, { allowSignalWrites: false });
+  });
 
   private readonly loadingStateEffect = effect(() => {
     // Log loading state changes for debugging
@@ -280,7 +280,7 @@ export class PackagingDashboardComponent implements OnInit {
     if (!loading && count > 0) {
       console.debug(`Loaded ${count} packaging records`);
     }
-  }, { allowSignalWrites: false });
+  });
 
   ngOnInit(): void {
     // Initial data load

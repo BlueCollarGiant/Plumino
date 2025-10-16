@@ -76,7 +76,7 @@ export class FermentationDashboardComponent implements OnInit {
     const employee = this.authService.employee();
     this.userRole.set(employee?.role ?? '');
     this.userId.set(employee?.id ?? '');
-  }, { allowSignalWrites: true });
+  });
 
   protected readonly editingRow = signal<ModalRow | null>(null);
 
@@ -332,7 +332,7 @@ export class FermentationDashboardComponent implements OnInit {
     // Trigger on loading state changes
     this.isLoading();
     this.recordCount();
-  }, { allowSignalWrites: false });
+  });
 
   ngOnInit(): void {
     this.loadData();

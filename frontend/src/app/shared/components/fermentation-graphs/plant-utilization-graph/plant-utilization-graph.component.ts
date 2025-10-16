@@ -54,7 +54,8 @@ export class PlantUtilizationGraphComponent implements OnChanges {
   @Input() rows: FermentationResponse[] | null = null;
   @Input() isLoading: boolean = false;
 
-  chartType = 'bar';
+  // DEAD CODE - chartType property never referenced
+  // chartType = 'bar';
   chartData: ChartConfiguration<'bar'>['data'] = {
     labels: [],
     datasets: [{

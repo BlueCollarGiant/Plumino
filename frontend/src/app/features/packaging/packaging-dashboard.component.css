@@ -130,96 +130,6 @@
   gap: 1.5rem;
 }
 
-.icon-wrapper {
-  position: relative;
-}
-
-.dashboard-icon {
-  font-size: 1.8rem;
-  font-weight: 800;
-  color: #f59e0b;
-  position: relative;
-  z-index: 1;
-  letter-spacing: 1px;
-}
-
-.icon-glow {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 60px;
-  height: 60px;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.4) 0%, transparent 70%);
-  border-radius: 50%;
-  filter: blur(15px);
-  animation: glow 3s ease-in-out infinite alternate;
-}
-
-@keyframes glow {
-  from {
-    opacity: 0.5;
-    transform: translate(-50%, -50%) scale(0.8);
-  }
-  to {
-    opacity: 0.8;
-    transform: translate(-50%, -50%) scale(1.2);
-  }
-}
-
-.title-text h1 {
-  font-size: 2.5rem;
-  font-weight: 800;
-  margin: 0 0 0.5rem 0;
-  background: linear-gradient(135deg, #ffffff 0%, #f59e0b 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.title-text p {
-  margin: 0;
-  color: #cbd5e1;
-  font-size: 1.1rem;
-}
-
-.status-indicator {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: rgba(34, 197, 94, 0.1);
-  padding: 0.5rem 1rem;
-  border-radius: 25px;
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  backdrop-filter: blur(10px);
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #22c55e;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
-  }
-}
-
-.status-indicator span {
-  color: #22c55e;
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
 .status-cell {
   text-align: center;
 }
@@ -334,16 +244,6 @@
   color: white;
 }
 
-.title-icon {
-  font-size: 0.8rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: white;
-  padding: 0.3rem 0.6rem;
-  border-radius: 6px;
-  letter-spacing: 0.5px;
-}
-
 /* Filters */
 .filters {
   display: grid;
@@ -441,12 +341,6 @@
   background: linear-gradient(135deg, #dc2626, #b91c1c);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
-}
-
-.btn-icon {
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
 }
 
 button:disabled {
@@ -594,28 +488,6 @@ button:disabled {
 
 .stat-value.negative {
   color: #ef4444;
-}
-
-.stat-trend {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.stat-trend.positive {
-  color: #22c55e;
-}
-
-.stat-trend.negative {
-  color: #ef4444;
-}
-
-.trend-icon {
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
 }
 
 /* Quick Add Section */

@@ -133,17 +133,17 @@ export class ExtractionDashboardComponent {
     const pHValue = controls.pH.value;
 
     return !this.isQuickSaving() &&
-           !!dateValue &&
-           !!plantValue &&
-           !!productValue &&
-           !!campaignValue &&
-           !!stageValue &&
-           !!tankValue &&
-           concentrationValue !== null && concentrationValue !== undefined && concentrationValue > 0 &&
-           volumeValue !== null && volumeValue !== undefined && volumeValue > 0 &&
-           weightValue !== null && weightValue !== undefined && weightValue > 0 &&
-           !!levelIndicatorValue &&
-           pHValue !== null && pHValue !== undefined && pHValue >= 0 && pHValue <= 14;
+      !!dateValue &&
+      !!plantValue &&
+      !!productValue &&
+      !!campaignValue &&
+      !!stageValue &&
+      !!tankValue &&
+      concentrationValue !== null && concentrationValue !== undefined && concentrationValue > 0 &&
+      volumeValue !== null && volumeValue !== undefined && volumeValue > 0 &&
+      weightValue !== null && weightValue !== undefined && weightValue > 0 &&
+      !!levelIndicatorValue &&
+      pHValue !== null && pHValue !== undefined && pHValue >= 0 && pHValue <= 14;
   }
 
   // Computed signals for derived state
@@ -293,7 +293,7 @@ export class ExtractionDashboardComponent {
     const employee = this.authService.employee();
     this.userRole.set(employee?.role ?? '');
     this.userId.set(employee?.id ?? '');
-  }, { allowSignalWrites: true });
+  });
 
   constructor() {
     // React to filter form changes with debounced loading - moved out of effect for better performance

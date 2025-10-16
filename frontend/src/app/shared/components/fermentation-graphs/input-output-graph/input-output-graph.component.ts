@@ -18,9 +18,7 @@ import { FermentationResponse } from '../../../../core/services/api.service';
           <canvas baseChart
             [data]="chartData"
             [options]="chartOptions"
-            chartType="bar"
-            (chartClick)="onChartClick($event)"
-            (chartHover)="onChartHover($event)">
+            chartType="bar">
           </canvas>
         </div>
         @if (selectedRecord) {
@@ -383,6 +381,7 @@ export class InputOutputGraphComponent implements OnChanges {
     return Number.isFinite(parsed) ? parsed : null;
   }
 
+  /* DEAD CODE - empty event handlers, functionality moved to chartOptions.onClick
   // Chart interaction methods
   onChartClick(event: any): void {
     // Chart click is now handled in chartOptions.onClick
@@ -391,6 +390,7 @@ export class InputOutputGraphComponent implements OnChanges {
   onChartHover(event: any): void {
     // Chart hover interactions can be handled here if needed
   }
+  */
 
   // Helper methods for template
   getWeight(record: FermentationResponse): number {

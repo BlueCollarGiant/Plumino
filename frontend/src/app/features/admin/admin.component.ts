@@ -122,17 +122,14 @@ export class AdminComponent {
 
   // Lifecycle / Init Logic
   // Initialize component and enforce admin-only access
-  private readonly bootstrapEffect = effect(
-    () => {
-      if (!this.isAdmin()) {
-        this.router.navigate(['/']);
-        return;
-      }
+  private readonly bootstrapEffect = effect(() => {
+    if (!this.isAdmin()) {
+      this.router.navigate(['/']);
+      return;
+    }
 
-      this.loadEmployees();
-    },
-    { allowSignalWrites: true }
-  );
+    this.loadEmployees();
+  });
 
   // Core Methods
   // Reload employee data from server
