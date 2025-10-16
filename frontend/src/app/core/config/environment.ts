@@ -1,7 +1,9 @@
+// Set VITE_API_URL in Netlify Environment Variables to match your Render backend URL
 const FALLBACK_API_BASE_URL = 'http://localhost:5000/api';
 
 declare global {
   interface ImportMetaEnv {
+    readonly VITE_API_URL?: string;
     readonly NG_APP_API_BASE_URL?: string;
     readonly NG_APP_SSE_URL?: string;
   }
@@ -37,7 +39,10 @@ const readEnvValue = (key: keyof ImportMetaEnv): string | undefined => {
 
 const normalizeUrl = (value: string): string => value.replace(/\/+$/, '');
 
-const apiBaseCandidate = readEnvValue('NG_APP_API_BASE_URL') ?? FALLBACK_API_BASE_URL;
+const apiBaseCandidate =
+  readEnvValue('VITE_API_URL') ??
+  readEnvValue('NG_APP_API_BASE_URL') ??
+  FALLBACK_API_BASE_URL;
 const apiBaseUrl = normalizeUrl(apiBaseCandidate);
 const sseCandidate = readEnvValue('NG_APP_SSE_URL') ?? `${apiBaseUrl}/sse/notifications`;
 const sseUrl = normalizeUrl(sseCandidate);
@@ -48,4 +53,3 @@ export const environment = {
 } as const;
 
 export type Environment = typeof environment;
-
