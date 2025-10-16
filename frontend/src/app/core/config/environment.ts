@@ -17,9 +17,19 @@ declare global {
   }
 }
 
+const metaEnvValues: Partial<Record<keyof ImportMetaEnv, string | undefined>> = {};
+
+try {
+  metaEnvValues.NG_APP_API_BASE_URL = import.meta.env.NG_APP_API_BASE_URL;
+  metaEnvValues.VITE_API_URL = import.meta.env.VITE_API_URL;
+  metaEnvValues.NG_APP_SSE_URL = import.meta.env.NG_APP_SSE_URL;
+} catch {
+  // ignore failures when import.meta is unavailable (e.g., Jest)
+}
+
 const readEnvValue = (key: keyof ImportMetaEnv): string | undefined => {
   try {
-    const metaValue = import.meta.env?.[key];
+    const metaValue = metaEnvValues[key];
     if (typeof metaValue === 'string' && metaValue.trim()) {
       return metaValue.trim();
     }
