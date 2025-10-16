@@ -31,13 +31,20 @@ app.use((req, res, next) => {
 });
 
 // ---------- MongoDB Connection ----------
+// Render loads MONGO_URI from the Environment tab. No localhost fallback.
+const MONGO_URI = process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.error('❌ Missing MONGO_URI environment variable. Define it in Render or .env');
+  process.exit(1);
+}
+
 mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(MONGO_URI)
   .then(() => console.log('✅ MongoDB connected'))
-  .catch((err) => console.error('❌ MongoDB connection error:', err));
+  .catch((err) => {
+    console.error('❌ MongoDB connection error:', err);
+    process.exit(1);
+  });
 
 // ---------- Routes ----------
 

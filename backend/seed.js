@@ -4,12 +4,11 @@ const XLSX = require("xlsx");
 
 dotenv.config();
 
-// Render runs `npm install` followed by `npm run postinstall`, so ensure MONGO_URI is set in Render's dashboard.
-
-const { MONGO_URI } = process.env;
+// Render loads MONGO_URI from the Environment tab. No localhost fallback.
+const MONGO_URI = process.env.MONGO_URI;
 
 if (!MONGO_URI) {
-  console.error("Missing MONGO_URI environment variable. Set it locally or in Render's dashboard.");
+  console.error("❌ Missing MONGO_URI environment variable. Define it in Render or .env");
   process.exit(1);
 }
 
@@ -191,18 +190,16 @@ async function seed() {
 
 async function main() {
   try {
-    await mongoose.connect(MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log("Connected to MongoDB");
+    await mongoose.connect(MONGO_URI);
+    console.log("✅ Connected to MongoDB");
     await seed();
-    console.log("Seeding complete");
+    console.log("🌱 Seeding complete");
   } catch (err) {
-    console.error("MongoDB connection error:", err);
+    console.error("❌ MongoDB connection error:", err);
+    process.exit(1);
   } finally {
     await mongoose.disconnect();
-    console.log("Disconnected from MongoDB");
+    console.log("🔌 Disconnected from MongoDB");
   }
 }
 
