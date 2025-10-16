@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnChanges, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, input, effect, inject } from '@angular/core';
 import { ChartConfiguration, ChartOptions, TooltipItem } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
 
 import { ExtractionResponse } from '../../../../core/services/api.service';
+import { coerceNumber, formatDate } from '../../../utils/data-coercion.util';
 
 interface CampaignPhSummary {
   readonly campaign: string;
@@ -21,16 +22,15 @@ interface CampaignPhSummary {
   template: `
     <div class="graph-card">
       <h3>Campaign pH Overview</h3>
-      @if (isLoading) {
+      @if (isLoading()) {
         <p>Loading data...</p>
-      } @else if (rows && rows.length > 0) {
+      } @else if (rows() && rows()!.length > 0) {
         <div class="chart-container">
           <canvas
             baseChart
             [data]="chartData"
             [options]="chartOptions"
-            chartType="bar"
-            (chartClick)="onChartClick($event)">
+            chartType="bar">
           </canvas>
         </div>
         @if (selectedSummary; as summary) {
@@ -272,9 +272,9 @@ interface CampaignPhSummary {
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ExtractionCampaignPhGraphComponent implements OnChanges {
-  @Input() rows: ExtractionResponse[] | null = null;
-  @Input() isLoading = false;
+export class ExtractionCampaignPhGraphComponent {
+  rows = input<ExtractionResponse[] | null>(null);
+  isLoading = input<boolean>(false);
 
   protected selectedSummary: CampaignPhSummary | null = null;
   protected chartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
@@ -283,8 +283,12 @@ export class ExtractionCampaignPhGraphComponent implements OnChanges {
   private summaries: CampaignPhSummary[] = [];
   private readonly cdr = inject(ChangeDetectorRef);
 
-  ngOnChanges(): void {
-    this.updateChartData();
+  constructor() {
+    effect(() => {
+      // Trigger on rows() or isLoading() changes
+      this.rows();
+      this.updateChartData();
+    });
   }
 
   protected clearSelection(): void {
@@ -292,20 +296,11 @@ export class ExtractionCampaignPhGraphComponent implements OnChanges {
     this.cdr.markForCheck();
   }
 
-  protected formatDate(value: string | Date | null | undefined): string {
-    if (!value) {
-      return 'Unknown';
-    }
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? 'Unknown' : date.toLocaleDateString();
-  }
-
-  protected onChartClick(_event: unknown): void {
-    // Chart click handled through chartOptions.onClick.
-  }
+  protected formatDate = formatDate;
 
   private updateChartData(): void {
-    if (!this.rows?.length) {
+    const currentRows = this.rows();
+    if (!currentRows?.length) {
       this.chartData = { labels: [], datasets: [] };
       this.chartOptions = this.createChartOptions();
       this.summaries = [];
@@ -316,12 +311,12 @@ export class ExtractionCampaignPhGraphComponent implements OnChanges {
 
     const campaignStats = new Map<string, { sumPh: number; count: number; minPh: number; maxPh: number; rows: ExtractionResponse[] }>();
 
-    for (const row of this.rows) {
+    for (const row of currentRows) {
       if (!row?.campaign) {
         continue;
       }
 
-      const phValue = this.coerceNumber(row.pH);
+      const phValue = coerceNumber(row.pH);
       if (phValue === null) {
         continue;
       }
@@ -491,29 +486,7 @@ export class ExtractionCampaignPhGraphComponent implements OnChanges {
   }
 
   protected resolveNumber(primary: unknown, fallback: unknown): number {
-    return this.coerceNumber(primary) ?? this.coerceNumber(fallback) ?? 0;
-  }
-
-  private coerceNumber(value: unknown): number | null {
-    if (value === undefined || value === null) {
-      return null;
-    }
-
-    if (typeof value === 'number') {
-      return Number.isFinite(value) ? value : null;
-    }
-
-    if (typeof value === 'string') {
-      const normalized = value.replace(/[^0-9.-]/g, '');
-      if (!normalized) {
-        return null;
-      }
-      const parsed = Number(normalized);
-      return Number.isFinite(parsed) ? parsed : null;
-    }
-
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
+    return coerceNumber(primary) ?? coerceNumber(fallback) ?? 0;
   }
 
   private getDateValue(value: string | Date | null | undefined): number {

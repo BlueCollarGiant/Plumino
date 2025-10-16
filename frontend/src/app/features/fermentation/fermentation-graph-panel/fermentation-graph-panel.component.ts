@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import { ChartDataset, ChartOptions } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
 import { FermentationResponse } from '../../../core/services/api.service';
 import { InputOutputGraphComponent } from '../../../shared/components/fermentation-graphs/input-output-graph/input-output-graph.component';

@@ -523,26 +523,27 @@ export class PackagingPlantUtilizationGraphComponent implements OnChanges {
     this.cdr.markForCheck();
   }
 
-  protected getStatus(record: PackagingResponse | null): 'Approved' | 'Pending' {
-    if (!record || record.status !== 'approved') {
-      return 'Pending';
-    }
-    return 'Approved';
-  }
+  /* DEAD CODE - methods never used in template */
+  // protected getStatus(record: PackagingResponse | null): 'Approved' | 'Pending' {
+  //   if (!record || record.status !== 'approved') {
+  //     return 'Pending';
+  //   }
+  //   return 'Approved';
+  // }
 
-  protected getCreatorName(record: PackagingResponse | null): string {
-    if (!record) {
-      return 'N/A';
-    }
-    return record.createdByName ?? record.createdBy ?? 'N/A';
-  }
+  // protected getCreatorName(record: PackagingResponse | null): string {
+  //   if (!record) {
+  //     return 'N/A';
+  //   }
+  //   return record.createdByName ?? record.createdBy ?? 'N/A';
+  // }
 
-  protected getCreatorRole(record: PackagingResponse | null): string {
-    if (!record?.createdByRole) {
-      return 'N/A';
-    }
-    return record.createdByRole.charAt(0).toUpperCase() + record.createdByRole.slice(1);
-  }
+  // protected getCreatorRole(record: PackagingResponse | null): string {
+  //   if (!record?.createdByRole) {
+  //     return 'N/A';
+  //   }
+  //   return record.createdByRole.charAt(0).toUpperCase() + record.createdByRole.slice(1);
+  // }
 
   private getTimestamp(value: string | Date | null | undefined): number {
     if (!value) {

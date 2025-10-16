@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnChanges, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, input, effect, inject } from '@angular/core';
 import { ChartConfiguration, ChartOptions, TooltipItem } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
 
 import { ExtractionResponse } from '../../../../core/services/api.service';
+import { coerceNumber, formatDate } from '../../../utils/data-coercion.util';
 
 @Component({
   selector: 'app-extraction-weight-volume-graph',
@@ -12,16 +13,15 @@ import { ExtractionResponse } from '../../../../core/services/api.service';
   template: `
     <div class="graph-card">
       <h3>Tank Weight vs Volume</h3>
-      @if (isLoading) {
+      @if (isLoading()) {
         <p>Loading data...</p>
-      } @else if (rows && rows.length > 0) {
+      } @else if (rows() && rows()!.length > 0) {
         <div class="chart-container">
           <canvas
             baseChart
             [data]="chartData"
             [options]="chartOptions"
-            chartType="bar"
-            (chartClick)="onChartClick($event)">
+            chartType="bar">
           </canvas>
         </div>
         @if (selectedRecord; as record) {
@@ -232,9 +232,9 @@ import { ExtractionResponse } from '../../../../core/services/api.service';
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ExtractionWeightVolumeGraphComponent implements OnChanges {
-  @Input() rows: ExtractionResponse[] | null = null;
-  @Input() isLoading = false;
+export class ExtractionWeightVolumeGraphComponent {
+  rows = input<ExtractionResponse[] | null>(null);
+  isLoading = input<boolean>(false);
 
   protected selectedRecord: ExtractionResponse | null = null;
 
@@ -243,8 +243,11 @@ export class ExtractionWeightVolumeGraphComponent implements OnChanges {
 
   private readonly cdr = inject(ChangeDetectorRef);
 
-  ngOnChanges(): void {
-    this.updateChartData();
+  constructor() {
+    effect(() => {
+      this.rows();
+      this.updateChartData();
+    });
   }
 
   protected clearSelection(): void {
@@ -268,17 +271,7 @@ export class ExtractionWeightVolumeGraphComponent implements OnChanges {
     return this.resolveNumber(record?.pH, null);
   }
 
-  protected formatDate(value: string | Date | null | undefined): string {
-    if (!value) {
-      return 'Unknown';
-    }
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? 'Unknown' : date.toLocaleDateString();
-  }
-
-  protected onChartClick(_event: unknown): void {
-    // Handled via chartOptions.onClick to keep logic centralized.
-  }
+  protected formatDate = formatDate;
 
   private createChartOptions(): ChartOptions<'bar'> {
     return {
@@ -300,7 +293,7 @@ export class ExtractionWeightVolumeGraphComponent implements OnChanges {
           callbacks: {
             title: (context: TooltipItem<'bar'>[]) => {
               const index = context[0]?.dataIndex ?? 0;
-              const record = this.rows?.[index];
+              const record = this.rows()?.[index];
               if (!record) {
                 return '';
               }
@@ -352,15 +345,16 @@ export class ExtractionWeightVolumeGraphComponent implements OnChanges {
   }
 
   private updateChartData(): void {
-    if (!this.rows?.length) {
+    const currentRows = this.rows();
+    if (!currentRows?.length) {
       this.chartData = { labels: [], datasets: [] };
       this.selectedRecord = null;
       return;
     }
 
-    const labels = this.rows.map(row => this.formatDate(row.date ?? null));
-    const weightData = this.rows.map(row => this.resolveNumber(row.weight, null));
-    const volumeData = this.rows.map(row => this.resolveNumber(row.volume, null));
+    const labels = currentRows.map(row => this.formatDate(row.date ?? null));
+    const weightData = currentRows.map(row => this.resolveNumber(row.weight, null));
+    const volumeData = currentRows.map(row => this.resolveNumber(row.volume, null));
 
     this.chartData = {
       labels,
@@ -383,7 +377,7 @@ export class ExtractionWeightVolumeGraphComponent implements OnChanges {
     };
 
     if (this.selectedRecord) {
-      const stillExists = this.rows.some(row => row === this.selectedRecord);
+      const stillExists = currentRows.some(row => row === this.selectedRecord);
       if (!stillExists) {
         this.selectedRecord = null;
         this.cdr.markForCheck();
@@ -392,38 +386,17 @@ export class ExtractionWeightVolumeGraphComponent implements OnChanges {
   }
 
   protected resolveNumber(primary: unknown, fallback: unknown): number {
-    return this.coerceNumber(primary) ?? this.coerceNumber(fallback) ?? 0;
-  }
-
-  private coerceNumber(value: unknown): number | null {
-    if (value === undefined || value === null) {
-      return null;
-    }
-
-    if (typeof value === 'number') {
-      return Number.isFinite(value) ? value : null;
-    }
-
-    if (typeof value === 'string') {
-      const normalized = value.replace(/[^0-9.-]/g, '');
-      if (!normalized) {
-        return null;
-      }
-      const parsed = Number(normalized);
-      return Number.isFinite(parsed) ? parsed : null;
-    }
-
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
+    return coerceNumber(primary) ?? coerceNumber(fallback) ?? 0;
   }
 
   private selectRecordByIndex(index: number): void {
-    if (!this.rows?.length || index < 0 || index >= this.rows.length) {
+    const currentRows = this.rows();
+    if (!currentRows?.length || index < 0 || index >= currentRows.length) {
       this.selectedRecord = null;
       this.cdr.markForCheck();
       return;
     }
-    this.selectedRecord = this.rows[index] ?? null;
+    this.selectedRecord = currentRows[index] ?? null;
     this.cdr.markForCheck();
   }
 }

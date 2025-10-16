@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, Input, OnChanges } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, input, effect, inject } from '@angular/core';
 import { ChartConfiguration, ChartOptions, TooltipItem } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
 
 import { ExtractionResponse } from '../../../../core/services/api.service';
+import { coerceNumber, formatDate } from '../../../utils/data-coercion.util';
 
 interface PlantVolumeSummary {
   readonly plant: string;
@@ -22,9 +23,9 @@ interface PlantVolumeSummary {
   template: `
     <div class="graph-card">
       <h3>Plant Volume Distribution</h3>
-      @if (isLoading) {
+      @if (isLoading()) {
         <p>Loading data...</p>
-      } @else if (rows && rows.length > 0) {
+      } @else if (rows() && rows()!.length > 0) {
         <div class="chart-container">
           <canvas
             baseChart
@@ -246,9 +247,11 @@ interface PlantVolumeSummary {
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ExtractionPlantVolumeGraphComponent implements OnChanges {
-  @Input() rows: ExtractionResponse[] | null = null;
-  @Input() isLoading = false;
+export class ExtractionPlantVolumeGraphComponent {
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  rows = input<ExtractionResponse[] | null>(null);
+  isLoading = input<boolean>(false);
 
   protected selectedRecord: PlantVolumeSummary | null = null;
 
@@ -261,24 +264,23 @@ export class ExtractionPlantVolumeGraphComponent implements OnChanges {
 
   private summaries: PlantVolumeSummary[] = [];
 
-  ngOnChanges(): void {
-    this.updateChartData();
+  constructor() {
+    effect(() => {
+      this.rows();
+      this.updateChartData();
+    });
   }
 
   protected clearSelection(): void {
     this.selectedRecord = null;
+    this.cdr.markForCheck();
   }
 
-  protected formatDate(value: string | Date | null | undefined): string {
-    if (!value) {
-      return 'Unknown';
-    }
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? 'Unknown' : date.toLocaleDateString();
-  }
+  protected formatDate = formatDate;
 
   private updateChartData(): void {
-    if (!this.rows?.length) {
+    const currentRows = this.rows();
+    if (!currentRows?.length) {
       this.chartData = { labels: [], datasets: [] };
       this.chartOptions = this.createChartOptions();
       this.summaries = [];
@@ -288,7 +290,7 @@ export class ExtractionPlantVolumeGraphComponent implements OnChanges {
 
     const volumeByPlant = new Map<string, { totalVolume: number; totalWeight: number; rows: ExtractionResponse[] }>();
 
-    this.rows.forEach(row => {
+    currentRows.forEach(row => {
       const plant = (row.plant ?? 'Unknown').trim() || 'Unknown';
       const volume = this.resolveNumber(row.volume, null);
       const weight = this.resolveNumber(row.weight, null);
@@ -418,34 +420,13 @@ export class ExtractionPlantVolumeGraphComponent implements OnChanges {
         const element = elements[0];
         const summary = this.summaries[element.index];
         this.selectedRecord = summary ?? null;
+        this.cdr.markForCheck();
       }
     };
   }
 
   protected resolveNumber(primary: unknown, fallback: unknown): number {
-    return this.coerceNumber(primary) ?? this.coerceNumber(fallback) ?? 0;
-  }
-
-  private coerceNumber(value: unknown): number | null {
-    if (value === undefined || value === null) {
-      return null;
-    }
-
-    if (typeof value === 'number') {
-      return Number.isFinite(value) ? value : null;
-    }
-
-    if (typeof value === 'string') {
-      const normalized = value.replace(/[^0-9.-]/g, '');
-      if (!normalized) {
-        return null;
-      }
-      const parsed = Number(normalized);
-      return Number.isFinite(parsed) ? parsed : null;
-    }
-
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
+    return coerceNumber(primary) ?? coerceNumber(fallback) ?? 0;
   }
 
   private getDateValue(value: string | Date | null | undefined): number {
