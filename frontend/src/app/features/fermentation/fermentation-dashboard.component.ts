@@ -266,6 +266,9 @@ export class FermentationDashboardComponent implements OnInit {
     }
 
     if (this.isSupervisorOrHigher()) {
+      if (!!row.createdBy && row.createdBy === currentUserId) {
+        return true;
+      }
       if (creatorRole && creatorRole !== 'operator') {
         return false;
       }
@@ -289,6 +292,9 @@ export class FermentationDashboardComponent implements OnInit {
     }
 
     if (this.isSupervisorOrHigher()) {
+      if (!!row.createdBy && row.createdBy === currentUserId) {
+        return true;
+      }
       if (creatorRole && creatorRole !== 'operator') {
         return false;
       }

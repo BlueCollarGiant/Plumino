@@ -48,15 +48,9 @@ const fermentationSchema = Joi.object({
 
 const applyRoleFilters = (role, userId, baseFilters = {}) => {
   if (role === 'operator') {
-    // Allow operators to see records they created OR legacy seeded data without createdBy
-    return { 
-      ...baseFilters, 
-      $or: [
-        { createdBy: userId },
-        { createdBy: { $exists: false } },
-        { createdBy: null }
-      ]
-    };
+    // Operators can see all records in their department
+    // They can only EDIT their own pending records (enforced in ensureModifyPermission)
+    return baseFilters;
   }
   return baseFilters;
 };
@@ -113,10 +107,12 @@ const ensureModifyPermission = async (record, user, actionLabel) => {
     return { allowed: false, status: 400, message: 'Record does not have a creator associated.' };
   }
 
+  // Allow users to edit their own records regardless of status
   if (creatorId === userId) {
     return { allowed: true };
   }
 
+  // For editing other users' records, can only modify operator-created records
   const creatorInfo = await resolveCreatorInfo(record.createdBy);
   if (!creatorInfo) {
     return { allowed: false, status: 404, message: 'Creator not found for this record.' };

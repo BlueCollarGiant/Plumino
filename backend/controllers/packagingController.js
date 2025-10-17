@@ -77,15 +77,9 @@ const packagingSchema = Joi.object({
 
 const applyRoleFilters = (role, userId, baseFilters = {}) => {
   if (role === 'operator') {
-    // Allow operators to see records they created OR legacy seeded data without createdBy
-    return { 
-      ...baseFilters, 
-      $or: [
-        { createdBy: userId },
-        { createdBy: { $exists: false } },
-        { createdBy: null }
-      ]
-    };
+    // Operators can see all records in their department
+    // They can only EDIT their own pending records (enforced in ensureModifyPermission)
+    return baseFilters;
   }
   return baseFilters;
 };

@@ -244,6 +244,9 @@ export class ExtractionDashboardComponent {
     }
 
     if (this.isSupervisorOrHigher()) {
+      if (!!row.createdBy && row.createdBy === currentUserId) {
+        return true;
+      }
       if (creatorRole && creatorRole !== 'operator') {
         return false;
       }
@@ -267,6 +270,9 @@ export class ExtractionDashboardComponent {
     }
 
     if (this.isSupervisorOrHigher()) {
+      if (!!row.createdBy && row.createdBy === currentUserId) {
+        return true;
+      }
       if (creatorRole && creatorRole !== 'operator') {
         return false;
       }
