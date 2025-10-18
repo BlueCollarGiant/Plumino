@@ -5,6 +5,20 @@ const Employee = require('../models/employeeModel');
 
 const PRIVILEGED_ROLES = new Set(['supervisor', 'hr', 'admin']);
 
+// Role hierarchy: higher number = higher privilege
+const ROLE_HIERARCHY = {
+  'operator': 1,
+  'supervisor': 2,
+  'hr': 3,
+  'admin': 4
+};
+
+const canEditRole = (userRole, targetRole) => {
+  const userLevel = ROLE_HIERARCHY[userRole] || 0;
+  const targetLevel = ROLE_HIERARCHY[targetRole] || 0;
+  return userLevel >= targetLevel;
+};
+
 // Utility to build Mongo filters
 const buildPackagingFilters = (query = {}) => {
   const { date, plant, product, campaign, packageType, range, startDate, endDate } = query;
@@ -130,7 +144,8 @@ const ensureModifyPermission = async (record, user, actionLabel) => {
     return { allowed: false, status: 404, message: 'Creator not found for this record.' };
   }
 
-  if (creatorInfo.role !== 'operator') {
+  // Check if user's role is high enough to edit the creator's role
+  if (!canEditRole(user.role, creatorInfo.role)) {
     return {
       allowed: false,
       status: 403,
