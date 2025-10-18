@@ -4,6 +4,20 @@ const Employee = require('../models/employeeModel');
 
 const PRIVILEGED_ROLES = new Set(['supervisor', 'hr', 'admin']);
 
+// Role hierarchy: higher number = higher privilege
+const ROLE_HIERARCHY = {
+  'operator': 1,
+  'supervisor': 2,
+  'hr': 3,
+  'admin': 4
+};
+
+const canEditRole = (userRole, targetRole) => {
+  const userLevel = ROLE_HIERARCHY[userRole] || 0;
+  const targetLevel = ROLE_HIERARCHY[targetRole] || 0;
+  return userLevel >= targetLevel;
+};
+
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const buildExtractionFilters = (query = {}) => {
@@ -50,15 +64,9 @@ const extractionSchema = Joi.object({
 
 const applyRoleFilters = (role, userId, baseFilters = {}) => {
   if (role === 'operator') {
-    // Allow operators to see records they created OR legacy seeded data without createdBy
-    return { 
-      ...baseFilters, 
-      $or: [
-        { createdBy: userId },
-        { createdBy: { $exists: false } },
-        { createdBy: null }
-      ]
-    };
+    // Operators can see all records in their department
+    // They can only EDIT their own pending records (enforced in ensureModifyPermission)
+    return baseFilters;
   }
   return baseFilters;
 };
@@ -100,16 +108,19 @@ const ensureModifyPermission = async (record, user, actionLabel) => {
     return { allowed: false, status: 400, message: 'Record does not have a creator associated.' };
   }
 
+  // Allow users to edit their own records regardless of status
   if (creatorId === userId) {
     return { allowed: true };
   }
 
+  // For editing other users' records, check hierarchical permissions
   const creatorInfo = await resolveCreatorInfo(record.createdBy);
   if (!creatorInfo) {
     return { allowed: false, status: 404, message: 'Creator not found for this record.' };
   }
 
-  if (creatorInfo.role !== 'operator') {
+  // Check if user's role is high enough to edit the creator's role
+  if (!canEditRole(user.role, creatorInfo.role)) {
     return {
       allowed: false,
       status: 403,

@@ -191,6 +191,18 @@ export class PackagingDashboardComponent implements OnInit {
     return row.createdBy ? 'operator' : null;
   }
 
+  private canEditRoleHierarchy(userRole: string, creatorRole: string | null): boolean {
+    const hierarchy: Record<string, number> = {
+      'operator': 1,
+      'supervisor': 2,
+      'hr': 3,
+      'admin': 4
+    };
+    const userLevel = hierarchy[userRole] || 0;
+    const creatorLevel = hierarchy[creatorRole || ''] || 0;
+    return userLevel >= creatorLevel;
+  }
+
   protected canEditRow(row: PackagingResponse | ModalRow | null | undefined): boolean {
     if (!row?._id) {
       return false;
@@ -199,13 +211,17 @@ export class PackagingDashboardComponent implements OnInit {
     const status = this.resolveStatus(row);
     const creatorRole = this.resolveCreatorRole(row);
     const currentUserId = this.userId();
+    const currentUserRole = this.userRole();
 
     if (this.isOperator()) {
       return status === 'pending' && !!row.createdBy && row.createdBy === currentUserId;
     }
 
     if (this.isSupervisorOrHigher()) {
-      if (creatorRole && creatorRole !== 'operator') {
+      if (!!row.createdBy && row.createdBy === currentUserId) {
+        return true;
+      }
+      if (creatorRole && !this.canEditRoleHierarchy(currentUserRole, creatorRole)) {
         return false;
       }
       return true;
@@ -222,13 +238,17 @@ export class PackagingDashboardComponent implements OnInit {
     const status = this.resolveStatus(row);
     const creatorRole = this.resolveCreatorRole(row);
     const currentUserId = this.userId();
+    const currentUserRole = this.userRole();
 
     if (this.isOperator()) {
       return status === 'pending' && !!row.createdBy && row.createdBy === currentUserId;
     }
 
     if (this.isSupervisorOrHigher()) {
-      if (creatorRole && creatorRole !== 'operator') {
+      if (!!row.createdBy && row.createdBy === currentUserId) {
+        return true;
+      }
+      if (creatorRole && !this.canEditRoleHierarchy(currentUserRole, creatorRole)) {
         return false;
       }
       return true;
@@ -242,12 +262,7 @@ export class PackagingDashboardComponent implements OnInit {
       return false;
     }
 
-    if (this.resolveStatus(row) !== 'pending') {
-      return false;
-    }
-
-    const creatorRole = this.resolveCreatorRole(row);
-    return !creatorRole || creatorRole === 'operator';
+    return this.resolveStatus(row) === 'pending';
   }
 
   private readonly syncUserEffect = effect(() => {
