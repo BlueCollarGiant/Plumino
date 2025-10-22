@@ -65,11 +65,26 @@ export class App implements OnInit, OnDestroy {
   }
 
   toggleAuthDrawer(): void {
-    this.authDrawerOpen.update(isOpen => !isOpen);
+    this.authDrawerOpen.update(isOpen => {
+      const newState = !isOpen;
+      this.updateBodyScroll(newState);
+      return newState;
+    });
   }
 
   closeAuthDrawer(): void {
     this.authDrawerOpen.set(false);
+    this.updateBodyScroll(false);
+  }
+
+  private updateBodyScroll(drawerOpen: boolean): void {
+    if (typeof document !== 'undefined') {
+      if (drawerOpen) {
+        document.body.style.overflow = 'hidden';
+      } else {
+        document.body.style.overflow = '';
+      }
+    }
   }
 
   get statusIcon(): string {
