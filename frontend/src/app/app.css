@@ -613,6 +613,8 @@
   opacity: 0;
   animation: backdropFade 0.3s forwards;
   z-index: 1200;
+  overscroll-behavior: contain;
+  touch-action: none;
 }
 
 .auth-drawer {
@@ -631,6 +633,8 @@
   flex-direction: column;
   padding: 2rem 1.75rem;
   backdrop-filter: blur(12px);
+  overflow: hidden;
+  overscroll-behavior: contain;
 }
 
 .auth-drawer.open {
@@ -679,6 +683,23 @@
   flex-direction: column;
   gap: 1.5rem;
   color: #e2e8f0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+  overscroll-behavior: contain;
+  min-height: 0;
+}
+
+/* Scrollbar styling for auth drawer - invisible but functional */
+.auth-drawer-content::-webkit-scrollbar {
+  width: 0px;
+  display: none;
+}
+
+/* Firefox scrollbar styling - invisible */
+.auth-drawer-content {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .auth-drawer-copy {

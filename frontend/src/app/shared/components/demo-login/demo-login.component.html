@@ -1,0 +1,35 @@
+@if (isDemoMode) {
+  <div class="demo-login-container">
+    <div class="demo-header">
+      <h3>Demo</h3>
+    </div>
+
+    <div class="demo-buttons">
+      @for (employee of demoEmployees; track employee.email) {
+        <button
+          type="button"
+          class="demo-button"
+          (click)="loginAsDemo(employee)"
+          [disabled]="loading()"
+        >
+          @if (!loading()) {
+            <span class="button-text">
+              Log in as {{ capitalize(employee.role) }} — Department: {{ capitalize(employee.department) }}
+            </span>
+          } @else {
+            <span class="loading-indicator">
+              <span class="spinner"></span>
+              Logging in...
+            </span>
+          }
+        </button>
+      }
+    </div>
+
+    @if (errorMessage()) {
+      <div class="demo-error">
+        {{ errorMessage() }}
+      </div>
+    }
+  </div>
+}

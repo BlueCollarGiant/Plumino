@@ -4,11 +4,12 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { AuthService, LoginRequest } from '../../../core/services/auth.service';
+import { DemoLoginComponent } from '../demo-login/demo-login.component';
 
 @Component({
   selector: 'app-mobile-auth-nav',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, DemoLoginComponent],
   templateUrl: './mobile-auth-nav.component.html',
   styleUrls: ['./mobile-auth-nav.component.css']
 })
