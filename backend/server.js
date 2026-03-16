@@ -4,6 +4,9 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 
+const { seedEmployees } = require('./employees');
+const { seed } = require('./seed');
+
 const authRoutes = require('./routes/auth'); // login/register
 const apiRoutes = require('./routes/api'); // employee management
 const notificationRoutes = require('./routes/notifications'); // SSE notifications
@@ -40,7 +43,12 @@ if (!MONGO_URI) {
 
 mongoose
   .connect(MONGO_URI)
-  .then(() => console.log('✅ MongoDB connected'))
+  .then(async () => {
+    console.log('✅ MongoDB connected');
+    await seedEmployees();
+    await seed();
+    console.log('🌱 Seeding complete');
+  })
   .catch((err) => {
     console.error('❌ MongoDB connection error:', err);
     process.exit(1);

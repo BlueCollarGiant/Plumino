@@ -4,13 +4,7 @@ const XLSX = require("xlsx");
 
 dotenv.config();
 
-// Render loads MONGO_URI from the Environment tab. No localhost fallback.
 const MONGO_URI = process.env.MONGO_URI;
-
-if (!MONGO_URI) {
-  console.error("❌ Missing MONGO_URI environment variable. Define it in Render or .env");
-  process.exit(1);
-}
 
 // Models
 const Extraction = require("./models/extractionModel");
@@ -188,20 +182,28 @@ async function seed() {
   }
 }
 
-async function main() {
-  try {
-    await mongoose.connect(MONGO_URI);
-    console.log("✅ Connected to MongoDB");
-    await seed();
-    console.log("🌱 Seeding complete");
-  } catch (err) {
-    console.error("❌ MongoDB connection error:", err);
+// Run standalone if called directly
+if (require.main === module) {
+  if (!MONGO_URI) {
+    console.error("❌ Missing MONGO_URI environment variable.");
     process.exit(1);
-  } finally {
-    await mongoose.disconnect();
-    console.log("🔌 Disconnected from MongoDB");
   }
+  async function main() {
+    try {
+      await mongoose.connect(MONGO_URI);
+      console.log("✅ Connected to MongoDB");
+      await seed();
+      console.log("🌱 Seeding complete");
+    } catch (err) {
+      console.error("❌ MongoDB connection error:", err);
+      process.exit(1);
+    } finally {
+      await mongoose.disconnect();
+      console.log("🔌 Disconnected from MongoDB");
+    }
+  }
+  main();
 }
 
-main();
+module.exports = { seed };
 

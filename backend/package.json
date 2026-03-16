@@ -5,8 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "seed": "node seed.js && node employees.js",
-    "postinstall": "npm run seed"
+    "seed": "node seed.js && node employees.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
